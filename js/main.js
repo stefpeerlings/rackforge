@@ -448,15 +448,15 @@ function buildDevicePortParts(device) {
   };
 }
 
-function portAnchorInLayer(deviceId, port, layerRect) {
+function portAnchorInWrapper(deviceId, port, wrapperRect) {
   const row = document.querySelector(`[data-device="${deviceId}"]`);
   if (!row) return null;
   const dot = row.querySelector(`.rack-port[data-port="${port}"]`);
   if (dot) {
     const r = dot.getBoundingClientRect();
     return {
-      x: r.left - layerRect.left + r.width / 2,
-      y: r.top - layerRect.top + r.height / 2,
+      x: r.left - wrapperRect.left + r.width / 2,
+      y: r.top - wrapperRect.top + r.height / 2,
     };
   }
 
@@ -470,48 +470,66 @@ function portAnchorInLayer(deviceId, port, layerRect) {
   if (!target) return null;
   const r = target.getBoundingClientRect();
   return {
-    x: r.left - layerRect.left + (rear && target === rear ? r.width : r.width / 2),
-    y: r.top - layerRect.top + r.height * 0.72,
+    x: r.left - wrapperRect.left + (rear && target === rear ? r.width : r.width / 2),
+    y: r.top - wrapperRect.top + r.height * 0.72,
   };
 }
 
-function rackCablePath(from, to) {
-  const gap = Math.max(28, Math.abs(to.x - from.x) * 0.45);
-  const leave = from.x <= to.x ? gap : -gap;
-  const arrive = from.x <= to.x ? -gap : gap;
-  return `M ${from.x} ${from.y} C ${from.x + leave} ${from.y}, ${to.x + arrive} ${to.y}, ${to.x} ${to.y}`;
+function rackCableChannelX(wrapperRect) {
+  const rackEl = document.getElementById("rack");
+  if (!rackEl) return wrapperRect.width - 10;
+  const rackRect = rackEl.getBoundingClientRect();
+  return rackRect.right - wrapperRect.left + 5;
+}
+
+function rackCablePath(from, to, channelX) {
+  return `M ${from.x} ${from.y} H ${channelX} V ${to.y} H ${to.x}`;
 }
 
 function renderRackCabling() {
-  const layer = document.getElementById("rack-cabling-layer");
+  const wrapper = document.getElementById("rack-wrapper");
   const svg = document.getElementById("rack-cabling-svg");
-  if (!layer || !svg) return;
+  if (!wrapper || !svg) return;
 
   if (connections.length === 0) {
-    layer.classList.remove("rack-cabling-layer--active");
+    wrapper.classList.remove("rack-wrapper--cabled");
     svg.innerHTML = "";
     return;
   }
 
-  layer.classList.add("rack-cabling-layer--active");
+  wrapper.classList.add("rack-wrapper--cabled");
 
   requestAnimationFrame(() => {
-    const layerRect = layer.getBoundingClientRect();
-    if (layerRect.width < 1 || layerRect.height < 1) return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    if (wrapperRect.width < 1 || wrapperRect.height < 1) return;
 
-    svg.setAttribute("viewBox", `0 0 ${layerRect.width} ${layerRect.height}`);
+    svg.setAttribute("viewBox", `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
     svg.innerHTML = "";
 
-    connections.forEach((c) => {
-      const from = portAnchorInLayer(c.fromDeviceId, c.fromPort, layerRect);
-      const to = portAnchorInLayer(c.toDeviceId, c.toPort, layerRect);
+    const channelX = rackCableChannelX(wrapperRect);
+    const channel = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    channel.setAttribute("x1", String(channelX));
+    channel.setAttribute("y1", "0");
+    channel.setAttribute("x2", String(channelX));
+    channel.setAttribute("y2", String(wrapperRect.height));
+    channel.setAttribute("class", "rack-cable-channel");
+    svg.appendChild(channel);
+
+    const laneStep = 2.5;
+    const laneCount = Math.min(connections.length, 5);
+    const laneStart = channelX - ((laneCount - 1) * laneStep) / 2;
+
+    connections.forEach((c, idx) => {
+      const from = portAnchorInWrapper(c.fromDeviceId, c.fromPort, wrapperRect);
+      const to = portAnchorInWrapper(c.toDeviceId, c.toPort, wrapperRect);
       if (!from || !to) return;
 
+      const laneX = laneStart + (idx % laneCount) * laneStep;
       const color = c.color || CABLE_COLORS[0].value;
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", rackCablePath(from, to));
+      path.setAttribute("d", rackCablePath(from, to, laneX));
       path.setAttribute("stroke", color);
-      path.setAttribute("stroke-opacity", "0.88");
+      path.setAttribute("stroke-opacity", "0.9");
       path.setAttribute("class", "rack-cable-line");
       if (c.label) path.setAttribute("aria-label", c.label);
       svg.appendChild(path);

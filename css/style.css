@@ -1742,8 +1742,14 @@ body.avatar-crop-dragging .avatar-crop-stage {
   overflow: visible;
 }
 
-.rack-cabling-layer:not(.rack-cabling-layer--active) .rack-cabling-svg {
+.rack-wrapper:not(.rack-wrapper--cabled) .rack-cabling-svg {
   display: none;
+}
+
+.rack-cable-channel {
+  stroke: rgba(148, 163, 184, 0.22);
+  stroke-width: 8;
+  stroke-linecap: round;
 }
 
 .rack {
@@ -2206,6 +2212,7 @@ body.avatar-crop-dragging .avatar-crop-stage {
 .rack-cable-line {
   fill: none;
   stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-width: 2.5;
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.6));
 }
