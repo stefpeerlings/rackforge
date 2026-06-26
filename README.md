@@ -6,19 +6,21 @@ RackForge is een rack-planning webapp met SQLite-API, admin-panel en Caddy rever
 - **API:** Python (`server.py`) op `127.0.0.1:8080`
 - **Admin:** `/admin` — databasebeheer, gebruikers, exports
 
+**Repo:** https://github.com/stefpeerlings/rackforge (private)
+
 ## Vereisten
 
 - Ubuntu-server met Caddy
 - Python 3
 - systemd (user service voor de API)
 
-## Snel herstellen (Ubuntu)
+## Installatie in één commando (Ubuntu)
 
 ```bash
-git clone https://github.com/stefpeerlings/rackforge.git ~/rackforge-src
-cd ~/rackforge-src
-bash scripts/restore-ubuntu.sh
+git clone https://github.com/stefpeerlings/rackforge.git && cd rackforge && bash install.sh
 ```
+
+Dat is alles: clone + volledige restore in één regel.
 
 Het script:
 
@@ -86,6 +88,7 @@ bash setup-api.sh       # alternatief: system-wide API service
 ├── Caddyfile             # Reverse proxy (/api, /admin → :8080)
 ├── deploy.ps1            # Windows deploy
 ├── rackforge-api.user.service
+├── install.sh              # Entry point (roept restore aan)
 └── scripts/
     ├── restore-ubuntu.sh # Herstel op nieuwe server
     └── push-github.ps1     # Push naar GitHub

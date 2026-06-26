@@ -1,8 +1,7 @@
 #!/bin/bash
 # RackForge — herstel op een verse Ubuntu-server vanaf GitHub
-# Gebruik:
-#   git clone git@github.com:JOUW_USER/rackforge.git ~/rackforge-src
-#   cd ~/rackforge-src && bash scripts/restore-ubuntu.sh
+# Gebruik (één regel):
+#   git clone https://github.com/stefpeerlings/rackforge.git && cd rackforge && bash install.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
