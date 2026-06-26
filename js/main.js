@@ -488,8 +488,7 @@ function switchPortCableStub(device, port) {
   if (!device || !norm.startsWith("switch-") || devicePortPlacement(device.type) !== "front") {
     return null;
   }
-  const row = switchPortRow(device.type, port);
-  return { len: SWITCH_CABLE_STUB_LEN, dir: row === 0 ? -1 : 1 };
+  return { len: SWITCH_CABLE_STUB_LEN, dir: -1 };
 }
 
 function portCablePoints(deviceId, port, wrapperRect) {
