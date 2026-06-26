@@ -427,10 +427,10 @@ function normalizeDeviceType(type) {
 }
 
 const FRONT_PORT_LAYOUTS = {
-  "switch-16": (port) => gridPortPercent(port, 228, 13, 8, 13, 11, 12, 7),
-  "switch-24": (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
-  "switch-48": (port) => gridPortPercent(port, 68, 13, 24, 14.5, 10, 11, 6),
-  switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
+  "switch-16": (port) => gridPortPercent(port, 228, 13, 8, 13, 11, 12, 6),
+  "switch-24": (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 6),
+  "switch-48": (port) => gridPortPercent(port, 68, 13, 24, 14.5, 10, 11, 5.5),
+  switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
   "patch-16": (port) => rowPortPercent(port, 18.4, 26.9, 21),
   "patch-24": (port) => rowPortPercent(port, 13.9, 17.4, 19),
@@ -448,40 +448,24 @@ function devicePortPlacement(type) {
   return "front";
 }
 
-function switchPortRow(type, port) {
-  const norm = normalizeDeviceType(type);
-  if (norm === "switch-48") return Math.floor((port - 1) / 24);
-  if (norm === "switch-24" || norm === "switch") return Math.floor((port - 1) / 12);
-  if (norm === "switch-16") return Math.floor((port - 1) / 8);
-  return 0;
-}
-
 function frontPortPosition(device, port, total) {
   const layout = FRONT_PORT_LAYOUTS[normalizeDeviceType(device.type)];
-  let pos;
-  if (layout) pos = layout(port, total);
-  else pos = { left: ((port - 0.5) / total) * 100, top: 72 };
+  if (layout) return layout(port, total);
+  return { left: ((port - 0.5) / total) * 100, top: 72 };
+}
 
-  const norm = normalizeDeviceType(device.type);
-  if (norm.startsWith("switch-") && switchPortRow(device.type, port) === 0) {
-    pos = { ...pos, top: pos.top - (2 / FACE_VIEW.h) * 100 };
-  }
-  return pos;
+function portAnchorOnFaceplate(device, port, wrapperRect, rowEl) {
+  const face = rowEl.querySelector(".rack-device__faceplate");
+  if (!face) return null;
+  const faceRect = face.getBoundingClientRect();
+  const { left, top } = frontPortPosition(device, port, devicePortCount(device));
+  return {
+    x: faceRect.left - wrapperRect.left + (left / 100) * faceRect.width,
+    y: faceRect.top - wrapperRect.top + (top / 100) * faceRect.height,
+  };
 }
 
 const SWITCH_CABLE_STUB_LEN = 4;
-
-function switchCableAnchorOffset(device, port) {
-  const norm = normalizeDeviceType(device.type);
-  if (!norm.startsWith("switch-") || devicePortPlacement(device.type) !== "front") {
-    return { dx: 0, dy: 0 };
-  }
-  const row = switchPortRow(device.type, port);
-  return {
-    dx: -3,
-    dy: row === 0 ? -2 : 1,
-  };
-}
 
 function switchPortCableStub(device, port) {
   const norm = normalizeDeviceType(device?.type);
@@ -588,25 +572,28 @@ function portAnchorInWrapper(deviceId, port, wrapperRect) {
   const row = document.querySelector(`[data-device="${deviceId}"]`);
   if (!row) return null;
   const device = devices.find((d) => d.id === deviceId);
-  const dot = row.querySelector(`.rack-port[data-port="${port}"]`);
-  if (dot) {
-    const r = dot.getBoundingClientRect();
-    const offset = device ? switchCableAnchorOffset(device, port) : { dx: 0, dy: 0 };
+  if (!device) return null;
+
+  if (devicePortPlacement(device.type) === "front" && devicePortCount(device) > 0) {
+    return portAnchorOnFaceplate(device, port, wrapperRect, row);
+  }
+
+  const rear = row.querySelector(".rack-device__rear");
+  if (rear) {
+    const r = rear.getBoundingClientRect();
+    const total = devicePortCount(device);
+    const pct = (port - 0.5) / total;
     return {
-      x: r.left - wrapperRect.left + r.width / 2 + offset.dx,
-      y: r.top - wrapperRect.top + r.height / 2 + offset.dy,
+      x: r.left - wrapperRect.left + r.width,
+      y: r.top - wrapperRect.top + pct * r.height,
     };
   }
+
   const face = row.querySelector(".rack-device__faceplate");
-  const rear = row.querySelector(".rack-device__rear");
-  const target =
-    device && devicePortPlacement(device.type) === "rear" && rear
-      ? rear
-      : face;
-  if (!target) return null;
-  const r = target.getBoundingClientRect();
+  if (!face) return null;
+  const r = face.getBoundingClientRect();
   return {
-    x: r.left - wrapperRect.left + (rear && target === rear ? r.width : r.width / 2),
+    x: r.left - wrapperRect.left + r.width / 2,
     y: r.top - wrapperRect.top + r.height * 0.72,
   };
 }
