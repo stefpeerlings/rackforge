@@ -478,10 +478,12 @@ function portAnchorInWrapper(deviceId, port, wrapperRect) {
 function rackCableBayMetrics(wrapperRect) {
   const bay = document.getElementById("rack-cable-bay");
   const rackEl = document.getElementById("rack");
-  if (!bay || !rackEl) return null;
+  const railRight = document.getElementById("rail-right");
+  if (!bay || !rackEl || !railRight) return null;
 
   const bayRect = bay.getBoundingClientRect();
   const rackRect = rackEl.getBoundingClientRect();
+  const railRect = railRight.getBoundingClientRect();
   if (bayRect.width < 1) return null;
 
   return {
@@ -490,6 +492,8 @@ function rackCableBayMetrics(wrapperRect) {
     center: bayRect.left - wrapperRect.left + bayRect.width / 2,
     width: bayRect.width,
     rackRight: rackRect.right - wrapperRect.left,
+    railRight: railRect.right - wrapperRect.left,
+    railLeft: railRect.left - wrapperRect.left,
   };
 }
 
@@ -505,11 +509,16 @@ function assignCableLaneXs(entries, bay) {
 }
 
 function rackCablePath(from, to, laneX, bay) {
-  const mouth = bay.rackRight + 1;
-  if (Math.abs(from.x - mouth) < 2) {
-    return `M ${from.x} ${from.y} H ${laneX} V ${to.y} H ${to.x}`;
-  }
-  return `M ${from.x} ${from.y} H ${mouth} H ${laneX} V ${to.y} H ${to.x}`;
+  const rackExit = bay.rackRight + 1;
+  const railPass = bay.railRight + 1;
+
+  let d = `M ${from.x} ${from.y}`;
+  if (from.x < rackExit - 1) d += ` H ${rackExit}`;
+  if (from.x < railPass - 1) d += ` H ${railPass}`;
+  d += ` H ${laneX} V ${to.y} H ${railPass}`;
+  if (to.x < rackExit - 1) d += ` H ${rackExit}`;
+  d += ` H ${to.x}`;
+  return d;
 }
 
 function renderRackCabling() {

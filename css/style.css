@@ -1671,7 +1671,8 @@ body.avatar-crop-dragging .avatar-crop-stage {
 }
 
 .rack-wrapper--cabled {
-  grid-template-columns: 24px 10px 1fr 20px 10px;
+  grid-template-columns: 24px 10px 1fr 10px 22px;
+  padding-right: 6px;
 }
 
 .rack-nums {
@@ -1758,31 +1759,25 @@ body.avatar-crop-dragging .avatar-crop-stage {
   background:
     repeating-linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.02) 0px,
-      rgba(255, 255, 255, 0.02) 1px,
+      rgba(255, 255, 255, 0.025) 0px,
+      rgba(255, 255, 255, 0.025) 1px,
       transparent 1px,
       transparent 7px
     ),
-    linear-gradient(180deg, #05080d 0%, #0a1018 45%, #080c12 100%);
-  border-left: 2px solid rgba(58, 78, 98, 0.55);
+    linear-gradient(180deg, #070b10 0%, #0c1219 45%, #080c12 100%);
+  border-left: 1px solid rgba(74, 93, 112, 0.35);
   box-shadow:
-    inset 4px 0 10px rgba(0, 0, 0, 0.75),
-    inset -2px 0 6px rgba(0, 0, 0, 0.45);
-  border-radius: 0 3px 3px 0;
+    inset 3px 0 8px rgba(0, 0, 0, 0.55),
+    inset -3px 0 8px rgba(0, 0, 0, 0.35);
+  border-radius: 0 4px 4px 0;
   position: relative;
   z-index: 5;
   pointer-events: none;
+  margin-left: 2px;
 }
 
 .rack-wrapper--cabled .rack-cable-bay {
   display: block;
-}
-
-.rack-wrapper--cabled .rack {
-  border-right: none;
-  padding-right: 4px;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
 }
 
 .rack-cable-bay__guide {
@@ -1804,7 +1799,6 @@ body.avatar-crop-dragging .avatar-crop-stage {
   z-index: 2;
   min-width: 0;
   overflow: visible;
-  transition: border-color 0.2s ease, padding 0.2s ease;
 }
 
 .rack-u {
