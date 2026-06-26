@@ -432,13 +432,13 @@ const FRONT_PORT_LAYOUTS = {
   "switch-48": (port) => gridPortPercent(port, 68, 13, 24, 14.5, 10, 11, 5.5),
   switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
-  "patch-16": (port) => rowPortPercent(port, 18.4, 26.9, 21),
-  "patch-24": (port) => rowPortPercent(port, 13.9, 17.4, 19),
+  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 21),
+  "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 22.3),
   "patch-48": (port) => {
     const col = (port - 1) % 24;
     const row = Math.floor((port - 1) / 24);
     const cx = 14.15 + col * 17.5;
-    const cy = row === 0 ? 15.5 : 28.5;
+    const cy = row === 0 ? 18 : 31;
     return svgPortPercent(cx, cy);
   },
 };
@@ -465,21 +465,50 @@ function portAnchorOnFaceplate(device, port, wrapperRect, rowEl) {
   };
 }
 
-const SWITCH_CABLE_STUB_LEN = 4;
+const PORT_CABLE_STUB_LEN = 4;
 
-function switchPortCableStub(device, port) {
-  const norm = normalizeDeviceType(device?.type);
-  if (!device || !norm.startsWith("switch-") || devicePortPlacement(device.type) !== "front") {
-    return null;
+function switch48BottomPort(port) {
+  return Math.floor((port - 1) / 24) === 1;
+}
+
+function connectionPeer(deviceId, port) {
+  for (const c of connections) {
+    if (c.fromDeviceId === deviceId && c.fromPort === port) {
+      return { deviceId: c.toDeviceId, port: c.toPort };
+    }
+    if (c.toDeviceId === deviceId && c.toPort === port) {
+      return { deviceId: c.fromDeviceId, port: c.fromPort };
+    }
   }
-  return { len: SWITCH_CABLE_STUB_LEN, dir: -1 };
+  return null;
+}
+
+function portCableStub(device, deviceId, port) {
+  if (!device || devicePortPlacement(device.type) !== "front") return null;
+  const norm = normalizeDeviceType(device.type);
+
+  if (norm.startsWith("switch-")) {
+    return { len: PORT_CABLE_STUB_LEN, dir: -1 };
+  }
+
+  if (!device.type.startsWith("patch-")) return null;
+
+  const peer = connectionPeer(deviceId, port);
+  if (peer) {
+    const peerDev = devices.find((d) => d.id === peer.deviceId);
+    if (peerDev && normalizeDeviceType(peerDev.type) === "switch-48" && switch48BottomPort(peer.port)) {
+      return { len: PORT_CABLE_STUB_LEN, dir: 1 };
+    }
+  }
+
+  return { len: PORT_CABLE_STUB_LEN, dir: -1 };
 }
 
 function portCablePoints(deviceId, port, wrapperRect) {
   const bend = portAnchorInWrapper(deviceId, port, wrapperRect);
   if (!bend) return null;
   const device = devices.find((d) => d.id === deviceId);
-  const stub = device ? switchPortCableStub(device, port) : null;
+  const stub = device ? portCableStub(device, deviceId, port) : null;
   if (!stub) return { bend, tip: bend, stub: null };
   return {
     bend,
