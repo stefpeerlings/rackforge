@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 166" fill="none">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#5a6a78"/>
+      <stop offset="12%" stop-color="#4a5866"/>
+      <stop offset="30%" stop-color="#3d4d5c"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="70%" stop-color="#3a4a58"/>
+      <stop offset="88%" stop-color="#4a5866"/>
+      <stop offset="100%" stop-color="#526070"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="440" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="25%" stop-color="#ffffff" stop-opacity="0.09"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="75%" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="440" height="166" fill="url(#metal)"/>
+  <rect width="440" height="166" fill="url(#sheen)"/>
+</svg>

@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 166" fill="none">
+  <defs>
+    <linearGradient id="chassis" x1="0" y1="0" x2="0" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2a2a2e"/>
+      <stop offset="50%" stop-color="#161618"/>
+      <stop offset="100%" stop-color="#2a2a2e"/>
+    </linearGradient>
+    <linearGradient id="greenBar" x1="0" y1="0" x2="0" y2="166" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1bdb7a"/>
+      <stop offset="50%" stop-color="#0d8a4a"/>
+      <stop offset="100%" stop-color="#0a6e3c"/>
+    </linearGradient>
+    <linearGradient id="lcdBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a1a10"/>
+      <stop offset="100%" stop-color="#060e08"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="440" height="166" fill="url(#chassis)"/>
+  <rect x="0.5" y="0.5" width="439" height="165" stroke="#3a3a40" stroke-width="1"/>
+
+  <rect x="2" y="2" width="5" height="162" rx="1" fill="url(#greenBar)"/>
+  <rect x="2" y="2" width="5" height="162" rx="1" fill="#fff" opacity="0.08"/>
+
+  <!-- U4 — management -->
+  <rect x="10" y="3" width="426" height="36" rx="1.5" fill="#101014" stroke="#2a2a30" stroke-width="0.75"/>
+
+  <g transform="translate(14, 7)">
+    <rect width="200" height="28" rx="1" fill="#0c0c0e" stroke="#2a2a30" stroke-width="0.5"/>
+    <g fill="#0a0a0c" opacity="0.9">
+      <rect x="8" y="4" width="184" height="1.5" rx="0.3"/>
+      <rect x="8" y="7.5" width="184" height="1.5" rx="0.3"/>
+      <rect x="8" y="11" width="184" height="1.5" rx="0.3"/>
+      <rect x="8" y="14.5" width="184" height="1.5" rx="0.3"/>
+      <rect x="8" y="18" width="184" height="1.5" rx="0.3"/>
+    </g>
+    <text x="100" y="26" text-anchor="middle" fill="#4a4a54" font-family="Arial" font-size="3">SYSTEM COOLING</text>
+  </g>
+
+  <g transform="translate(222, 7)">
+    <rect width="100" height="28" rx="1" fill="#0a0a0c" stroke="#2a2a30" stroke-width="0.5"/>
+    <rect x="3" y="3" width="94" height="14" rx="0.5" fill="url(#lcdBg)" stroke="#1a4a2a" stroke-width="0.5"/>
+    <text x="8" y="12" fill="#1bdb7a" font-family="JetBrains Mono, monospace" font-size="6" font-weight="600">READY</text>
+    <text x="8" y="24" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="4.5">iDRAC · 10.0.40.5</text>
+  </g>
+
+  <g transform="translate(328, 8)">
+    <text x="0" y="8" fill="#0d8a4a" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="bold" letter-spacing="1.5">RACK</text>
+    <text x="0" y="18" fill="#e2e8f0" font-family="Arial, Helvetica, sans-serif" font-size="7" font-weight="600" letter-spacing="2">SERVER</text>
+    <text x="0" y="27" fill="#64748b" font-family="Arial, sans-serif" font-size="4.5">4U · 24-Bay</text>
+  </g>
+
+  <g transform="translate(400, 9)">
+    <circle cx="8" cy="10" r="5" fill="#1a1a1e" stroke="#444" stroke-width="0.6"/>
+    <circle cx="8" cy="10" r="3.5" fill="#222" stroke="#1bdb7a" stroke-width="0.6"/>
+    <path d="M8 7.5v3.5M6.2 9.2a2.2 2.2 0 0 1 3.6 0" stroke="#1bdb7a" stroke-width="0.7" stroke-linecap="round"/>
+    <circle cx="24" cy="6" r="2.5" fill="#0a1a10" stroke="#1a3a28" stroke-width="0.5"/>
+    <circle cx="24" cy="6" r="1.5" fill="#1bdb7a"/>
+    <text x="24" y="14" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="3">PWR</text>
+    <circle cx="24" cy="20" r="2.5" fill="#081018" stroke="#1a3060" stroke-width="0.5"/>
+    <circle cx="24" cy="20" r="1.5" fill="#0076ce"/>
+    <text x="24" y="28" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="3">iDR</text>
+  </g>
+
+  <rect x="10" y="40" width="426" height="2" fill="#08080a"/>
+
+  <!-- U3 — drives 1-8 -->
+  <rect x="10" y="43" width="426" height="36" rx="1.5" fill="#101014" stroke="#2a2a30" stroke-width="0.75"/>
+  <g transform="translate(14, 47)">
+    <text x="0" y="-2" fill="#64748b" font-family="Arial" font-size="3.5">BAY 1–8</text>
+    <g transform="translate(0,2)">
+      <g transform="translate(0,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">1</text></g>
+      <g transform="translate(32,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">2</text></g>
+      <g transform="translate(64,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">3</text></g>
+      <g transform="translate(96,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#334155"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">4</text></g>
+      <g transform="translate(128,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">5</text></g>
+      <g transform="translate(160,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">6</text></g>
+      <g transform="translate(192,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">7</text></g>
+      <g transform="translate(224,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214" stroke="#2a2a28" stroke-width="0.3"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">8</text></g>
+    </g>
+  </g>
+  <g transform="translate(278, 49)">
+    <rect width="152" height="24" rx="1" fill="#0c0c0e" stroke="#2a2a30" stroke-width="0.5"/>
+    <text x="8" y="10" fill="#64748b" font-family="Arial" font-size="4">2× Intel Xeon · 256GB RAM</text>
+    <text x="8" y="19" fill="#4a5a54" font-family="Arial" font-size="3.5">24× 2.5" SAS Hot-Swap</text>
+  </g>
+
+  <rect x="10" y="80" width="426" height="2" fill="#08080a"/>
+
+  <!-- U2 — drives 9-16 -->
+  <rect x="10" y="83" width="426" height="36" rx="1.5" fill="#101014" stroke="#2a2a30" stroke-width="0.75"/>
+  <g transform="translate(14, 87)">
+    <text x="0" y="-2" fill="#64748b" font-family="Arial" font-size="3.5">BAY 9–16</text>
+    <g transform="translate(0,2)">
+      <g transform="translate(0,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">9</text></g>
+      <g transform="translate(32,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">10</text></g>
+      <g transform="translate(64,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">11</text></g>
+      <g transform="translate(96,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">12</text></g>
+      <g transform="translate(128,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#f59e0b"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">13</text></g>
+      <g transform="translate(160,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">14</text></g>
+      <g transform="translate(192,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">15</text></g>
+      <g transform="translate(224,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">16</text></g>
+    </g>
+  </g>
+
+  <rect x="10" y="120" width="426" height="2" fill="#08080a"/>
+
+  <!-- U1 — drives 17-24 -->
+  <rect x="10" y="123" width="426" height="36" rx="1.5" fill="#101014" stroke="#2a2a30" stroke-width="0.75"/>
+  <g transform="translate(14, 127)">
+    <text x="0" y="-2" fill="#64748b" font-family="Arial" font-size="3.5">BAY 17–24</text>
+    <g transform="translate(0,2)">
+      <g transform="translate(0,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">17</text></g>
+      <g transform="translate(32,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">18</text></g>
+      <g transform="translate(64,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">19</text></g>
+      <g transform="translate(96,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">20</text></g>
+      <g transform="translate(128,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">21</text></g>
+      <g transform="translate(160,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#334155"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">22</text></g>
+      <g transform="translate(192,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">23</text></g>
+      <g transform="translate(224,0)"><rect width="30" height="26" rx="1" fill="#0e0e12" stroke="#2a2a30" stroke-width="0.5"/><rect x="2" y="2" width="26" height="18" rx="0.5" fill="#08080a" stroke="#333" stroke-width="0.4"/><rect x="4" y="4" width="22" height="2.5" rx="0.3" fill="#1a1a1e"/><rect x="6" y="8" width="18" height="10" rx="0.3" fill="#121214"/><circle cx="24" cy="4" r="1.2" fill="#1bdb7a"/><text x="15" y="24" text-anchor="middle" fill="#5a5a64" font-family="Arial" font-size="3">24</text></g>
+    </g>
+  </g>
+  <g transform="translate(278, 129)">
+    <rect width="72" height="24" rx="1" fill="#0c0c0e" stroke="#2a2a30" stroke-width="0.5"/>
+    <rect x="4" y="4" width="20" height="14" rx="1" fill="#0a0a0e" stroke="#3a3a48" stroke-width="0.5"/>
+    <rect x="6" y="6" width="16" height="10" rx="0.5" fill="#141418"/>
+    <text x="14" y="22" text-anchor="middle" fill="#555" font-family="Arial" font-size="3">USB</text>
+    <rect x="30" y="4" width="36" height="14" rx="1" fill="#0a0a0e" stroke="#3a3a48" stroke-width="0.5"/>
+    <text x="48" y="13" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="3.5">VGA / iDRAC</text>
+  </g>
+
+  <rect x="10" y="3" width="426" height="1" fill="#fff" opacity="0.04"/>
+</svg>

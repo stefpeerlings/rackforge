@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 82" fill="none">
+  <defs>
+    <linearGradient id="chassis" x1="0" y1="0" x2="0" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2a2830"/>
+      <stop offset="50%" stop-color="#1a1820"/>
+      <stop offset="100%" stop-color="#2a2830"/>
+    </linearGradient>
+    <linearGradient id="purpleBar" x1="0" y1="0" x2="0" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="50%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="lcdBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#100c1a"/>
+      <stop offset="100%" stop-color="#08060e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="440" height="82" fill="url(#chassis)"/>
+  <rect x="0.5" y="0.5" width="439" height="81" stroke="#3a3848" stroke-width="1"/>
+
+  <rect x="2" y="2" width="5" height="78" rx="1" fill="url(#purpleBar)"/>
+  <rect x="2" y="2" width="5" height="78" rx="1" fill="#fff" opacity="0.08"/>
+
+  <!-- Top U -->
+  <rect x="10" y="3" width="426" height="36" rx="1.5" fill="#101018" stroke="#2a2838" stroke-width="0.75"/>
+
+  <!-- Drive bays 1-6 -->
+  <g transform="translate(14, 7)">
+    <g transform="translate(0,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">1</text></g>
+    <g transform="translate(44,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#a78bfa"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">2</text></g>
+    <g transform="translate(88,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">3</text></g>
+    <g transform="translate(132,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">4</text></g>
+    <g transform="translate(176,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#a78bfa"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">5</text></g>
+    <g transform="translate(220,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">6</text></g>
+  </g>
+
+  <!-- Status panel (top U right) -->
+  <g transform="translate(268, 7)">
+    <rect width="72" height="28" rx="1" fill="#0a0a10" stroke="#2a2838" stroke-width="0.5"/>
+    <rect x="3" y="3" width="66" height="14" rx="0.5" fill="url(#lcdBg)" stroke="#3a2860" stroke-width="0.5"/>
+    <text x="7" y="11" fill="#a78bfa" font-family="JetBrains Mono, monospace" font-size="5.5" font-weight="600">HEALTHY</text>
+    <text x="7" y="24" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="4.5">RAID-6 · 48TB</text>
+  </g>
+
+  <g transform="translate(346, 7)">
+    <rect width="42" height="28" rx="1" fill="#101018" stroke="#2a2838" stroke-width="0.5"/>
+    <text x="21" y="8" text-anchor="middle" fill="#a78bfa" font-family="Arial, sans-serif" font-size="7" font-weight="bold" letter-spacing="1">RACK</text>
+    <text x="21" y="17" text-anchor="middle" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="6" font-weight="600" letter-spacing="2">NAS</text>
+    <text x="21" y="25" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="3.5">12-Bay · 2U</text>
+  </g>
+
+  <!-- Network (top U far right) -->
+  <g transform="translate(394, 9)">
+    <rect width="38" height="24" rx="1" fill="#101018" stroke="#2a2838" stroke-width="0.5"/>
+    <rect x="3" y="3" width="14" height="14" rx="1" fill="#0a0a0e" stroke="#3a3a48" stroke-width="0.5"/>
+    <rect x="5" y="5" width="10" height="10" rx="0.5" fill="#14141c"/>
+    <rect x="7" y="7" width="6" height="6" rx="0.3" fill="#1a1a24" stroke="#333" stroke-width="0.3"/>
+    <circle cx="10" cy="2" r="1" fill="#1bdb7a"/>
+    <rect x="21" y="3" width="14" height="14" rx="1" fill="#0a0a0e" stroke="#3a3a48" stroke-width="0.5"/>
+    <rect x="23" y="5" width="10" height="10" rx="0.5" fill="#14141c"/>
+    <rect x="25" y="7" width="6" height="6" rx="0.3" fill="#1a1a24" stroke="#333" stroke-width="0.3"/>
+    <circle cx="28" cy="2" r="1" fill="#3b9eff"/>
+    <text x="19" y="22" text-anchor="middle" fill="#555" font-family="Arial" font-size="3.5">10GbE</text>
+  </g>
+
+  <rect x="10" y="40" width="426" height="2" fill="#08080c"/>
+
+  <!-- Bottom U -->
+  <rect x="10" y="43" width="426" height="36" rx="1.5" fill="#101018" stroke="#2a2838" stroke-width="0.75"/>
+
+  <!-- Drive bays 7-12 -->
+  <g transform="translate(14, 47)">
+    <g transform="translate(0,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">7</text></g>
+    <g transform="translate(44,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">8</text></g>
+    <g transform="translate(88,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">9</text></g>
+    <g transform="translate(132,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#a78bfa"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">10</text></g>
+    <g transform="translate(176,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">11</text></g>
+    <g transform="translate(220,0)"><rect width="40" height="28" rx="1" fill="#0e0e14" stroke="#2a2a38" stroke-width="0.5"/><rect x="3" y="3" width="34" height="20" rx="0.5" fill="#08080e" stroke="#333" stroke-width="0.4"/><rect x="6" y="5" width="28" height="2.5" rx="0.3" fill="#1a1a24" stroke="#444" stroke-width="0.3"/><rect x="8" y="10" width="24" height="10" rx="0.3" fill="#12121a" stroke="#2a2a36" stroke-width="0.3"/><circle cx="34" cy="5" r="1.5" fill="#1bdb7a"/><text x="20" y="25" text-anchor="middle" fill="#5a5a70" font-family="Arial" font-size="3">12</text></g>
+  </g>
+
+  <!-- Ventilation + controls (bottom U right) -->
+  <g transform="translate(268, 49)">
+    <rect width="72" height="24" rx="1" fill="#101018" stroke="#2a2838" stroke-width="0.5"/>
+    <g fill="#0a0a0e" opacity="0.9">
+      <rect x="6" y="4" width="60" height="1.5" rx="0.3"/>
+      <rect x="6" y="7.5" width="60" height="1.5" rx="0.3"/>
+      <rect x="6" y="11" width="60" height="1.5" rx="0.3"/>
+      <rect x="6" y="14.5" width="60" height="1.5" rx="0.3"/>
+      <rect x="6" y="18" width="60" height="1.5" rx="0.3"/>
+    </g>
+    <text x="36" y="23" text-anchor="middle" fill="#4a4a58" font-family="Arial" font-size="3">FAN</text>
+  </g>
+
+  <g transform="translate(346, 49)">
+    <rect width="42" height="24" rx="1" fill="#101018" stroke="#2a2838" stroke-width="0.5"/>
+    <rect x="6" y="5" width="12" height="8" rx="0.5" fill="#0a0a0e" stroke="#3a3a48" stroke-width="0.4"/>
+    <text x="12" y="20" text-anchor="middle" fill="#555" font-family="Arial" font-size="3">USB</text>
+    <circle cx="30" cy="12" r="5" fill="#1a1a22" stroke="#444" stroke-width="0.6"/>
+    <circle cx="30" cy="12" r="3.5" fill="#222" stroke="#a78bfa" stroke-width="0.6"/>
+    <path d="M30 9.5v3.5M28.2 11.2a2.2 2.2 0 0 1 3.6 0" stroke="#a78bfa" stroke-width="0.7" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(394, 51)">
+    <circle cx="6" cy="6" r="3" fill="#0a1a10" stroke="#1a3a28" stroke-width="0.5"/>
+    <circle cx="6" cy="6" r="2" fill="#1bdb7a"/>
+    <text x="6" y="16" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="3">SYS</text>
+    <circle cx="22" cy="6" r="3" fill="#1a1408" stroke="#3a3018" stroke-width="0.5"/>
+    <circle cx="22" cy="6" r="2" fill="#334155"/>
+    <text x="22" y="16" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="3">HDD</text>
+  </g>
+
+  <rect x="10" y="3" width="426" height="1" fill="#fff" opacity="0.04"/>
+</svg>

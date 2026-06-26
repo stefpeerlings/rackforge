@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="RackForge — gratis interactieve rack planner voor homelab, kantoor of datacenter">
+  <link rel="canonical" href="https://www.home-labe.com/main">
+  <script>
+    if (location.hostname === "home-labe.com") {
+      location.replace("https://www.home-labe.com" + location.pathname + location.search + location.hash);
+    }
+  </script>
+  <title>RackForge — Rack Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=92">
+</head>
+<body data-page="main">
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--left" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--right" aria-hidden="true"></div>
+
+  <div id="app-shell" class="app-shell">
+  <header class="header">
+    <nav class="nav">
+      <div class="logo">
+        <span class="logo__mark" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <linearGradient id="logo-forge" x1="7" y1="9" x2="17" y2="12.5" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#fde68a"/>
+                <stop offset="0.45" stop-color="#f59e0b"/>
+                <stop offset="1" stop-color="#ea580c"/>
+              </linearGradient>
+              <radialGradient id="logo-ember" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(13.5 10.5) scale(4)">
+                <stop stop-color="#fbbf24" stop-opacity="0.55"/>
+                <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect x="4" y="2.5" width="16" height="18" rx="1.75" stroke="currentColor" stroke-width="1.25"/>
+            <rect x="5.25" y="4" width="1.25" height="15" rx="0.35" fill="currentColor" opacity="0.18"/>
+            <rect x="17.5" y="4" width="1.25" height="15" rx="0.35" fill="currentColor" opacity="0.18"/>
+            <circle cx="5.9" cy="6" r="0.45" fill="currentColor" opacity="0.35"/>
+            <circle cx="5.9" cy="10" r="0.45" fill="currentColor" opacity="0.35"/>
+            <circle cx="5.9" cy="14" r="0.45" fill="currentColor" opacity="0.35"/>
+            <circle cx="5.9" cy="18" r="0.45" fill="currentColor" opacity="0.35"/>
+            <rect x="7.5" y="4.5" width="9.5" height="3" rx="0.45" fill="currentColor" opacity="0.22"/>
+            <rect x="7.5" y="9" width="9.5" height="3.25" rx="0.45" fill="url(#logo-forge)"/>
+            <ellipse cx="12.25" cy="10.6" rx="3.2" ry="1.6" fill="url(#logo-ember)"/>
+            <rect x="7.5" y="13.75" width="9.5" height="3" rx="0.45" fill="currentColor" opacity="0.28"/>
+            <path d="M16.8 8.1l1.1-1.2M17.1 10.4l1.4-.5" stroke="#fcd34d" stroke-width="0.7" stroke-linecap="round"/>
+            <path d="M8.5 20.2 12 18.6l3.5 1.6" stroke="#f59e0b" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+            <circle cx="17.2" cy="5.6" r="0.65" fill="#1bdb7a"/>
+            <circle cx="17.2" cy="15.1" r="0.65" fill="#3b9eff"/>
+          </svg>
+        </span>
+        <span class="logo__text">
+          <span class="logo__word">Rack<span class="logo__forge">Forge</span></span>
+        </span>
+      </div>
+      <span class="nav__title" data-i18n="nav.rackPlanner">Rack Planner</span>
+      <div class="nav__actions">
+        <label class="rack-size-label">
+          <span data-i18n="nav.rack">Rack</span>
+          <select id="rack-height" class="select">
+            <optgroup data-i18n-label="rackSize.wall" label="Wand / compact">
+              <option value="6">6U</option>
+              <option value="9">9U</option>
+              <option value="12">12U</option>
+              <option value="15">15U</option>
+              <option value="18">18U</option>
+            </optgroup>
+            <optgroup data-i18n-label="rackSize.half" label="Half rack">
+              <option value="22">22U</option>
+              <option value="24">24U</option>
+              <option value="25" selected>25U</option>
+              <option value="27">27U</option>
+            </optgroup>
+            <optgroup data-i18n-label="rackSize.full" label="Volledig rack">
+              <option value="32">32U</option>
+              <option value="36">36U</option>
+              <option value="42">42U</option>
+              <option value="45">45U</option>
+              <option value="47">47U</option>
+              <option value="48">48U</option>
+            </optgroup>
+          </select>
+        </label>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-reset" data-i18n="nav.reset">Reset</button>
+        <div class="account-menu" id="auth-user" hidden>
+          <button
+            type="button"
+            class="btn btn--ghost btn--sm account-menu__trigger"
+            id="btn-account"
+            aria-expanded="false"
+            aria-controls="account-panel"
+            aria-haspopup="dialog"
+            data-i18n-attr="aria-label"
+            data-i18n="account.label"
+          >
+            <span class="account-avatar" id="account-avatar" aria-hidden="true"></span>
+            <span class="account-menu__label" id="account-menu-label"></span>
+          </button>
+          <div class="account-panel" id="account-panel" hidden role="dialog" aria-labelledby="auth-user-name">
+            <div class="account-panel__card">
+              <header class="account-panel__header">
+                <div class="account-panel__profile">
+                  <button
+                    type="button"
+                    class="account-avatar-btn"
+                    id="account-panel-avatar"
+                    data-i18n-attr="aria-label"
+                    data-i18n="account.changePhoto"
+                  >
+                    <span class="account-avatar" id="account-panel-avatar-face" aria-hidden="true"></span>
+                    <span class="account-avatar-btn__overlay" aria-hidden="true">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.75"/>
+                        <circle cx="12" cy="13" r="3.25" stroke="currentColor" stroke-width="1.75"/>
+                      </svg>
+                    </span>
+                  </button>
+                  <div class="account-panel__identity">
+                    <p class="account-panel__kicker" data-i18n="account.signedInAs">Ingelogd als</p>
+                    <p class="account-panel__username" id="auth-user-name"></p>
+                  </div>
+                </div>
+              </header>
+              <ul class="account-panel__menu">
+                <li>
+                  <a href="/settings" class="account-panel__menu-item">
+                    <svg class="account-panel__menu-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="2.75" stroke="currentColor" stroke-width="1.75"/>
+                      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                    </svg>
+                    <span data-i18n="account.openSettings">Instellingen</span>
+                    <svg class="account-panel__menu-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="m9 6 6 6-6 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </a>
+                </li>
+              </ul>
+              <footer class="account-panel__footer">
+                <button type="button" class="btn btn--ghost btn--sm account-panel__logout" id="btn-logout" data-i18n="auth.logout">Uitloggen</button>
+              </footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <aside class="palette" data-i18n-attr="aria-label" data-i18n="palette.aria">
+      <h2 class="panel-title" data-i18n="palette.title">Apparatuur</h2>
+      <p class="panel-hint" data-i18n="palette.hint">Kies een item en klik in het rack om te plaatsen.</p>
+      <div class="palette-list" id="palette-list"></div>
+    </aside>
+
+    <section class="rack-section" data-i18n-attr="aria-label" data-i18n="rack.aria">
+      <div class="rack-stats">
+        <div class="rack-stat">
+          <span class="rack-stat__value" id="stat-used">0</span>
+          <span class="rack-stat__label" data-i18n="stats.used">U bezet</span>
+        </div>
+        <div class="rack-stat">
+          <span class="rack-stat__value" id="stat-free">25</span>
+          <span class="rack-stat__label" data-i18n="stats.free">U vrij</span>
+        </div>
+        <div class="rack-stat">
+          <span class="rack-stat__value" id="stat-devices">0</span>
+          <span class="rack-stat__label" data-i18n="stats.devices">Apparaten</span>
+        </div>
+      </div>
+
+      <div class="rack-toolbar">
+        <p class="rack-toolbar__hint" id="placement-hint" data-i18n="hints.selectLeft">Selecteer apparatuur links.</p>
+      </div>
+
+      <div class="rack-wrapper">
+        <div class="rack-nums" id="rack-nums" aria-hidden="true"></div>
+        <div class="rack-rail rack-rail--left" id="rail-left" aria-hidden="true"></div>
+        <div class="rack" id="rack" role="grid" data-i18n-attr="aria-label" data-i18n="rack.unitsAria"></div>
+        <div class="rack-rail rack-rail--right" id="rail-right" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <aside class="details" data-i18n-attr="aria-label" data-i18n="details.aria">
+      <h2 class="panel-title" data-i18n="details.title">Details</h2>
+      <div class="details-empty" id="details-empty">
+        <span class="details-empty__icon">👆</span>
+        <p data-i18n="details.empty">Klik op geplaatste apparatuur om details te zien of te verwijderen.</p>
+      </div>
+      <div class="details-content" id="details-content" hidden>
+        <div class="details-icon" id="detail-icon"></div>
+        <h3 class="details-name" id="detail-name"></h3>
+        <dl class="details-meta">
+          <div>
+            <dt data-i18n="details.position">Positie</dt>
+            <dd id="detail-position">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="details.height">Hoogte</dt>
+            <dd id="detail-height">—</dd>
+          </div>
+          <div>
+            <dt data-i18n="details.type">Type</dt>
+            <dd id="detail-type">—</dd>
+          </div>
+        </dl>
+        <label class="label-field">
+          <span data-i18n="details.label">Label</span>
+          <input type="text" class="input" id="detail-label" maxlength="40" data-i18n-attr="placeholder" data-i18n="details.labelPlaceholder">
+        </label>
+        <button type="button" class="btn btn--danger btn--sm" id="btn-remove" data-i18n="details.remove">Verwijderen</button>
+      </div>
+
+      <div class="inventory">
+        <h3 class="inventory-title" data-i18n="inventory.title">Inventaris</h3>
+        <ul class="inventory-list" id="inventory-list">
+          <li class="inventory-empty" data-i18n="inventory.empty">Nog geen apparatuur geplaatst.</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <p class="footer__copy">© <span id="year"></span> <span class="footer__brand">RackForge</span></p>
+      <nav class="footer__links" data-i18n-attr="aria-label" data-i18n="footer.legal">
+        <a href="/privacy" data-i18n="footer.privacy">Privacy Policy</a>
+        <a href="/terms" data-i18n="footer.terms">Terms &amp; Conditions</a>
+      </nav>
+    </div>
+  </footer>
+  </div>
+
+  <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" hidden>
+
+  <div class="avatar-crop-modal" id="avatar-crop-modal" hidden role="dialog" aria-labelledby="avatar-crop-title" aria-modal="true">
+    <div class="avatar-crop-modal__backdrop" id="avatar-crop-backdrop"></div>
+    <div class="avatar-crop-modal__panel">
+      <header class="avatar-crop-modal__header">
+        <h2 class="avatar-crop-modal__title" id="avatar-crop-title" data-i18n="settings.cropTitle">Profielfoto bijsnijden</h2>
+        <button type="button" class="avatar-crop-modal__close" id="avatar-crop-close" data-i18n-attr="aria-label" data-i18n="settings.cropClose" aria-label="Sluiten">×</button>
+      </header>
+      <p class="avatar-crop-modal__hint" data-i18n="settings.cropHint">Sleep de foto om te verplaatsen. Zoom en klik Opslaan om te bewaren.</p>
+      <div class="avatar-crop-stage" id="avatar-crop-stage">
+        <canvas id="avatar-crop-canvas" class="avatar-crop-stage__canvas" width="280" height="280" aria-hidden="true"></canvas>
+        <div class="avatar-crop-stage__ring" aria-hidden="true"></div>
+      </div>
+      <label class="avatar-crop-zoom">
+        <span class="avatar-crop-zoom__label" data-i18n="settings.cropZoom">Zoom</span>
+        <input type="range" class="avatar-crop-zoom__input" id="avatar-crop-zoom" min="1" max="3" step="0.01" value="1">
+      </label>
+      <div class="avatar-crop-modal__actions">
+        <button type="button" class="btn btn--ghost btn--sm" id="avatar-crop-cancel" data-i18n="settings.cropCancel">Annuleren</button>
+        <button type="button" class="btn btn--cloud btn--sm" id="avatar-crop-save" data-i18n="settings.cropSave">Opslaan</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/i18n.js?v=26"></script>
+  <script src="js/routes.js?v=2"></script>
+  <script src="js/avatar-crop.js?v=2"></script>
+  <script src="js/settings.js?v=10"></script>
+  <script src="js/auth.js?v=32"></script>
+  <script src="js/main.js?v=61"></script>
+</body>
+</html>

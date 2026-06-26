@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+.venv/
+venv/
+
+# Secrets & local config (use *.example templates)
+.env
+*.env
+!*.env.example
+admin.env
+smtp.env
+google.env
+**/admin.env
+**/smtp.env
+**/google.env
+
+# Database & uploads (restore from backup separately)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+avatars/
+plans.db
+
+# TLS / tunnel credentials
+*.pem
+.cloudflared/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Deploy / test artifacts
+_test-cookies.txt
+*.log
+*.tar
+
+# Generated caches on server
+__pycache__/

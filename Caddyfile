@@ -1,0 +1,119 @@
+# www is hoofddomein
+http://www.home-labe.com {
+	root * /var/www/html
+
+	handle /admin* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	redir /index.html /{?query} permanent
+	redir /login.html /login{?query} permanent
+	redir /main.html /main{?query} permanent
+	redir /settings.html /settings{?query} permanent
+	redir /privacy.html /privacy{?query} permanent
+	redir /terms.html /terms{?query} permanent
+	redir /verify-email.html /verify-email{?query} permanent
+	redir /reset-password.html /reset-password{?query} permanent
+
+	handle /login {
+		rewrite * /login.html
+		file_server
+	}
+	handle /main {
+		rewrite * /main.html
+		file_server
+	}
+	handle /settings {
+		rewrite * /settings.html
+		file_server
+	}
+	handle /privacy {
+		rewrite * /privacy.html
+		file_server
+	}
+	handle /terms {
+		rewrite * /terms.html
+		file_server
+	}
+	handle /verify-email {
+		rewrite * /verify-email.html
+		file_server
+	}
+	handle /reset-password {
+		rewrite * /reset-password.html
+		file_server
+	}
+
+	handle {
+		file_server
+	}
+}
+
+# apex doorsturen naar www
+http://home-labe.com {
+	redir https://www.home-labe.com{uri} permanent
+}
+
+# Lokaal netwerk
+http://10.0.40.12, http://ubuntu-sever-laptop {
+	redir https://{host}{uri} permanent
+}
+
+https://10.0.40.12, https://ubuntu-sever-laptop {
+	tls internal
+	root * /var/www/html
+
+	handle /admin* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	redir /index.html /{?query} permanent
+	redir /login.html /login{?query} permanent
+	redir /main.html /main{?query} permanent
+	redir /settings.html /settings{?query} permanent
+	redir /privacy.html /privacy{?query} permanent
+	redir /terms.html /terms{?query} permanent
+	redir /verify-email.html /verify-email{?query} permanent
+	redir /reset-password.html /reset-password{?query} permanent
+
+	handle /login {
+		rewrite * /login.html
+		file_server
+	}
+	handle /main {
+		rewrite * /main.html
+		file_server
+	}
+	handle /settings {
+		rewrite * /settings.html
+		file_server
+	}
+	handle /privacy {
+		rewrite * /privacy.html
+		file_server
+	}
+	handle /terms {
+		rewrite * /terms.html
+		file_server
+	}
+	handle /verify-email {
+		rewrite * /verify-email.html
+		file_server
+	}
+	handle /reset-password {
+		rewrite * /reset-password.html
+		file_server
+	}
+
+	handle {
+		file_server
+	}
+}

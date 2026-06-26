@@ -1,0 +1,210 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 82" fill="none">
+  <defs>
+    <linearGradient id="chassis" x1="0" y1="0" x2="0" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2a2a2e"/>
+      <stop offset="50%" stop-color="#1e1e22"/>
+      <stop offset="100%" stop-color="#2a2a2e"/>
+    </linearGradient>
+    <linearGradient id="orangeBar" x1="0" y1="0" x2="0" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="lcdBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c1a10"/>
+      <stop offset="100%" stop-color="#061008"/>
+    </linearGradient>
+    <linearGradient id="vent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#141418"/>
+      <stop offset="50%" stop-color="#1c1c22"/>
+      <stop offset="100%" stop-color="#141418"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="440" height="82" fill="url(#chassis)"/>
+  <rect x="0.5" y="0.5" width="439" height="81" stroke="#3a3a40" stroke-width="1"/>
+
+  <!-- Orange accent stripe -->
+  <rect x="2" y="2" width="5" height="78" rx="1" fill="url(#orangeBar)"/>
+  <rect x="2" y="2" width="5" height="78" rx="1" fill="#fff" opacity="0.08"/>
+
+  <!-- Top U chassis -->
+  <rect x="10" y="3" width="426" height="36" rx="1.5" fill="#121216" stroke="#2e2e34" stroke-width="0.75"/>
+
+  <!-- LCD display -->
+  <g transform="translate(16, 8)">
+    <rect width="118" height="26" rx="1" fill="#0a0a0c" stroke="#3d3d44" stroke-width="0.75"/>
+    <rect x="2" y="2" width="114" height="22" rx="0.5" fill="url(#lcdBg)" stroke="#1a3a28" stroke-width="0.5"/>
+    <text x="8" y="10" fill="#1bdb7a" font-family="JetBrains Mono, monospace" font-size="6.5" font-weight="600">ONLINE</text>
+    <text x="8" y="18" fill="#86efac" font-family="JetBrains Mono, monospace" font-size="5.5">Load  34%</text>
+    <text x="62" y="18" fill="#fbbf24" font-family="JetBrains Mono, monospace" font-size="5.5">Batt 100%</text>
+    <!-- Battery bar -->
+    <rect x="62" y="8" width="44" height="5" rx="0.5" fill="#0a1a10" stroke="#1a3a28" stroke-width="0.4"/>
+    <rect x="63" y="9" width="40" height="3" rx="0.3" fill="#1bdb7a"/>
+    <rect x="63" y="9" width="40" height="1.5" rx="0.3" fill="#4ade80" opacity="0.5"/>
+  </g>
+
+  <!-- Brand -->
+  <g transform="translate(142, 10)">
+    <text x="0" y="10" fill="#f59e0b" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="bold" letter-spacing="1.5">SMART</text>
+    <text x="0" y="22" fill="#e2e8f0" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="600" letter-spacing="3">UPS RT</text>
+    <text x="0" y="30" fill="#64748b" font-family="Arial, sans-serif" font-size="4.5" letter-spacing="0.5">3000VA · 2U Rackmount</text>
+  </g>
+
+  <!-- Ventilation grille (top U center) -->
+  <g transform="translate(248, 9)">
+    <rect width="108" height="24" rx="1" fill="url(#vent)" stroke="#2a2a30" stroke-width="0.5"/>
+    <g fill="#0a0a0e" opacity="0.9">
+      <rect x="6" y="4" width="96" height="1.5" rx="0.3"/>
+      <rect x="6" y="7.5" width="96" height="1.5" rx="0.3"/>
+      <rect x="6" y="11" width="96" height="1.5" rx="0.3"/>
+      <rect x="6" y="14.5" width="96" height="1.5" rx="0.3"/>
+      <rect x="6" y="18" width="96" height="1.5" rx="0.3"/>
+    </g>
+    <g fill="#1a1a20" opacity="0.6">
+      <rect x="6" y="5.5" width="96" height="1" rx="0.2"/>
+      <rect x="6" y="9" width="96" height="1" rx="0.2"/>
+      <rect x="6" y="12.5" width="96" height="1" rx="0.2"/>
+      <rect x="6" y="16" width="96" height="1" rx="0.2"/>
+    </g>
+  </g>
+
+  <!-- Status LEDs + controls (top U right) -->
+  <g transform="translate(366, 8)">
+    <rect width="64" height="26" rx="1" fill="#101014" stroke="#2a2a30" stroke-width="0.5"/>
+    <g font-family="Arial, sans-serif" font-size="4" fill="#64748b">
+      <circle cx="10" cy="8" r="3" fill="#0a1a10" stroke="#1a3a28" stroke-width="0.5"/>
+      <circle cx="10" cy="8" r="2" fill="#1bdb7a"/>
+      <text x="10" y="16" text-anchor="middle">ONLN</text>
+
+      <circle cx="28" cy="8" r="3" fill="#1a1408" stroke="#3a3018" stroke-width="0.5"/>
+      <circle cx="28" cy="8" r="2" fill="#334155"/>
+      <text x="28" y="16" text-anchor="middle">BATT</text>
+
+      <circle cx="46" cy="8" r="3" fill="#1a0808" stroke="#3a1818" stroke-width="0.5"/>
+      <circle cx="46" cy="8" r="2" fill="#334155"/>
+      <text x="46" y="16" text-anchor="middle">FAULT</text>
+    </g>
+    <!-- Power button -->
+    <circle cx="58" cy="20" r="5" fill="#1a1a1e" stroke="#444" stroke-width="0.75"/>
+    <circle cx="58" cy="20" r="3.5" fill="#222" stroke="#f59e0b" stroke-width="0.6"/>
+    <path d="M58 17.5v3.5M56.2 19.2a2.2 2.2 0 0 1 3.6 0" stroke="#f59e0b" stroke-width="0.7" stroke-linecap="round"/>
+  </g>
+
+  <!-- U gap line -->
+  <rect x="10" y="40" width="426" height="2" fill="#08080a"/>
+
+  <!-- Bottom U chassis -->
+  <rect x="10" y="43" width="426" height="36" rx="1.5" fill="#121216" stroke="#2e2e34" stroke-width="0.75"/>
+
+  <!-- Outlet row -->
+  <g transform="translate(18, 50)">
+    <text x="0" y="-2" fill="#64748b" font-family="Arial, sans-serif" font-size="4" letter-spacing="0.5">MANAGED OUTLETS</text>
+    <g fill="#0e0e12" stroke="#3a3a42" stroke-width="0.5">
+      <rect x="0" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="34" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="68" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="102" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="136" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="170" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="204" y="2" width="28" height="22" rx="1.5"/>
+      <rect x="238" y="2" width="28" height="22" rx="1.5"/>
+    </g>
+    <!-- Outlet details -->
+    <g>
+      <g transform="translate(4, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(38, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(72, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(106, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(140, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(174, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(208, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+      <g transform="translate(242, 6)">
+        <ellipse cx="10" cy="7" rx="7" ry="5" fill="#1a1a20" stroke="#444" stroke-width="0.5"/>
+        <ellipse cx="10" cy="7" rx="4" ry="3" fill="#0a0a0e"/>
+        <circle cx="10" cy="4" r="1" fill="#555"/>
+        <circle cx="7.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="12.5" cy="8.5" r="1" fill="#555"/>
+        <circle cx="24" cy="4" r="1.5" fill="#1bdb7a"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Network + USB (bottom U right) -->
+  <g transform="translate(290, 50)">
+    <rect width="52" height="24" rx="1" fill="#101014" stroke="#2a2a30" stroke-width="0.5"/>
+    <rect x="4" y="4" width="18" height="14" rx="1" fill="#0a0a0e" stroke="#3a3a42" stroke-width="0.5"/>
+    <rect x="6" y="6" width="14" height="10" rx="0.5" fill="#141418"/>
+    <rect x="8" y="9" width="10" height="4" rx="0.3" fill="#1a1a20" stroke="#333" stroke-width="0.3"/>
+    <text x="13" y="28" text-anchor="middle" fill="#555" font-family="Arial" font-size="3.5">MGMT</text>
+    <rect x="28" y="6" width="16" height="10" rx="1" fill="#0a0a0e" stroke="#3a3a42" stroke-width="0.5"/>
+    <rect x="31" y="9" width="10" height="4" rx="0.5" fill="#1a1a20"/>
+    <text x="36" y="28" text-anchor="middle" fill="#555" font-family="Arial" font-size="3.5">USB</text>
+  </g>
+
+  <!-- Input power (bottom U far right) -->
+  <g transform="translate(354, 48)">
+    <rect width="76" height="28" rx="1" fill="#101014" stroke="#2a2a30" stroke-width="0.5"/>
+    <text x="38" y="9" text-anchor="middle" fill="#64748b" font-family="Arial, sans-serif" font-size="4">INPUT</text>
+    <rect x="20" y="12" width="36" height="12" rx="1" fill="#0a0a0e" stroke="#f59e0b" stroke-width="0.6"/>
+    <rect x="24" y="15" width="12" height="6" rx="0.5" fill="#1a1a20" stroke="#555" stroke-width="0.4"/>
+    <rect x="40" y="15" width="12" height="6" rx="0.5" fill="#1a1a20" stroke="#555" stroke-width="0.4"/>
+    <circle cx="14" cy="18" r="2" fill="#1bdb7a"/>
+    <text x="14" y="26" text-anchor="middle" fill="#4a5a68" font-family="Arial" font-size="3">L</text>
+    <circle cx="62" cy="18" r="2" fill="#1bdb7a"/>
+    <text x="62" y="26" text-anchor="middle" fill="#4a5a68" font-family="Arial" font-size="3">N</text>
+  </g>
+
+  <!-- Subtle top/bottom highlights -->
+  <rect x="10" y="3" width="426" height="1" fill="#fff" opacity="0.04"/>
+  <rect x="10" y="78" width="426" height="1" fill="#fff" opacity="0.03"/>
+</svg>

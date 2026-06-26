@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="canonical" href="https://www.home-labe.com/">
+  <script>
+    if (location.hostname === "home-labe.com") {
+      location.replace("https://www.home-labe.com" + location.pathname + location.search + location.hash);
+    }
+  </script>
+  <title>RackForge</title>
+</head>
+<body>
+  <script src="js/routes.js?v=1"></script>
+  <script>
+    (async function () {
+      const params = new URLSearchParams(location.search);
+      const verify = params.get("verify-email");
+      if (verify) {
+        location.replace(`/verify-email?token=${encodeURIComponent(verify)}`);
+        return;
+      }
+      const googleError = params.get("google_error");
+      if (googleError) {
+        location.replace(Routes.loginUrl({ google_error: googleError }));
+        return;
+      }
+      const plan = params.get("plan");
+      if (plan) {
+        location.replace(Routes.appUrl({ plan }));
+        return;
+      }
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        location.replace(res.ok ? Routes.APP : Routes.LOGIN);
+      } catch {
+        location.replace(Routes.LOGIN);
+      }
+    })();
+  </script>
+</body>
+</html>
