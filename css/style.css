@@ -2215,60 +2215,24 @@ body.avatar-crop-dragging .avatar-crop-stage {
 }
 
 .rack-port--jack.rack-port--idle {
-  background: rgba(184, 134, 11, 0.14);
-  border: 1px solid rgba(184, 134, 11, 0.22);
+  background: rgba(184, 134, 11, 0.22);
+  border: 1px solid rgba(184, 134, 11, 0.38);
   box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.45);
-  opacity: 0.42;
 }
 
 .rack-port--jack.rack-port--linked {
-  z-index: 2;
-  width: 8px;
-  height: 4px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--port-color, var(--accent)) 92%, #fff) 0%,
-    var(--port-color, var(--accent)) 58%,
-    color-mix(in srgb, var(--port-color, var(--accent)) 72%, #0a0a10) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: var(--port-color, var(--accent));
+  border: 1px solid rgba(255, 255, 255, 0.55);
   box-shadow:
-    0 0 3px var(--port-color, var(--accent)),
-    0 0 10px color-mix(in srgb, var(--port-color, var(--accent)) 75%, transparent),
-    0 0 18px color-mix(in srgb, var(--port-color, var(--accent)) 45%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    0 0 4px var(--port-color, var(--accent)),
+    0 0 9px color-mix(in srgb, var(--port-color, var(--accent)) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: rack-port-pulse 2.4s ease-in-out infinite;
 }
 
-.rack-port--switch.rack-port--jack.rack-port--linked::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 13px;
-  height: 10px;
-  border-radius: 2px;
-  border: 1.5px solid var(--port-color, var(--accent));
-  background: color-mix(in srgb, var(--port-color, var(--accent)) 28%, transparent);
-  box-shadow:
-    0 0 8px color-mix(in srgb, var(--port-color, var(--accent)) 70%, transparent),
-    inset 0 0 6px color-mix(in srgb, var(--port-color, var(--accent)) 35%, transparent);
-  z-index: -1;
-}
-
-.rack-port--switch.rack-port--jack.rack-port--linked::after {
-  content: attr(data-port);
-  opacity: 1;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.44rem;
-  font-weight: 700;
-  color: var(--port-color, var(--accent));
-  text-shadow:
-    0 0 4px rgba(0, 0, 0, 0.95),
-    0 1px 2px #000,
-    0 0 8px color-mix(in srgb, var(--port-color, var(--accent)) 55%, transparent);
+@keyframes rack-port-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.78; }
 }
 
 .rack-device__faceplate--switch-48 .rack-device__nameplate {

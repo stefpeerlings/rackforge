@@ -448,10 +448,37 @@ function devicePortPlacement(type) {
   return "front";
 }
 
+function switchPortRow(type, port) {
+  const norm = normalizeDeviceType(type);
+  if (norm === "switch-48") return Math.floor((port - 1) / 24);
+  if (norm === "switch-24" || norm === "switch") return Math.floor((port - 1) / 12);
+  if (norm === "switch-16") return Math.floor((port - 1) / 8);
+  return 0;
+}
+
 function frontPortPosition(device, port, total) {
   const layout = FRONT_PORT_LAYOUTS[normalizeDeviceType(device.type)];
-  if (layout) return layout(port, total);
-  return { left: ((port - 0.5) / total) * 100, top: 72 };
+  let pos;
+  if (layout) pos = layout(port, total);
+  else pos = { left: ((port - 0.5) / total) * 100, top: 72 };
+
+  const norm = normalizeDeviceType(device.type);
+  if (norm.startsWith("switch-") && switchPortRow(device.type, port) === 0) {
+    pos = { ...pos, top: pos.top - (2 / FACE_VIEW.h) * 100 };
+  }
+  return pos;
+}
+
+function switchCableAnchorOffset(device, port) {
+  const norm = normalizeDeviceType(device.type);
+  if (!norm.startsWith("switch-") || devicePortPlacement(device.type) !== "front") {
+    return { dx: 0, dy: 0 };
+  }
+  const row = switchPortRow(device.type, port);
+  return {
+    dx: -3,
+    dy: row === 0 ? -2 : 1,
+  };
 }
 
 function deviceLinkedPorts(deviceId) {
@@ -487,15 +514,11 @@ function portDotMarkup(device, { port, color, connId, linked }, placement, total
     const { left, top } = frontPortPosition(device, port, total);
     pos = `left: ${left}%; top: ${top}%`;
   }
-  const normType = normalizeDeviceType(device.type);
   const jack = placement === "front" && usesJackPortStyle(device.type);
-  const isSwitch = normType.startsWith("switch-");
   const state = linked ? "rack-port--linked" : "rack-port--idle";
   const shape = jack ? "rack-port--jack" : "";
   const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
-  const cls = ["rack-port", side, shape, state, isSwitch ? "rack-port--switch" : ""]
-    .filter(Boolean)
-    .join(" ");
+  const cls = ["rack-port", side, shape, state].filter(Boolean).join(" ");
   const connAttr = connId ? ` data-conn="${connId}"` : "";
   const colorStyle = linked && color ? `--port-color: ${color};` : "";
   return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
@@ -541,16 +564,16 @@ function buildDevicePortParts(device) {
 function portAnchorInWrapper(deviceId, port, wrapperRect) {
   const row = document.querySelector(`[data-device="${deviceId}"]`);
   if (!row) return null;
+  const device = devices.find((d) => d.id === deviceId);
   const dot = row.querySelector(`.rack-port[data-port="${port}"]`);
   if (dot) {
     const r = dot.getBoundingClientRect();
+    const offset = device ? switchCableAnchorOffset(device, port) : { dx: 0, dy: 0 };
     return {
-      x: r.left - wrapperRect.left + r.width / 2,
-      y: r.top - wrapperRect.top + r.height / 2,
+      x: r.left - wrapperRect.left + r.width / 2 + offset.dx,
+      y: r.top - wrapperRect.top + r.height / 2 + offset.dy,
     };
   }
-
-  const device = devices.find((d) => d.id === deviceId);
   const face = row.querySelector(".rack-device__faceplate");
   const rear = row.querySelector(".rack-device__rear");
   const target =
