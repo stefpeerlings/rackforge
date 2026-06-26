@@ -1,7 +1,7 @@
 const STORAGE_KEY = "rackforge-plan";
 const PLAN_ID_KEY = "rackforge-plan-id";
 const LEGACY_STORAGE_KEYS = ["openrack-plan", "home-lab-rack-plan", "stef-rack-plan"];
-const ICON_V = "50";
+const ICON_V = "51";
 
 let planId = null;
 let skipCloudSync = false;
@@ -429,7 +429,7 @@ function normalizeDeviceType(type) {
 const FRONT_PORT_LAYOUTS = {
   "switch-16": (port) => gridPortPercent(port, 228, 13, 8, 13, 11, 12, 7),
   "switch-24": (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
-  "switch-48": (port) => gridPortPercent(port, 6, 10, 24, 17.4, 11, 12, 7),
+  "switch-48": (port) => gridPortPercent(port, 68, 13, 24, 14.5, 10, 11, 6),
   switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
   "patch-16": (port) => rowPortPercent(port, 18.4, 26.9, 21),
@@ -469,8 +469,13 @@ function deviceLinkedPorts(deviceId) {
   return [...byPort.values()].sort((a, b) => a.port - b.port);
 }
 
-function portDotMarkup(device, { port, color, connId }, placement, total) {
-  const conn = connections.find((x) => x.id === connId);
+function usesJackPortStyle(type) {
+  const norm = normalizeDeviceType(type);
+  return norm.startsWith("switch-") || norm.startsWith("patch-");
+}
+
+function portDotMarkup(device, { port, color, connId, linked }, placement, total) {
+  const conn = connId ? connections.find((x) => x.id === connId) : null;
   const title = conn?.label
     ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
     : I18n.t("cabling.rackPort", { port });
@@ -482,17 +487,36 @@ function portDotMarkup(device, { port, color, connId }, placement, total) {
     const { left, top } = frontPortPosition(device, port, total);
     pos = `left: ${left}%; top: ${top}%`;
   }
-  const cls = placement === "rear" ? "rack-port rack-port--rear" : "rack-port rack-port--front";
-  return `<span class="${cls}" data-port="${port}" data-placement="${placement}" data-conn="${connId}" style="--port-color: ${color}; ${pos}" title="${title}"></span>`;
+  const jack = placement === "front" && usesJackPortStyle(device.type);
+  const state = linked ? "rack-port--linked" : "rack-port--idle";
+  const shape = jack ? "rack-port--jack" : "";
+  const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
+  const cls = ["rack-port", side, shape, state].filter(Boolean).join(" ");
+  const connAttr = connId ? ` data-conn="${connId}"` : "";
+  const colorStyle = linked && color ? `--port-color: ${color};` : "";
+  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
 }
 
 function buildDevicePortParts(device) {
-  const linked = deviceLinkedPorts(device.id);
-  if (linked.length === 0) return { front: "", rear: "" };
-
   const total = devicePortCount(device);
   const placement = devicePortPlacement(device.type);
-  const dots = linked.map((entry) => portDotMarkup(device, entry, placement, total)).join("");
+  if (total === 0) return { front: "", rear: "" };
+
+  const linkedMap = new Map(deviceLinkedPorts(device.id).map((e) => [e.port, e]));
+  const showAllFront = placement === "front" && usesJackPortStyle(device.type);
+  const ports = showAllFront
+    ? Array.from({ length: total }, (_, i) => {
+        const port = i + 1;
+        const entry = linkedMap.get(port);
+        return { port, color: entry?.color, connId: entry?.connId, linked: !!entry };
+      })
+    : [...linkedMap.values()].map((entry) => ({ ...entry, linked: true }));
+
+  if (ports.length === 0) return { front: "", rear: "" };
+
+  const dots = ports
+    .map((entry) => portDotMarkup(device, entry, placement, total))
+    .join("");
 
   if (placement === "rear") {
     return {
@@ -718,7 +742,7 @@ function renderRack() {
         <div class="rack-device" style="${deviceStyle}">
           <div class="rack-device__ear rack-device__ear--left" aria-hidden="true">${earHoles(span)}</div>
           <div class="rack-device__side rack-device__side--left" aria-hidden="true"></div>
-          <div class="rack-device__faceplate">
+          <div class="rack-device__faceplate rack-device__faceplate--${normalizeDeviceType(device.type)}">
             ${iconImg(info.icon, "rack-device__face", info.name)}
             ${portParts.front}
             <div class="rack-device__nameplate">
