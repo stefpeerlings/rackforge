@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=92">
+  <link rel="stylesheet" href="css/style.css?v=93">
 </head>
 <body data-page="main">
   <div class="bg-grid" aria-hidden="true"></div>
@@ -184,10 +184,30 @@
         <div class="rack" id="rack" role="grid" data-i18n-attr="aria-label" data-i18n="rack.unitsAria"></div>
         <div class="rack-rail rack-rail--right" id="rail-right" aria-hidden="true"></div>
       </div>
+
+      <section class="cabling-map" id="cabling-map" data-i18n-attr="aria-label" data-i18n="cabling.mapAria">
+        <div class="cabling-map__head">
+          <h3 class="cabling-map__title" data-i18n="cabling.mapTitle">Bekabeling</h3>
+          <span class="cabling-map__count" id="cabling-count">0</span>
+        </div>
+        <div class="cabling-map__empty" id="cabling-map-empty" data-i18n="cabling.mapEmpty">
+          Nog geen ethernet-verbindingen. Voeg kabels toe via het paneel rechts.
+        </div>
+        <div class="cabling-map__canvas" id="cabling-map-canvas" hidden>
+          <svg class="cabling-map__svg" id="cabling-svg" aria-hidden="true"></svg>
+          <div class="cabling-map__nodes" id="cabling-nodes"></div>
+        </div>
+      </section>
     </section>
 
     <aside class="details" data-i18n-attr="aria-label" data-i18n="details.aria">
-      <h2 class="panel-title" data-i18n="details.title">Details</h2>
+      <div class="details-tabs" role="tablist">
+        <button type="button" class="details-tab details-tab--active" role="tab" id="tab-device"
+          aria-selected="true" aria-controls="panel-device" data-tab="device" data-i18n="details.tabDevice">Apparaat</button>
+        <button type="button" class="details-tab" role="tab" id="tab-cabling"
+          aria-selected="false" aria-controls="panel-cabling" data-tab="cabling" data-i18n="details.tabCabling">Bekabeling</button>
+      </div>
+      <div id="panel-device" role="tabpanel" aria-labelledby="tab-device">
       <div class="details-empty" id="details-empty">
         <span class="details-empty__icon">👆</span>
         <p data-i18n="details.empty">Klik op geplaatste apparatuur om details te zien of te verwijderen.</p>
@@ -214,6 +234,45 @@
           <input type="text" class="input" id="detail-label" maxlength="40" data-i18n-attr="placeholder" data-i18n="details.labelPlaceholder">
         </label>
         <button type="button" class="btn btn--danger btn--sm" id="btn-remove" data-i18n="details.remove">Verwijderen</button>
+      </div>
+      </div>
+
+      <div id="panel-cabling" role="tabpanel" aria-labelledby="tab-cabling" hidden>
+        <p class="panel-hint" data-i18n="cabling.hint">Verbind ethernet-poorten tussen apparatuur in het rack.</p>
+        <form class="cabling-form" id="cabling-form">
+          <div class="cabling-form__row">
+            <label class="label-field">
+              <span data-i18n="cabling.from">Van</span>
+              <select class="select" id="cable-from-device" required></select>
+            </label>
+            <label class="label-field cabling-form__port">
+              <span data-i18n="cabling.port">Poort</span>
+              <select class="select" id="cable-from-port" required></select>
+            </label>
+          </div>
+          <div class="cabling-form__row">
+            <label class="label-field">
+              <span data-i18n="cabling.to">Naar</span>
+              <select class="select" id="cable-to-device" required></select>
+            </label>
+            <label class="label-field cabling-form__port">
+              <span data-i18n="cabling.port">Poort</span>
+              <select class="select" id="cable-to-port" required></select>
+            </label>
+          </div>
+          <label class="label-field">
+            <span data-i18n="cabling.label">Label</span>
+            <input type="text" class="input" id="cable-label" maxlength="32"
+              data-i18n-attr="placeholder" data-i18n="cabling.labelPlaceholder">
+          </label>
+          <label class="label-field">
+            <span data-i18n="cabling.color">Kleur</span>
+            <select class="select" id="cable-color"></select>
+          </label>
+          <button type="submit" class="btn btn--primary btn--sm cabling-form__submit" data-i18n="cabling.add">Kabel toevoegen</button>
+        </form>
+        <ul class="cabling-list" id="cabling-list"></ul>
+        <p class="cabling-list-empty" id="cabling-list-empty" data-i18n="cabling.listEmpty">Nog geen kabels.</p>
       </div>
 
       <div class="inventory">
@@ -261,11 +320,11 @@
     </div>
   </div>
 
-  <script src="js/i18n.js?v=26"></script>
+  <script src="js/i18n.js?v=27"></script>
   <script src="js/routes.js?v=2"></script>
   <script src="js/avatar-crop.js?v=2"></script>
   <script src="js/settings.js?v=10"></script>
   <script src="js/auth.js?v=32"></script>
-  <script src="js/main.js?v=61"></script>
+  <script src="js/main.js?v=63"></script>
 </body>
 </html>

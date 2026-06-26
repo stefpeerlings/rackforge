@@ -33,11 +33,44 @@ function iconImg(src, className, alt = "") {
   return `<img src="${url}" class="${className}" alt="${alt}" loading="lazy" draggable="false">`;
 }
 
+const PORT_COUNTS = {
+  "server-1u": 2,
+  "server-2u": 2,
+  "server-4u": 4,
+  switch: 24,
+  router: 4,
+  "nas-2u": 2,
+  "nas-4u": 4,
+  "patch-16": 16,
+  "patch-24": 24,
+  "patch-48": 48,
+  pdu: 0,
+  "ups-2u": 0,
+  kvm: 0,
+  blank: 0,
+  "blank-2u": 0,
+  "blank-3u": 0,
+  "blank-4u": 0,
+  "blank-6u": 0,
+};
+
+const CABLE_COLORS = [
+  { value: "#1bdb7a", key: "green" },
+  { value: "#3b9eff", key: "blue" },
+  { value: "#a78bfa", key: "purple" },
+  { value: "#f59e0b", key: "orange" },
+  { value: "#94a3b8", key: "gray" },
+  { value: "#ef4444", key: "red" },
+];
+
 let rackHeight = 25;
 let devices = [];
+let connections = [];
 let selectedType = null;
 let selectedDeviceId = null;
+let detailsTab = "device";
 let nextId = 1;
+let cablingMapResizeTimer = null;
 
 function typeInfo(type) {
   const base = EQUIPMENT_TYPES.find((t) => t.type === type) || EQUIPMENT_TYPES[0];
@@ -57,10 +90,55 @@ function blankNeighborBleed(device) {
   return { bleedAbove, bleedBelow };
 }
 
+function devicePortCount(device) {
+  return PORT_COUNTS[device.type] ?? 0;
+}
+
+function devicesWithPorts() {
+  return devices.filter((d) => devicePortCount(d) > 0);
+}
+
+function deviceDisplayName(device) {
+  const info = typeInfo(device.type);
+  return device.label || info.name;
+}
+
+function sanitizeConnections() {
+  const deviceIds = new Set(devices.map((d) => d.id));
+  connections = connections.filter((c) => {
+    if (!deviceIds.has(c.fromDeviceId) || !deviceIds.has(c.toDeviceId)) return false;
+    const fromDev = devices.find((d) => d.id === c.fromDeviceId);
+    const toDev = devices.find((d) => d.id === c.toDeviceId);
+    if (!fromDev || !toDev) return false;
+    const fromMax = devicePortCount(fromDev);
+    const toMax = devicePortCount(toDev);
+    if (fromMax < 1 || toMax < 1) return false;
+    if (c.fromPort < 1 || c.fromPort > fromMax || c.toPort < 1 || c.toPort > toMax) return false;
+    return true;
+  });
+  const maxConnId = connections.reduce((m, c) => Math.max(m, c.id), 0);
+  nextId = Math.max(nextId, maxConnId + 1);
+}
+
+function isPortUsed(deviceId, port, excludeId = null) {
+  return connections.some(
+    (c) =>
+      c.id !== excludeId &&
+      ((c.fromDeviceId === deviceId && c.fromPort === port) ||
+        (c.toDeviceId === deviceId && c.toPort === port))
+  );
+}
+
+function pruneConnectionsForDevice(deviceId) {
+  connections = connections.filter(
+    (c) => c.fromDeviceId !== deviceId && c.toDeviceId !== deviceId
+  );
+}
+
 function save() {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ rackHeight, devices, nextId })
+    JSON.stringify({ rackHeight, devices, connections, nextId })
   );
   if (!skipCloudSync) scheduleCloudSave();
 }
@@ -94,7 +172,7 @@ function scheduleCloudSave() {
 }
 
 async function cloudSave() {
-  const payload = { rackHeight, devices, nextId };
+  const payload = { rackHeight, devices, connections, nextId };
 
   if (window.Auth?.isLoggedIn()) {
     const res = await apiFetch("/api/me/plan", {
@@ -132,11 +210,13 @@ async function loadAccountPlan() {
   skipCloudSync = true;
   rackHeight = data.rackHeight || 25;
   devices = (data.devices || []).filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+  connections = Array.isArray(data.connections) ? data.connections : [];
   nextId = data.nextId || 1;
+  sanitizeConnections();
   planId = data.id;
   localStorage.setItem(PLAN_ID_KEY, planId);
   document.getElementById("rack-height").value = String(rackHeight);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ rackHeight, devices, nextId }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ rackHeight, devices, connections, nextId }));
   skipCloudSync = false;
   setPlanInUrl(planId);
 }
@@ -148,7 +228,9 @@ async function cloudLoad(id) {
   skipCloudSync = true;
   rackHeight = data.rackHeight || 25;
   devices = (data.devices || []).filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+  connections = Array.isArray(data.connections) ? data.connections : [];
   nextId = data.nextId || 1;
+  sanitizeConnections();
   planId = id;
   localStorage.setItem(PLAN_ID_KEY, planId);
   document.getElementById("rack-height").value = String(rackHeight);
@@ -170,7 +252,9 @@ function load() {
     const data = JSON.parse(raw);
     rackHeight = data.rackHeight || 25;
     devices = (data.devices || []).filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+    connections = Array.isArray(data.connections) ? data.connections : [];
     nextId = data.nextId || 1;
+    sanitizeConnections();
     document.getElementById("rack-height").value = String(rackHeight);
     save();
   } catch {
@@ -215,8 +299,29 @@ function selectDevice(deviceId) {
   renderPalette();
   renderRack();
   renderDetails();
+  renderCablingForm();
+  renderCablingList();
+  renderCablingMap();
   renderInventory();
   updateHint();
+}
+
+function switchDetailsTab(tab) {
+  detailsTab = tab;
+  const tabDevice = document.getElementById("tab-device");
+  const tabCabling = document.getElementById("tab-cabling");
+  const panelDevice = document.getElementById("panel-device");
+  const panelCabling = document.getElementById("panel-cabling");
+
+  const isDevice = tab === "device";
+  tabDevice.classList.toggle("details-tab--active", isDevice);
+  tabCabling.classList.toggle("details-tab--active", !isDevice);
+  tabDevice.setAttribute("aria-selected", String(isDevice));
+  tabCabling.setAttribute("aria-selected", String(!isDevice));
+  panelDevice.hidden = !isDevice;
+  panelCabling.hidden = isDevice;
+
+  if (!isDevice) renderCablingForm();
 }
 
 function clearPlacementPreview() {
@@ -427,7 +532,283 @@ function onRackClick(u) {
   renderRack();
   renderStats();
   renderInventory();
+  renderCablingForm();
+  renderCablingMap();
   updateHint();
+}
+
+function fillPortSelect(selectEl, deviceId) {
+  const device = devices.find((d) => d.id === Number(deviceId));
+  selectEl.innerHTML = "";
+  if (!device) {
+    selectEl.disabled = true;
+    return;
+  }
+  const count = devicePortCount(device);
+  if (count < 1) {
+    selectEl.disabled = true;
+    return;
+  }
+  selectEl.disabled = false;
+  for (let p = 1; p <= count; p++) {
+    const opt = document.createElement("option");
+    opt.value = String(p);
+    opt.textContent = isPortUsed(device.id, p)
+      ? `${p} (${I18n.t("cabling.portUsed")})`
+      : String(p);
+    selectEl.appendChild(opt);
+  }
+}
+
+function renderCablingForm() {
+  const cabled = devicesWithPorts().sort((a, b) => b.startU - a.startU);
+  const fromSel = document.getElementById("cable-from-device");
+  const toSel = document.getElementById("cable-to-device");
+  const fromPortSel = document.getElementById("cable-from-port");
+  const toPortSel = document.getElementById("cable-to-port");
+  const colorSel = document.getElementById("cable-color");
+
+  const prevFrom = fromSel.value;
+  const prevTo = toSel.value;
+
+  const optionHtml = (d) => {
+    const name = deviceDisplayName(d);
+    return `<option value="${d.id}">U${d.startU} · ${name}</option>`;
+  };
+
+  if (cabled.length < 2) {
+    fromSel.innerHTML = `<option value="">${I18n.t("cabling.needTwoDevices")}</option>`;
+    toSel.innerHTML = fromSel.innerHTML;
+    fromSel.disabled = true;
+    toSel.disabled = true;
+    fromPortSel.disabled = true;
+    toPortSel.disabled = true;
+  } else {
+    fromSel.disabled = false;
+    toSel.disabled = false;
+    fromSel.innerHTML = cabled.map(optionHtml).join("");
+    toSel.innerHTML = cabled.map(optionHtml).join("");
+
+    if (prevFrom && cabled.some((d) => d.id === Number(prevFrom))) {
+      fromSel.value = prevFrom;
+    } else if (selectedDeviceId && cabled.some((d) => d.id === selectedDeviceId)) {
+      fromSel.value = String(selectedDeviceId);
+    }
+
+    if (prevTo && cabled.some((d) => d.id === Number(prevTo))) {
+      toSel.value = prevTo;
+    } else {
+      const alt = cabled.find((d) => d.id !== Number(fromSel.value));
+      if (alt) toSel.value = String(alt.id);
+    }
+
+    if (fromSel.value === toSel.value) {
+      const alt = cabled.find((d) => d.id !== Number(fromSel.value));
+      if (alt) toSel.value = String(alt.id);
+    }
+  }
+
+  if (!colorSel.dataset.ready) {
+    colorSel.innerHTML = CABLE_COLORS.map(
+      (c) => `<option value="${c.value}">${I18n.t(`cabling.colors.${c.key}`)}</option>`
+    ).join("");
+    colorSel.dataset.ready = "1";
+  } else {
+    colorSel.querySelectorAll("option").forEach((opt, i) => {
+      const entry = CABLE_COLORS[i];
+      if (entry) opt.textContent = I18n.t(`cabling.colors.${entry.key}`);
+    });
+  }
+
+  fillPortSelect(fromPortSel, fromSel.value);
+  fillPortSelect(toPortSel, toSel.value);
+}
+
+function renderCablingList() {
+  const list = document.getElementById("cabling-list");
+  const empty = document.getElementById("cabling-list-empty");
+
+  if (connections.length === 0) {
+    list.innerHTML = "";
+    empty.hidden = false;
+    return;
+  }
+
+  empty.hidden = true;
+  const sorted = [...connections].sort((a, b) => a.id - b.id);
+  list.innerHTML = sorted
+    .map((c) => {
+      const fromDev = devices.find((d) => d.id === c.fromDeviceId);
+      const toDev = devices.find((d) => d.id === c.toDeviceId);
+      if (!fromDev || !toDev) return "";
+      const color = c.color || CABLE_COLORS[0].value;
+      const fromName = deviceDisplayName(fromDev);
+      const toName = deviceDisplayName(toDev);
+      const labelHtml = c.label
+        ? `<span class="cabling-item__label">${c.label}</span>`
+        : "";
+      return `<li class="cabling-item" style="--cable-color: ${color}">
+        <div class="cabling-item__body">
+          <span class="cabling-item__route">${fromName} :${c.fromPort} → ${toName} :${c.toPort}</span>
+          ${labelHtml}
+        </div>
+        <button type="button" class="cabling-item__remove" data-id="${c.id}" aria-label="${I18n.t("cabling.remove")}">×</button>
+      </li>`;
+    })
+    .join("");
+
+  list.querySelectorAll(".cabling-item__remove").forEach((btn) => {
+    btn.addEventListener("click", () => removeConnection(Number(btn.dataset.id)));
+  });
+}
+
+function drawCablingLines(conns, mapDevices) {
+  const canvas = document.getElementById("cabling-map-canvas");
+  const svg = document.getElementById("cabling-svg");
+  if (!canvas || !svg) return;
+
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return;
+
+  svg.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
+  svg.innerHTML = "";
+
+  const nodePos = {};
+  mapDevices.forEach((d) => {
+    const el = canvas.querySelector(`[data-id="${d.id}"]`);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    nodePos[d.id] = {
+      x: r.left - rect.left + r.width / 2,
+      y: r.top - rect.top + r.height / 2,
+    };
+  });
+
+  conns.forEach((c) => {
+    const from = nodePos[c.fromDeviceId];
+    const to = nodePos[c.toDeviceId];
+    if (!from || !to) return;
+    const color = c.color || CABLE_COLORS[0].value;
+    const midY = (from.y + to.y) / 2;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", color);
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("stroke-opacity", "0.8");
+    svg.appendChild(path);
+  });
+}
+
+function renderCablingMap() {
+  const emptyEl = document.getElementById("cabling-map-empty");
+  const canvasEl = document.getElementById("cabling-map-canvas");
+  const countEl = document.getElementById("cabling-count");
+  const nodesEl = document.getElementById("cabling-nodes");
+
+  countEl.textContent = String(connections.length);
+
+  if (connections.length === 0) {
+    emptyEl.hidden = false;
+    canvasEl.hidden = true;
+    nodesEl.innerHTML = "";
+    document.getElementById("cabling-svg").innerHTML = "";
+    return;
+  }
+
+  emptyEl.hidden = true;
+  canvasEl.hidden = false;
+
+  const deviceIds = new Set();
+  connections.forEach((c) => {
+    deviceIds.add(c.fromDeviceId);
+    deviceIds.add(c.toDeviceId);
+  });
+
+  const mapDevices = devices
+    .filter((d) => deviceIds.has(d.id))
+    .sort((a, b) => b.startU - a.startU);
+
+  nodesEl.innerHTML = mapDevices
+    .map((d) => {
+      const info = typeInfo(d.type);
+      const label = deviceDisplayName(d);
+      const ports = devicePortCount(d);
+      const linkCount = connections.filter(
+        (c) => c.fromDeviceId === d.id || c.toDeviceId === d.id
+      ).length;
+      const active = d.id === selectedDeviceId ? " cabling-node--active" : "";
+      return `<button type="button" class="cabling-node${active}" data-id="${d.id}" style="--node-color: ${info.color}">
+        <span class="cabling-node__name">${label}</span>
+        <span class="cabling-node__meta">${ports}p · ${linkCount}</span>
+      </button>`;
+    })
+    .join("");
+
+  nodesEl.querySelectorAll(".cabling-node").forEach((btn) => {
+    btn.addEventListener("click", () => selectDevice(Number(btn.dataset.id)));
+  });
+
+  requestAnimationFrame(() => drawCablingLines(connections, mapDevices));
+}
+
+function addConnection(e) {
+  e.preventDefault();
+  const cabled = devicesWithPorts();
+  if (cabled.length < 2) {
+    flashHint(I18n.t("cabling.needTwoDevices"));
+    return;
+  }
+
+  const fromDeviceId = Number(document.getElementById("cable-from-device").value);
+  const toDeviceId = Number(document.getElementById("cable-to-device").value);
+  const fromPort = Number(document.getElementById("cable-from-port").value);
+  const toPort = Number(document.getElementById("cable-to-port").value);
+  const label = document.getElementById("cable-label").value.trim().slice(0, 32);
+  const color = document.getElementById("cable-color").value;
+
+  if (!fromDeviceId || !toDeviceId || fromDeviceId === toDeviceId) {
+    flashHint(I18n.t("cabling.sameDevice"));
+    return;
+  }
+
+  const fromDev = devices.find((d) => d.id === fromDeviceId);
+  const toDev = devices.find((d) => d.id === toDeviceId);
+  if (!fromDev || !toDev) return;
+
+  if (fromPort < 1 || fromPort > devicePortCount(fromDev) || toPort < 1 || toPort > devicePortCount(toDev)) {
+    flashHint(I18n.t("cabling.invalidPort"));
+    return;
+  }
+
+  if (isPortUsed(fromDeviceId, fromPort) || isPortUsed(toDeviceId, toPort)) {
+    flashHint(I18n.t("cabling.portBusy"));
+    return;
+  }
+
+  connections.push({
+    id: nextId++,
+    fromDeviceId,
+    fromPort,
+    toDeviceId,
+    toPort,
+    label,
+    color,
+  });
+
+  document.getElementById("cable-label").value = "";
+  save();
+  renderCablingForm();
+  renderCablingList();
+  renderCablingMap();
+}
+
+function removeConnection(id) {
+  connections = connections.filter((c) => c.id !== id);
+  save();
+  renderCablingForm();
+  renderCablingList();
+  renderCablingMap();
 }
 
 function renderDetails() {
@@ -520,6 +901,7 @@ function flashHint(msg) {
 
 function removeSelected() {
   if (!selectedDeviceId) return;
+  pruneConnectionsForDevice(selectedDeviceId);
   devices = devices.filter((d) => d.id !== selectedDeviceId);
   selectedDeviceId = null;
   save();
@@ -527,12 +909,16 @@ function removeSelected() {
   renderDetails();
   renderStats();
   renderInventory();
+  renderCablingForm();
+  renderCablingList();
+  renderCablingMap();
   updateHint();
 }
 
 function resetRack() {
   if (devices.length && !confirm(I18n.t("reset.confirm"))) return;
   devices = [];
+  connections = [];
   selectedDeviceId = null;
   selectedType = null;
   save();
@@ -541,6 +927,9 @@ function resetRack() {
   renderDetails();
   renderStats();
   renderInventory();
+  renderCablingForm();
+  renderCablingList();
+  renderCablingMap();
   updateHint();
 }
 
@@ -591,7 +980,39 @@ async function init() {
   renderDetails();
   renderStats();
   renderInventory();
+  renderCablingForm();
+  renderCablingList();
+  renderCablingMap();
+  switchDetailsTab(detailsTab);
   updateHint();
+
+  document.getElementById("tab-device").addEventListener("click", () => switchDetailsTab("device"));
+  document.getElementById("tab-cabling").addEventListener("click", () => switchDetailsTab("cabling"));
+  document.getElementById("cabling-form").addEventListener("submit", addConnection);
+
+  const cableFromDevice = document.getElementById("cable-from-device");
+  const cableToDevice = document.getElementById("cable-to-device");
+  cableFromDevice.addEventListener("change", () => {
+    fillPortSelect(document.getElementById("cable-from-port"), cableFromDevice.value);
+    if (cableFromDevice.value === cableToDevice.value) {
+      const alt = devicesWithPorts().find((d) => d.id !== Number(cableFromDevice.value));
+      if (alt) cableToDevice.value = String(alt.id);
+      fillPortSelect(document.getElementById("cable-to-port"), cableToDevice.value);
+    }
+  });
+  cableToDevice.addEventListener("change", () => {
+    fillPortSelect(document.getElementById("cable-to-port"), cableToDevice.value);
+    if (cableFromDevice.value === cableToDevice.value) {
+      const alt = devicesWithPorts().find((d) => d.id !== Number(cableToDevice.value));
+      if (alt) cableFromDevice.value = String(alt.id);
+      fillPortSelect(document.getElementById("cable-from-port"), cableFromDevice.value);
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    clearTimeout(cablingMapResizeTimer);
+    cablingMapResizeTimer = setTimeout(() => renderCablingMap(), 150);
+  });
 
   document.getElementById("rack-height").addEventListener("change", (e) => {
     changeRackHeight(e.target.value);
@@ -616,6 +1037,9 @@ async function init() {
     renderDetails();
     renderStats();
     renderInventory();
+    renderCablingForm();
+    renderCablingList();
+    renderCablingMap();
     updateHint();
   });
 
@@ -630,6 +1054,9 @@ async function init() {
     renderDetails();
     renderStats();
     renderInventory();
+    renderCablingForm();
+    renderCablingList();
+    renderCablingMap();
     updateHint();
   });
 }

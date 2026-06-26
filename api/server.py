@@ -188,6 +188,10 @@ def init_db() -> None:
         cols = {row[1] for row in conn.execute("PRAGMA table_info(plans)")}
         if "user_id" not in cols:
             conn.execute("ALTER TABLE plans ADD COLUMN user_id TEXT")
+        if "connections" not in cols:
+            conn.execute(
+                "ALTER TABLE plans ADD COLUMN connections TEXT NOT NULL DEFAULT '[]'"
+            )
         conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id) WHERE user_id IS NOT NULL"
         )
@@ -260,18 +264,54 @@ def validate_plan(body: dict[str, Any]) -> dict[str, Any] | str:
         if not isinstance(d.get("label", ""), str):
             return "Invalid device label"
 
+    connections = body.get("connections", [])
+    if connections is None:
+        connections = []
+    if not isinstance(connections, list):
+        return "connections must be a list"
+    for c in connections:
+        if not isinstance(c, dict):
+            return "Invalid connection entry"
+        for key in ("id", "fromDeviceId", "fromPort", "toDeviceId", "toPort"):
+            if key not in c:
+                return f"Connection missing {key}"
+        try:
+            int(c["fromDeviceId"])
+            int(c["toDeviceId"])
+            int(c["fromPort"])
+            int(c["toPort"])
+            int(c["id"])
+        except (TypeError, ValueError):
+            return "Invalid connection ids or ports"
+        if not isinstance(c.get("label", ""), str):
+            return "Invalid connection label"
+        color = c.get("color", "")
+        if color is not None and not isinstance(color, str):
+            return "Invalid connection color"
+        if color and len(color) > 32:
+            return "Invalid connection color"
+
     return {
         "rack_height": rack_height,
         "next_id": next_id,
         "devices": json.dumps(devices, separators=(",", ":")),
+        "connections": json.dumps(connections, separators=(",", ":")),
     }
 
 
 def row_to_plan(row: sqlite3.Row) -> dict[str, Any]:
+    raw_connections = row["connections"] if "connections" in row.keys() else "[]"
+    try:
+        connections = json.loads(raw_connections or "[]")
+    except json.JSONDecodeError:
+        connections = []
+    if not isinstance(connections, list):
+        connections = []
     return {
         "id": row["id"],
         "rackHeight": row["rack_height"],
         "devices": json.loads(row["devices"]),
+        "connections": connections,
         "nextId": row["next_id"],
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
@@ -1313,12 +1353,13 @@ class Handler(BaseHTTPRequestHandler):
                 conn.execute(
                     """
                     UPDATE plans
-                    SET rack_height = ?, devices = ?, next_id = ?, updated_at = ?
+                    SET rack_height = ?, devices = ?, connections = ?, next_id = ?, updated_at = ?
                     WHERE user_id = ?
                     """,
                     (
                         validated["rack_height"],
                         validated["devices"],
+                        validated["connections"],
                         validated["next_id"],
                         now,
                         user["id"],
@@ -1328,13 +1369,14 @@ class Handler(BaseHTTPRequestHandler):
                 plan_id = uuid.uuid4().hex
                 conn.execute(
                     """
-                    INSERT INTO plans (id, rack_height, devices, next_id, user_id, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO plans (id, rack_height, devices, connections, next_id, user_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         plan_id,
                         validated["rack_height"],
                         validated["devices"],
+                        validated["connections"],
                         validated["next_id"],
                         user["id"],
                         now,
@@ -1477,13 +1519,14 @@ class Handler(BaseHTTPRequestHandler):
         with db_conn() as conn:
             conn.execute(
                 """
-                INSERT INTO plans (id, rack_height, devices, next_id, user_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, NULL, ?, ?)
+                INSERT INTO plans (id, rack_height, devices, connections, next_id, user_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
                 """,
                 (
                     plan_id,
                     validated["rack_height"],
                     validated["devices"],
+                    validated["connections"],
                     validated["next_id"],
                     now,
                     now,
@@ -1561,12 +1604,13 @@ class Handler(BaseHTTPRequestHandler):
             cur = conn.execute(
                 """
                 UPDATE plans
-                SET rack_height = ?, devices = ?, next_id = ?, updated_at = ?
+                SET rack_height = ?, devices = ?, connections = ?, next_id = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
                     validated["rack_height"],
                     validated["devices"],
+                    validated["connections"],
                     validated["next_id"],
                     now,
                     plan_id,
