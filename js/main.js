@@ -432,15 +432,9 @@ const FRONT_PORT_LAYOUTS = {
   "switch-48": (port) => gridPortPercent(port, 68, 11, 24, 14.5, 10, 20, 5.5),
   switch: (port) => gridPortPercent(port, 168, 12, 12, 13, 11, 20, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
-  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 21),
+  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 25.5),
   "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 22.3),
-  "patch-48": (port) => {
-    const col = (port - 1) % 24;
-    const row = Math.floor((port - 1) / 24);
-    const cx = 14.15 + col * 17.5;
-    const cy = row === 0 ? 18 : 31;
-    return svgPortPercent(cx, cy);
-  },
+  "patch-48": (port) => gridPortPercent(port, 6, 11, 24, 17.5, 16.3, 13, 7),
 };
 
 function devicePortPlacement(type) {
@@ -489,15 +483,62 @@ function portCableStub(device, deviceId, port) {
   return { len: PORT_CABLE_STUB_LEN, dir: -1 };
 }
 
+function svgPointOnFaceplate(cx, cy, rowEl, wrapperRect) {
+  const face = rowEl.querySelector(".rack-device__faceplate");
+  if (!face) return null;
+  const faceRect = face.getBoundingClientRect();
+  const { left, top } = svgPortPercent(cx, cy);
+  return {
+    x: faceRect.left - wrapperRect.left + (left / 100) * faceRect.width,
+    y: faceRect.top - wrapperRect.top + (top / 100) * faceRect.height,
+  };
+}
+
+function patchCableSvgAnchors(device, port) {
+  if (!device.type.startsWith("patch-")) return null;
+
+  if (device.type === "patch-48") {
+    const cx = 14.15 + ((port - 1) % 24) * 17.5;
+    if (patchPortRow(device.type, port) === 0) {
+      return { bend: { cx, cy: 18 }, tip: { cx, cy: 14 } };
+    }
+    return { bend: { cx, cy: 26 }, tip: { cx, cy: 31 } };
+  }
+
+  if (device.type === "patch-24") {
+    const cx = 13.95 + (port - 1) * 17.4;
+    return { bend: { cx, cy: 22.3 }, tip: { cx, cy: 18.3 } };
+  }
+
+  if (device.type === "patch-16") {
+    const cx = 18.45 + (port - 1) * 26.9;
+    return { bend: { cx, cy: 25.5 }, tip: { cx, cy: 21.5 } };
+  }
+
+  return null;
+}
+
 function portCablePoints(deviceId, port, wrapperRect) {
-  const bend = portAnchorInWrapper(deviceId, port, wrapperRect);
-  if (!bend) return null;
+  const row = document.querySelector(`[data-device="${deviceId}"]`);
   const device = devices.find((d) => d.id === deviceId);
-  const stub = device ? portCableStub(device, deviceId, port) : null;
+  if (!row || !device) return null;
+
+  const patchAnchors = patchCableSvgAnchors(device, port);
+  if (patchAnchors) {
+    const bend = svgPointOnFaceplate(patchAnchors.bend.cx, patchAnchors.bend.cy, row, wrapperRect);
+    const tip = svgPointOnFaceplate(patchAnchors.tip.cx, patchAnchors.tip.cy, row, wrapperRect);
+    if (!bend || !tip) return null;
+    const hasStub = Math.abs(bend.x - tip.x) > 0.5 || Math.abs(bend.y - tip.y) > 0.5;
+    return { bend, tip, stub: hasStub ? portCableStub(device, deviceId, port) : null };
+  }
+
+  const bend = portAnchorOnFaceplate(device, port, wrapperRect, row);
+  if (!bend) return null;
+  const stub = portCableStub(device, deviceId, port);
   if (!stub) return { bend, tip: bend, stub: null };
   return {
     bend,
-    tip: { x: bend.x, y: bend.y + stub.dir * stub.len },
+    tip: { x: bend.x, y: bend.y + stub.dir * PORT_CABLE_STUB_LEN },
     stub,
   };
 }
