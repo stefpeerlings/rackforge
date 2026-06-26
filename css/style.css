@@ -1667,6 +1667,11 @@ body.avatar-crop-dragging .avatar-crop-stage {
     inset 0 0 30px rgba(0, 0, 0, 0.6),
     0 12px 40px rgba(0, 0, 0, 0.5);
   width: var(--rack-w);
+  transition: grid-template-columns 0.2s ease;
+}
+
+.rack-wrapper--cabled {
+  grid-template-columns: 24px 10px 1fr 20px 10px;
 }
 
 .rack-nums {
@@ -1746,10 +1751,44 @@ body.avatar-crop-dragging .avatar-crop-stage {
   display: none;
 }
 
-.rack-cable-channel {
-  stroke: rgba(148, 163, 184, 0.22);
-  stroke-width: 8;
-  stroke-linecap: round;
+.rack-cable-bay {
+  display: none;
+  align-self: stretch;
+  min-height: 100%;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    linear-gradient(180deg, #05080d 0%, #0a1018 45%, #080c12 100%);
+  border-left: 2px solid rgba(58, 78, 98, 0.55);
+  box-shadow:
+    inset 4px 0 10px rgba(0, 0, 0, 0.75),
+    inset -2px 0 6px rgba(0, 0, 0, 0.45);
+  border-radius: 0 3px 3px 0;
+  position: relative;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.rack-wrapper--cabled .rack-cable-bay {
+  display: block;
+}
+
+.rack-wrapper--cabled .rack {
+  border-right: none;
+  padding-right: 4px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rack-cable-bay__guide {
+  stroke: rgba(100, 116, 139, 0.14);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
 }
 
 .rack {
@@ -1765,6 +1804,7 @@ body.avatar-crop-dragging .avatar-crop-stage {
   z-index: 2;
   min-width: 0;
   overflow: visible;
+  transition: border-color 0.2s ease, padding 0.2s ease;
 }
 
 .rack-u {

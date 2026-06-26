@@ -475,15 +475,41 @@ function portAnchorInWrapper(deviceId, port, wrapperRect) {
   };
 }
 
-function rackCableChannelX(wrapperRect) {
+function rackCableBayMetrics(wrapperRect) {
+  const bay = document.getElementById("rack-cable-bay");
   const rackEl = document.getElementById("rack");
-  if (!rackEl) return wrapperRect.width - 10;
+  if (!bay || !rackEl) return null;
+
+  const bayRect = bay.getBoundingClientRect();
   const rackRect = rackEl.getBoundingClientRect();
-  return rackRect.right - wrapperRect.left + 5;
+  if (bayRect.width < 1) return null;
+
+  return {
+    left: bayRect.left - wrapperRect.left,
+    right: bayRect.right - wrapperRect.left,
+    center: bayRect.left - wrapperRect.left + bayRect.width / 2,
+    width: bayRect.width,
+    rackRight: rackRect.right - wrapperRect.left,
+  };
 }
 
-function rackCablePath(from, to, channelX) {
-  return `M ${from.x} ${from.y} H ${channelX} V ${to.y} H ${to.x}`;
+function assignCableLaneXs(entries, bay) {
+  const pad = 3;
+  const count = entries.length;
+  if (count === 1) return [bay.center];
+
+  const innerW = Math.max(bay.width - pad * 2, 4);
+  const step = innerW / (count - 1);
+  const start = bay.left + pad;
+  return entries.map((_, idx) => start + idx * step);
+}
+
+function rackCablePath(from, to, laneX, bay) {
+  const mouth = bay.rackRight + 1;
+  if (Math.abs(from.x - mouth) < 2) {
+    return `M ${from.x} ${from.y} H ${laneX} V ${to.y} H ${to.x}`;
+  }
+  return `M ${from.x} ${from.y} H ${mouth} H ${laneX} V ${to.y} H ${to.x}`;
 }
 
 function renderRackCabling() {
@@ -500,39 +526,53 @@ function renderRackCabling() {
   wrapper.classList.add("rack-wrapper--cabled");
 
   requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
     const wrapperRect = wrapper.getBoundingClientRect();
     if (wrapperRect.width < 1 || wrapperRect.height < 1) return;
+
+    const bay = rackCableBayMetrics(wrapperRect);
+    if (!bay) return;
 
     svg.setAttribute("viewBox", `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
     svg.innerHTML = "";
 
-    const channelX = rackCableChannelX(wrapperRect);
-    const channel = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    channel.setAttribute("x1", String(channelX));
-    channel.setAttribute("y1", "0");
-    channel.setAttribute("x2", String(channelX));
-    channel.setAttribute("y2", String(wrapperRect.height));
-    channel.setAttribute("class", "rack-cable-channel");
-    svg.appendChild(channel);
+    const guideCount = Math.max(2, Math.min(connections.length + 1, 5));
+    const guideStep = bay.width / (guideCount + 1);
+    for (let g = 1; g <= guideCount; g++) {
+      const gx = bay.left + guideStep * g;
+      const guide = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      guide.setAttribute("x1", String(gx));
+      guide.setAttribute("y1", "4");
+      guide.setAttribute("x2", String(gx));
+      guide.setAttribute("y2", String(wrapperRect.height - 4));
+      guide.setAttribute("class", "rack-cable-bay__guide");
+      svg.appendChild(guide);
+    }
 
-    const laneStep = 2.5;
-    const laneCount = Math.min(connections.length, 5);
-    const laneStart = channelX - ((laneCount - 1) * laneStep) / 2;
+    const entries = connections
+      .map((c) => {
+        const from = portAnchorInWrapper(c.fromDeviceId, c.fromPort, wrapperRect);
+        const to = portAnchorInWrapper(c.toDeviceId, c.toPort, wrapperRect);
+        if (!from || !to) return null;
+        return { c, from, to, midY: (from.y + to.y) / 2 };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.midY - b.midY || a.c.id - b.c.id);
 
-    connections.forEach((c, idx) => {
-      const from = portAnchorInWrapper(c.fromDeviceId, c.fromPort, wrapperRect);
-      const to = portAnchorInWrapper(c.toDeviceId, c.toPort, wrapperRect);
-      if (!from || !to) return;
+    const laneXs = assignCableLaneXs(entries, bay);
 
-      const laneX = laneStart + (idx % laneCount) * laneStep;
+    entries.forEach((entry, idx) => {
+      const { c, from, to } = entry;
+      const laneX = laneXs[idx];
       const color = c.color || CABLE_COLORS[0].value;
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", rackCablePath(from, to, laneX));
+      path.setAttribute("d", rackCablePath(from, to, laneX, bay));
       path.setAttribute("stroke", color);
-      path.setAttribute("stroke-opacity", "0.9");
+      path.setAttribute("stroke-opacity", "0.92");
       path.setAttribute("class", "rack-cable-line");
       if (c.label) path.setAttribute("aria-label", c.label);
       svg.appendChild(path);
+    });
     });
   });
 }
