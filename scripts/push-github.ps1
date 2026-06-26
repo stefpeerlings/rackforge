@@ -9,8 +9,8 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
 $git = "C:\Program Files\Git\bin\git.exe"
-$gh = "$env:LOCALAPPDATA\Programs\GitHub CLI\gh.exe"
-if (-not (Test-Path $gh)) { $gh = "C:\Program Files\GitHub CLI\gh.exe" }
+$gh = "C:\Program Files\GitHub CLI\gh.exe"
+if (-not (Test-Path $gh)) { $gh = "$env:LOCALAPPDATA\Programs\GitHub CLI\gh.exe" }
 
 Push-Location $Root
 try {
