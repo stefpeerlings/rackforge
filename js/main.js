@@ -901,38 +901,79 @@ function renderCablingForm() {
   renderCablingBulk();
 }
 
-const BULK_SWITCH_TYPES = new Set(["switch-48", "switch-24"]);
-
-function bulkPatchPreset(switchDev, mode) {
-  const type = normalizeDeviceType(switchDev.type);
-  if (type === "switch-48") {
-    if (mode === "top") return { count: 24, switchOffset: 0 };
-    if (mode === "bottom") return { count: 24, switchOffset: 24 };
-    return null;
-  }
-  if (type === "switch-24" && mode === "all") return { count: 24, switchOffset: 0 };
-  return null;
+function isBulkSwitchType(type) {
+  return normalizeDeviceType(type).startsWith("switch-");
 }
 
-function updateBulkPatchActions() {
+function isBulkPatchType(type) {
+  return typeof type === "string" && type.startsWith("patch-");
+}
+
+function getBulkConnectOptions(switchDev, patchDev) {
+  if (!switchDev || !patchDev) return [];
+  if (!isBulkSwitchType(switchDev.type) || !isBulkPatchType(patchDev.type)) return [];
+
+  const swCount = devicePortCount(switchDev);
+  const patchCount = devicePortCount(patchDev);
+  if (swCount <= 0 || patchCount <= 0) return [];
+
+  if (swCount === patchCount) {
+    return [{ count: swCount, switchOffset: 0, patchStart: 1 }];
+  }
+
+  if (swCount === 48 && patchCount < 48) {
+    return [
+      { count: patchCount, switchOffset: 0, patchStart: 1, tier: "top" },
+      { count: patchCount, switchOffset: 24, patchStart: 1, tier: "bottom" },
+    ];
+  }
+
+  if (swCount > patchCount) {
+    return [{ count: patchCount, switchOffset: 0, patchStart: 1 }];
+  }
+
+  return [{ count: swCount, switchOffset: 0, patchStart: 1 }];
+}
+
+function bulkActionLabel(option) {
+  const swStart = option.switchOffset + 1;
+  const swEnd = option.switchOffset + option.count;
+  if (option.tier === "top") {
+    return I18n.t("cabling.bulkConnectTop", { start: swStart, end: swEnd });
+  }
+  if (option.tier === "bottom") {
+    return I18n.t("cabling.bulkConnectBottom", { start: swStart, end: swEnd });
+  }
+  return I18n.t("cabling.bulkConnectRange", { start: swStart, end: swEnd });
+}
+
+function renderBulkActionButtons() {
+  const container = document.getElementById("bulk-actions");
   const switchSel = document.getElementById("bulk-switch");
-  const actions48 = document.getElementById("bulk-actions-48");
-  const btnAll = document.getElementById("btn-bulk-patch-all");
-  if (!switchSel || !actions48 || !btnAll) return;
+  const patchSel = document.getElementById("bulk-patch");
+  if (!container || !switchSel || !patchSel) return;
 
   const switchDev = devices.find((d) => d.id === Number(switchSel.value));
-  const type = switchDev ? normalizeDeviceType(switchDev.type) : null;
+  const patchDev = devices.find((d) => d.id === Number(patchSel.value));
+  const options = getBulkConnectOptions(switchDev, patchDev);
 
-  if (type === "switch-48") {
-    actions48.hidden = false;
-    btnAll.hidden = true;
-  } else if (type === "switch-24") {
-    actions48.hidden = true;
-    btnAll.hidden = false;
-  } else {
-    actions48.hidden = true;
-    btnAll.hidden = true;
-  }
+  container.innerHTML = options
+    .map((opt, i) => {
+      const label = bulkActionLabel(opt);
+      return `<button type="button" class="btn btn--sm cabling-bulk__btn" data-bulk-idx="${i}">${label}</button>`;
+    })
+    .join("");
+  container.hidden = options.length === 0;
+
+  container.querySelectorAll("[data-bulk-idx]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const idx = Number(btn.dataset.bulkIdx);
+      const sw = devices.find((d) => d.id === Number(switchSel.value));
+      const patch = devices.find((d) => d.id === Number(patchSel.value));
+      const opt = getBulkConnectOptions(sw, patch)[idx];
+      if (opt) bulkConnectPatchPanel(opt);
+    });
+  });
 }
 
 function renderCablingBulk() {
@@ -942,10 +983,10 @@ function renderCablingBulk() {
   if (!section || !switchSel || !patchSel) return;
 
   const switches = devices
-    .filter((d) => BULK_SWITCH_TYPES.has(normalizeDeviceType(d.type)))
+    .filter((d) => isBulkSwitchType(d.type))
     .sort((a, b) => b.startU - a.startU);
   const patches = devices
-    .filter((d) => d.type === "patch-24")
+    .filter((d) => isBulkPatchType(d.type))
     .sort((a, b) => b.startU - a.startU);
 
   if (switches.length === 0 || patches.length === 0) {
@@ -977,7 +1018,7 @@ function renderCablingBulk() {
     if (alt) patchSel.value = String(alt.id);
   }
 
-  updateBulkPatchActions();
+  renderBulkActionButtons();
 }
 
 function refreshCablingUI() {
@@ -987,14 +1028,14 @@ function refreshCablingUI() {
   renderCablingMap();
 }
 
-function bulkConnectPatchPanel(mode) {
+function bulkConnectPatchPanel({ count, switchOffset, patchStart = 1 }) {
   const switchId = Number(document.getElementById("bulk-switch").value);
   const patchId = Number(document.getElementById("bulk-patch").value);
   const switchDev = devices.find((d) => d.id === switchId);
   const patchDev = devices.find((d) => d.id === patchId);
 
   if (!switchDev || !patchDev) return;
-  if (!BULK_SWITCH_TYPES.has(normalizeDeviceType(switchDev.type)) || patchDev.type !== "patch-24") {
+  if (!isBulkSwitchType(switchDev.type) || !isBulkPatchType(patchDev.type)) {
     flashHint(I18n.t("cabling.bulkInvalid"));
     return;
   }
@@ -1003,18 +1044,13 @@ function bulkConnectPatchPanel(mode) {
     return;
   }
 
-  const preset = bulkPatchPreset(switchDev, mode);
-  if (!preset) {
-    flashHint(I18n.t("cabling.bulkInvalid"));
-    return;
-  }
-
   const color = document.getElementById("cable-color").value || CABLE_COLORS[0].value;
   let added = 0;
   let skipped = 0;
 
-  for (let patchPort = 1; patchPort <= preset.count; patchPort++) {
-    const switchPort = patchPort + preset.switchOffset;
+  for (let i = 0; i < count; i++) {
+    const patchPort = patchStart + i;
+    const switchPort = switchOffset + 1 + i;
     if (isPortUsed(switchId, switchPort) || isPortUsed(patchId, patchPort)) {
       skipped++;
       continue;
@@ -1407,10 +1443,8 @@ async function init() {
   document.getElementById("tab-device").addEventListener("click", () => switchDetailsTab("device"));
   document.getElementById("tab-cabling").addEventListener("click", () => switchDetailsTab("cabling"));
   document.getElementById("cabling-form").addEventListener("submit", addConnection);
-  document.getElementById("btn-bulk-patch-top").addEventListener("click", () => bulkConnectPatchPanel("top"));
-  document.getElementById("btn-bulk-patch-bottom").addEventListener("click", () => bulkConnectPatchPanel("bottom"));
-  document.getElementById("btn-bulk-patch-all").addEventListener("click", () => bulkConnectPatchPanel("all"));
-  document.getElementById("bulk-switch").addEventListener("change", updateBulkPatchActions);
+  document.getElementById("bulk-switch").addEventListener("change", renderBulkActionButtons);
+  document.getElementById("bulk-patch").addEventListener("change", renderBulkActionButtons);
 
   const cableFromDevice = document.getElementById("cable-from-device");
   const cableToDevice = document.getElementById("cable-to-device");

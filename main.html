@@ -277,20 +277,16 @@
         </form>
         <div class="cabling-bulk" id="cabling-bulk" hidden>
           <h4 class="cabling-bulk__title" data-i18n="cabling.bulkTitle">Snelkoppeling patchpaneel</h4>
-          <p class="cabling-bulk__hint" data-i18n="cabling.bulkHint">Verbind 24 poorten van een switch met een 24p patchpaneel in één keer.</p>
+          <p class="cabling-bulk__hint" data-i18n="cabling.bulkHint">Verbind switch-poorten met een patchpaneel in één keer.</p>
           <label class="label-field">
             <span data-i18n="cabling.bulkSwitch">Switch</span>
             <select class="select" id="bulk-switch"></select>
           </label>
           <label class="label-field">
-            <span data-i18n="cabling.bulkPatch">24p patchpaneel</span>
+            <span data-i18n="cabling.bulkPatch">Patchpaneel</span>
             <select class="select" id="bulk-patch"></select>
           </label>
-          <div class="cabling-bulk__actions" id="bulk-actions-48" hidden>
-            <button type="button" class="btn btn--sm cabling-bulk__btn" id="btn-bulk-patch-top" data-i18n="cabling.bulkConnectTop">Bovenste 24 (1–24)</button>
-            <button type="button" class="btn btn--sm cabling-bulk__btn" id="btn-bulk-patch-bottom" data-i18n="cabling.bulkConnectBottom">Onderste 24 (25–48)</button>
-          </div>
-          <button type="button" class="btn btn--sm cabling-bulk__btn" id="btn-bulk-patch-all" hidden data-i18n="cabling.bulkConnectAll">Alle 24 poorten (1–24)</button>
+          <div class="cabling-bulk__actions" id="bulk-actions" hidden></div>
         </div>
         <ul class="cabling-list" id="cabling-list"></ul>
         <p class="cabling-list-empty" id="cabling-list-empty" data-i18n="cabling.listEmpty">Nog geen kabels.</p>
@@ -341,11 +337,11 @@
     </div>
   </div>
 
-  <script src="js/i18n.js?v=32"></script>
+  <script src="js/i18n.js?v=33"></script>
   <script src="js/routes.js?v=2"></script>
   <script src="js/avatar-crop.js?v=2"></script>
   <script src="js/settings.js?v=10"></script>
   <script src="js/auth.js?v=32"></script>
-  <script src="js/main.js?v=73"></script>
+  <script src="js/main.js?v=74"></script>
 </body>
 </html>
