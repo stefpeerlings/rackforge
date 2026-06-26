@@ -390,6 +390,11 @@ function earHoles(span) {
   return slots.join("");
 }
 
+function devicePortPlacement(type) {
+  if (type.startsWith("server-") || type.startsWith("nas-")) return "rear";
+  return "front";
+}
+
 function deviceLinkedPorts(deviceId) {
   const entries = [];
   connections.forEach((c) => {
@@ -405,33 +410,68 @@ function deviceLinkedPorts(deviceId) {
   return [...byPort.values()].sort((a, b) => a.port - b.port);
 }
 
-function buildDevicePortStrip(device) {
+function portDotMarkup(device, { port, color, connId }, placement, total) {
+  const conn = connections.find((x) => x.id === connId);
+  const title = conn?.label
+    ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
+    : I18n.t("cabling.rackPort", { port });
+  const pct = ((port - 0.5) / total) * 100;
+  const pos =
+    placement === "rear"
+      ? `top: ${pct}%; left: 50%`
+      : `left: ${pct}%; top: 2px`;
+  const cls = placement === "rear" ? "rack-port rack-port--rear" : "rack-port rack-port--front";
+  return `<span class="${cls}" data-port="${port}" data-placement="${placement}" data-conn="${connId}" style="--port-color: ${color}; ${pos}" title="${title}"></span>`;
+}
+
+function buildDevicePortParts(device) {
   const linked = deviceLinkedPorts(device.id);
-  if (linked.length === 0) return "";
+  if (linked.length === 0) return { front: "", rear: "" };
+
   const total = devicePortCount(device);
-  const dots = linked
-    .map(({ port, color, connId }) => {
-      const pct = ((port - 0.5) / total) * 100;
-      const conn = connections.find((x) => x.id === connId);
-      const title = conn?.label
-        ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
-        : I18n.t("cabling.rackPort", { port });
-      return `<span class="rack-port" data-port="${port}" data-conn="${connId}" style="--port-color: ${color}; left: ${pct}%" title="${title}"></span>`;
-    })
-    .join("");
-  return `<div class="rack-device__ports" aria-hidden="true">${dots}</div>`;
+  const placement = devicePortPlacement(device.type);
+  const dots = linked.map((entry) => portDotMarkup(device, entry, placement, total)).join("");
+
+  if (placement === "rear") {
+    return {
+      front: "",
+      rear: `<div class="rack-device__rear" aria-hidden="true" title="${I18n.t("cabling.rearIo")}">
+        <span class="rack-device__rear-tag">${I18n.t("cabling.rear")}</span>
+        <div class="rack-device__ports rack-device__ports--rear">${dots}</div>
+      </div>`,
+    };
+  }
+
+  return {
+    front: `<div class="rack-device__ports rack-device__ports--front" aria-hidden="true">${dots}</div>`,
+    rear: "",
+  };
 }
 
 function portAnchorInLayer(deviceId, port, layerRect) {
   const row = document.querySelector(`[data-device="${deviceId}"]`);
   if (!row) return null;
   const dot = row.querySelector(`.rack-port[data-port="${port}"]`);
-  const target = dot || row.querySelector(".rack-device__faceplate");
+  if (dot) {
+    const r = dot.getBoundingClientRect();
+    return {
+      x: r.left - layerRect.left + r.width / 2,
+      y: r.top - layerRect.top + r.height / 2,
+    };
+  }
+
+  const device = devices.find((d) => d.id === deviceId);
+  const face = row.querySelector(".rack-device__faceplate");
+  const rear = row.querySelector(".rack-device__rear");
+  const target =
+    device && devicePortPlacement(device.type) === "rear" && rear
+      ? rear
+      : face;
   if (!target) return null;
   const r = target.getBoundingClientRect();
   return {
-    x: r.left - layerRect.left + r.width / 2,
-    y: r.top - layerRect.top + (dot ? r.height / 2 : r.height * 0.72),
+    x: r.left - layerRect.left + (rear && target === rear ? r.width : r.width / 2),
+    y: r.top - layerRect.top + r.height * 0.72,
   };
 }
 
@@ -530,18 +570,20 @@ function renderRack() {
           <div class="rack-device__face rack-device__face--blank" role="img" aria-label="${info.name}"></div>
         </div>`;
       } else {
+        const portParts = buildDevicePortParts(device);
         content = `
         <div class="rack-device" style="${deviceStyle}">
           <div class="rack-device__ear rack-device__ear--left" aria-hidden="true">${earHoles(span)}</div>
           <div class="rack-device__side rack-device__side--left" aria-hidden="true"></div>
           <div class="rack-device__faceplate">
             ${iconImg(info.icon, "rack-device__face", info.name)}
-            ${buildDevicePortStrip(device)}
+            ${portParts.front}
             <div class="rack-device__nameplate">
               <span class="rack-device__name">${label}</span>
               <span class="rack-device__meta">U${device.startU}–U${uEnd}</span>
             </div>
           </div>
+          ${portParts.rear}
           <div class="rack-device__side rack-device__side--right" aria-hidden="true"></div>
           <div class="rack-device__ear rack-device__ear--right" aria-hidden="true">${earHoles(span)}</div>
         </div>`;

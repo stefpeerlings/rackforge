@@ -2097,7 +2097,36 @@ body.avatar-crop-dragging .avatar-crop-stage {
   flex-shrink: 0;
 }
 
-.rack-device__ports {
+.rack-device__rear {
+  width: 11px;
+  flex-shrink: 0;
+  position: relative;
+  align-self: stretch;
+  background: linear-gradient(180deg, #161d26 0%, #0c1016 50%, #161d26 100%);
+  border-left: 1px solid #3a4a5c;
+  box-shadow:
+    inset -3px 0 6px rgba(0, 0, 0, 0.65),
+    2px 0 6px rgba(0, 0, 0, 0.25);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.rack-device__rear-tag {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  font-size: 0.4rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: #6a7a88;
+  opacity: 0.65;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rack-device__ports--front {
   position: absolute;
   left: 8px;
   right: 8px;
@@ -2107,37 +2136,66 @@ body.avatar-crop-dragging .avatar-crop-stage {
   z-index: 5;
 }
 
+.rack-device__ports--rear {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 1px;
+  right: 1px;
+  pointer-events: none;
+  z-index: 5;
+}
+
 .rack-port {
   position: absolute;
-  top: 2px;
   width: 7px;
   height: 7px;
-  margin-left: -3.5px;
   border-radius: 50%;
   background: var(--port-color, var(--accent));
   border: 1px solid rgba(255, 255, 255, 0.35);
   box-shadow:
     0 0 5px var(--port-color, var(--accent)),
     inset 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+.rack-port--front {
+  margin-left: -3.5px;
   transform: translateX(-50%);
+}
+
+.rack-port--rear {
+  margin-left: -3.5px;
+  margin-top: -3.5px;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
 }
 
 .rack-port::after {
   content: attr(data-port);
   position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
   font-family: var(--mono);
   font-size: 0.45rem;
   color: var(--port-color, var(--accent));
   opacity: 0;
   transition: opacity 0.12s;
   white-space: nowrap;
+  pointer-events: none;
 }
 
-.rack-u--selected .rack-port::after,
-.rack-port:hover::after {
+.rack-port--front::after {
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.rack-port--rear::after {
+  left: calc(100% + 4px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.rack-u--selected .rack-port::after {
   opacity: 0.95;
 }
 

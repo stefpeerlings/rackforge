@@ -145,6 +145,8 @@ const MESSAGES = {
       portUsed: "bezet",
       rackPort: "Poort {port}",
       rackPortLabel: "Poort {port} — {label}",
+      rear: "I/O",
+      rearIo: "Achterpaneel — netwerkpoorten",
       remove: "Kabel verwijderen",
       colors: {
         green: "Groen",
@@ -486,6 +488,8 @@ const MESSAGES = {
       portUsed: "used",
       rackPort: "Port {port}",
       rackPortLabel: "Port {port} — {label}",
+      rear: "I/O",
+      rearIo: "Rear panel — network ports",
       remove: "Remove cable",
       colors: {
         green: "Green",
