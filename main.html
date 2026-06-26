@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=103">
+  <link rel="stylesheet" href="css/style.css?v=104">
 </head>
 <body data-page="main">
   <div class="bg-grid" aria-hidden="true"></div>
@@ -275,6 +275,19 @@
           </label>
           <button type="submit" class="btn btn--primary btn--sm cabling-form__submit" data-i18n="cabling.add">Kabel toevoegen</button>
         </form>
+        <div class="cabling-bulk" id="cabling-bulk" hidden>
+          <h4 class="cabling-bulk__title" data-i18n="cabling.bulkTitle">Snelkoppeling patchpaneel</h4>
+          <p class="cabling-bulk__hint" data-i18n="cabling.bulkHint">Verbind in één keer poorten 25–48 van een 48p switch met poorten 1–24 van een 24p patchpaneel.</p>
+          <label class="label-field">
+            <span data-i18n="cabling.bulkSwitch">48p switch</span>
+            <select class="select" id="bulk-switch"></select>
+          </label>
+          <label class="label-field">
+            <span data-i18n="cabling.bulkPatch">24p patchpaneel</span>
+            <select class="select" id="bulk-patch"></select>
+          </label>
+          <button type="button" class="btn btn--sm cabling-bulk__btn" id="btn-bulk-patch" data-i18n="cabling.bulkConnect">24 poorten verbinden</button>
+        </div>
         <ul class="cabling-list" id="cabling-list"></ul>
         <p class="cabling-list-empty" id="cabling-list-empty" data-i18n="cabling.listEmpty">Nog geen kabels.</p>
       </div>
@@ -324,11 +337,11 @@
     </div>
   </div>
 
-  <script src="js/i18n.js?v=30"></script>
+  <script src="js/i18n.js?v=31"></script>
   <script src="js/routes.js?v=2"></script>
   <script src="js/avatar-crop.js?v=2"></script>
   <script src="js/settings.js?v=10"></script>
   <script src="js/auth.js?v=32"></script>
-  <script src="js/main.js?v=71"></script>
+  <script src="js/main.js?v=72"></script>
 </body>
 </html>

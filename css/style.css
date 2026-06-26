@@ -2466,6 +2466,49 @@ body.avatar-crop-dragging .avatar-crop-stage {
   margin-top: 0.25rem;
 }
 
+.cabling-bulk {
+  margin-bottom: 1rem;
+  padding: 0.7rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px dashed rgba(59, 158, 255, 0.35);
+  border-radius: 8px;
+}
+
+.cabling-bulk__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cabling-bulk__hint {
+  margin: 0 0 0.6rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.cabling-bulk .label-field {
+  margin-bottom: 0.5rem;
+}
+
+.cabling-bulk .select {
+  width: 100%;
+}
+
+.cabling-bulk__btn {
+  width: 100%;
+  margin-top: 0.15rem;
+  border-color: rgba(59, 158, 255, 0.4);
+  background: rgba(59, 158, 255, 0.12);
+  color: #93c5fd;
+}
+
+.cabling-bulk__btn:hover {
+  background: rgba(59, 158, 255, 0.2);
+  border-color: rgba(59, 158, 255, 0.55);
+}
+
 .cabling-list {
   list-style: none;
   display: flex;
