@@ -390,6 +390,95 @@ function earHoles(span) {
   return slots.join("");
 }
 
+function deviceLinkedPorts(deviceId) {
+  const entries = [];
+  connections.forEach((c) => {
+    if (c.fromDeviceId === deviceId) {
+      entries.push({ port: c.fromPort, color: c.color || CABLE_COLORS[0].value, connId: c.id });
+    }
+    if (c.toDeviceId === deviceId) {
+      entries.push({ port: c.toPort, color: c.color || CABLE_COLORS[0].value, connId: c.id });
+    }
+  });
+  const byPort = new Map();
+  entries.forEach((e) => byPort.set(e.port, e));
+  return [...byPort.values()].sort((a, b) => a.port - b.port);
+}
+
+function buildDevicePortStrip(device) {
+  const linked = deviceLinkedPorts(device.id);
+  if (linked.length === 0) return "";
+  const total = devicePortCount(device);
+  const dots = linked
+    .map(({ port, color, connId }) => {
+      const pct = ((port - 0.5) / total) * 100;
+      const conn = connections.find((x) => x.id === connId);
+      const title = conn?.label
+        ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
+        : I18n.t("cabling.rackPort", { port });
+      return `<span class="rack-port" data-port="${port}" data-conn="${connId}" style="--port-color: ${color}; left: ${pct}%" title="${title}"></span>`;
+    })
+    .join("");
+  return `<div class="rack-device__ports" aria-hidden="true">${dots}</div>`;
+}
+
+function portAnchorInLayer(deviceId, port, layerRect) {
+  const row = document.querySelector(`[data-device="${deviceId}"]`);
+  if (!row) return null;
+  const dot = row.querySelector(`.rack-port[data-port="${port}"]`);
+  const target = dot || row.querySelector(".rack-device__faceplate");
+  if (!target) return null;
+  const r = target.getBoundingClientRect();
+  return {
+    x: r.left - layerRect.left + r.width / 2,
+    y: r.top - layerRect.top + (dot ? r.height / 2 : r.height * 0.72),
+  };
+}
+
+function rackCablePath(from, to) {
+  const gap = Math.max(28, Math.abs(to.x - from.x) * 0.45);
+  const leave = from.x <= to.x ? gap : -gap;
+  const arrive = from.x <= to.x ? -gap : gap;
+  return `M ${from.x} ${from.y} C ${from.x + leave} ${from.y}, ${to.x + arrive} ${to.y}, ${to.x} ${to.y}`;
+}
+
+function renderRackCabling() {
+  const layer = document.getElementById("rack-cabling-layer");
+  const svg = document.getElementById("rack-cabling-svg");
+  if (!layer || !svg) return;
+
+  if (connections.length === 0) {
+    layer.classList.remove("rack-cabling-layer--active");
+    svg.innerHTML = "";
+    return;
+  }
+
+  layer.classList.add("rack-cabling-layer--active");
+
+  requestAnimationFrame(() => {
+    const layerRect = layer.getBoundingClientRect();
+    if (layerRect.width < 1 || layerRect.height < 1) return;
+
+    svg.setAttribute("viewBox", `0 0 ${layerRect.width} ${layerRect.height}`);
+    svg.innerHTML = "";
+
+    connections.forEach((c) => {
+      const from = portAnchorInLayer(c.fromDeviceId, c.fromPort, layerRect);
+      const to = portAnchorInLayer(c.toDeviceId, c.toPort, layerRect);
+      if (!from || !to) return;
+
+      const color = c.color || CABLE_COLORS[0].value;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", rackCablePath(from, to));
+      path.setAttribute("stroke", color);
+      path.setAttribute("stroke-opacity", "0.88");
+      path.setAttribute("class", "rack-cable-line");
+      if (c.label) path.setAttribute("aria-label", c.label);
+      svg.appendChild(path);
+    });
+  });
+}
+
 function renderRailHoles() {
   const slots = [];
   const nums = [];
@@ -447,6 +536,7 @@ function renderRack() {
           <div class="rack-device__side rack-device__side--left" aria-hidden="true"></div>
           <div class="rack-device__faceplate">
             ${iconImg(info.icon, "rack-device__face", info.name)}
+            ${buildDevicePortStrip(device)}
             <div class="rack-device__nameplate">
               <span class="rack-device__name">${label}</span>
               <span class="rack-device__meta">U${device.startU}–U${uEnd}</span>
@@ -499,6 +589,7 @@ function renderRack() {
   });
 
   renderRailHoles();
+  renderRackCabling();
 }
 
 function onRackClick(u) {
@@ -798,6 +889,7 @@ function addConnection(e) {
 
   document.getElementById("cable-label").value = "";
   save();
+  renderRack();
   renderCablingForm();
   renderCablingList();
   renderCablingMap();
@@ -806,6 +898,7 @@ function addConnection(e) {
 function removeConnection(id) {
   connections = connections.filter((c) => c.id !== id);
   save();
+  renderRack();
   renderCablingForm();
   renderCablingList();
   renderCablingMap();
@@ -1011,7 +1104,10 @@ async function init() {
 
   window.addEventListener("resize", () => {
     clearTimeout(cablingMapResizeTimer);
-    cablingMapResizeTimer = setTimeout(() => renderCablingMap(), 150);
+    cablingMapResizeTimer = setTimeout(() => {
+      renderRackCabling();
+      renderCablingMap();
+    }, 150);
   });
 
   document.getElementById("rack-height").addEventListener("change", (e) => {

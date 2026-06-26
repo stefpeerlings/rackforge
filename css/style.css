@@ -1723,6 +1723,25 @@ body.avatar-crop-dragging .avatar-crop-stage {
   flex-shrink: 0;
 }
 
+.rack-cabling-layer {
+  position: relative;
+  min-width: 0;
+}
+
+.rack-cabling-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 60;
+  overflow: visible;
+}
+
+.rack-cabling-layer:not(.rack-cabling-layer--active) .rack-cabling-svg {
+  display: none;
+}
+
 .rack {
   display: flex;
   flex-direction: column;
@@ -1735,7 +1754,7 @@ body.avatar-crop-dragging .avatar-crop-stage {
   position: relative;
   z-index: 2;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .rack-u {
@@ -2076,6 +2095,57 @@ body.avatar-crop-dragging .avatar-crop-stage {
   color: var(--text-muted);
   opacity: 0.7;
   flex-shrink: 0;
+}
+
+.rack-device__ports {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 17px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.rack-port {
+  position: absolute;
+  top: 2px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: var(--port-color, var(--accent));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 0 5px var(--port-color, var(--accent)),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  transform: translateX(-50%);
+}
+
+.rack-port::after {
+  content: attr(data-port);
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--mono);
+  font-size: 0.45rem;
+  color: var(--port-color, var(--accent));
+  opacity: 0;
+  transition: opacity 0.12s;
+  white-space: nowrap;
+}
+
+.rack-u--selected .rack-port::after,
+.rack-port:hover::after {
+  opacity: 0.95;
+}
+
+.rack-cable-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.6));
 }
 
 .rack-toolbar {

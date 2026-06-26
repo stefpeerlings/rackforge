@@ -143,6 +143,8 @@ const MESSAGES = {
       invalidPort: "Ongeldig poortnummer.",
       portBusy: "Deze poort is al in gebruik.",
       portUsed: "bezet",
+      rackPort: "Poort {port}",
+      rackPortLabel: "Poort {port} — {label}",
       remove: "Kabel verwijderen",
       colors: {
         green: "Groen",
@@ -482,6 +484,8 @@ const MESSAGES = {
       invalidPort: "Invalid port number.",
       portBusy: "This port is already in use.",
       portUsed: "used",
+      rackPort: "Port {port}",
+      rackPortLabel: "Port {port} — {label}",
       remove: "Remove cable",
       colors: {
         green: "Green",
