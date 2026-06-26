@@ -390,9 +390,47 @@ function earHoles(span) {
   return slots.join("");
 }
 
+const FACE_VIEW = { w: 440, h: 44 };
+
+function svgPortPercent(cx, cy) {
+  return { left: (cx / FACE_VIEW.w) * 100, top: (cy / FACE_VIEW.h) * 100 };
+}
+
+function gridPortPercent(port, originX, originY, cols, colStep, portW, rowStep, plugY) {
+  const col = (port - 1) % cols;
+  const row = Math.floor((port - 1) / cols);
+  const cx = originX + col * colStep + portW / 2;
+  const cy = originY + row * rowStep + plugY;
+  return svgPortPercent(cx, cy);
+}
+
+function rowPortPercent(port, firstCx, stepCx, cy) {
+  return svgPortPercent(firstCx + (port - 1) * stepCx, cy);
+}
+
+const FRONT_PORT_LAYOUTS = {
+  switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
+  router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
+  "patch-16": (port) => rowPortPercent(port, 18.4, 26.9, 21),
+  "patch-24": (port) => rowPortPercent(port, 13.9, 17.4, 19),
+  "patch-48": (port) => {
+    const col = (port - 1) % 24;
+    const row = Math.floor((port - 1) / 24);
+    const cx = 14.15 + col * 17.5;
+    const cy = row === 0 ? 15.5 : 28.5;
+    return svgPortPercent(cx, cy);
+  },
+};
+
 function devicePortPlacement(type) {
   if (type.startsWith("server-") || type.startsWith("nas-")) return "rear";
   return "front";
+}
+
+function frontPortPosition(device, port, total) {
+  const layout = FRONT_PORT_LAYOUTS[device.type];
+  if (layout) return layout(port, total);
+  return { left: ((port - 0.5) / total) * 100, top: 72 };
 }
 
 function deviceLinkedPorts(deviceId) {
@@ -415,11 +453,14 @@ function portDotMarkup(device, { port, color, connId }, placement, total) {
   const title = conn?.label
     ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
     : I18n.t("cabling.rackPort", { port });
-  const pct = ((port - 0.5) / total) * 100;
-  const pos =
-    placement === "rear"
-      ? `top: ${pct}%; left: 50%`
-      : `left: ${pct}%; top: 2px`;
+  let pos;
+  if (placement === "rear") {
+    const pct = ((port - 0.5) / total) * 100;
+    pos = `top: ${pct}%; left: 50%`;
+  } else {
+    const { left, top } = frontPortPosition(device, port, total);
+    pos = `left: ${left}%; top: ${top}%`;
+  }
   const cls = placement === "rear" ? "rack-port rack-port--rear" : "rack-port rack-port--front";
   return `<span class="${cls}" data-port="${port}" data-placement="${placement}" data-conn="${connId}" style="--port-color: ${color}; ${pos}" title="${title}"></span>`;
 }
