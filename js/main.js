@@ -467,20 +467,9 @@ function portAnchorOnFaceplate(device, port, wrapperRect, rowEl) {
 
 const PORT_CABLE_STUB_LEN = 4;
 
-function switch48BottomPort(port) {
-  return Math.floor((port - 1) / 24) === 1;
-}
-
-function connectionPeer(deviceId, port) {
-  for (const c of connections) {
-    if (c.fromDeviceId === deviceId && c.fromPort === port) {
-      return { deviceId: c.toDeviceId, port: c.toPort };
-    }
-    if (c.toDeviceId === deviceId && c.toPort === port) {
-      return { deviceId: c.fromDeviceId, port: c.fromPort };
-    }
-  }
-  return null;
+function patchPortRow(type, port) {
+  if (type === "patch-48") return Math.floor((port - 1) / 24);
+  return 0;
 }
 
 function portCableStub(device, deviceId, port) {
@@ -493,12 +482,8 @@ function portCableStub(device, deviceId, port) {
 
   if (!device.type.startsWith("patch-")) return null;
 
-  const peer = connectionPeer(deviceId, port);
-  if (peer) {
-    const peerDev = devices.find((d) => d.id === peer.deviceId);
-    if (peerDev && normalizeDeviceType(peerDev.type) === "switch-48" && switch48BottomPort(peer.port)) {
-      return { len: PORT_CABLE_STUB_LEN, dir: 1 };
-    }
+  if (device.type === "patch-48" && patchPortRow(device.type, port) === 1) {
+    return { len: PORT_CABLE_STUB_LEN, dir: 1 };
   }
 
   return { len: PORT_CABLE_STUB_LEN, dir: -1 };
