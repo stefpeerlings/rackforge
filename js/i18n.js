@@ -161,6 +161,7 @@ const MESSAGES = {
       rackPortLabel: "Poort {port} — {label}",
       rear: "I/O",
       rearIo: "Achterpaneel — netwerkpoorten",
+      patchRearIo: "Achterpaneel — servers en NAS",
       remove: "Kabel verwijderen",
       colors: {
         green: "Groen",
@@ -521,6 +522,7 @@ const MESSAGES = {
       rackPortLabel: "Port {port} — {label}",
       rear: "I/O",
       rearIo: "Rear panel — network ports",
+      patchRearIo: "Rear panel — servers and NAS",
       remove: "Remove cable",
       colors: {
         green: "Green",

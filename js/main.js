@@ -132,13 +132,57 @@ function sanitizeConnections() {
   nextId = Math.max(nextId, maxConnId + 1);
 }
 
-function isPortUsed(deviceId, port, excludeId = null) {
+function isPatchType(type) {
+  return typeof type === "string" && type.startsWith("patch-");
+}
+
+function patchPortSideForPeer(peerType) {
+  if (peerType.startsWith("server-") || peerType.startsWith("nas-")) return "rear";
+  return "front";
+}
+
+function connectionPatchSide(deviceId, conn) {
+  const device = devices.find((d) => d.id === deviceId);
+  if (!device || !isPatchType(device.type)) return null;
+  const peerId = conn.fromDeviceId === deviceId ? conn.toDeviceId : conn.fromDeviceId;
+  const peer = devices.find((d) => d.id === peerId);
+  return patchPortSideForPeer(peer?.type || "");
+}
+
+function isPortUsedOnSide(deviceId, port, side, excludeId = null) {
+  const device = devices.find((d) => d.id === deviceId);
+  if (!device) return false;
+
+  if (isPatchType(device.type)) {
+    return connections.some((c) => {
+      if (c.id === excludeId) return false;
+      const onDevice =
+        (c.fromDeviceId === deviceId && c.fromPort === port) ||
+        (c.toDeviceId === deviceId && c.toPort === port);
+      if (!onDevice) return false;
+      return connectionPatchSide(deviceId, c) === side;
+    });
+  }
+
   return connections.some(
     (c) =>
       c.id !== excludeId &&
       ((c.fromDeviceId === deviceId && c.fromPort === port) ||
         (c.toDeviceId === deviceId && c.toPort === port))
   );
+}
+
+function isPortUsed(deviceId, port, excludeId = null, peerDeviceId = null) {
+  const device = devices.find((d) => d.id === deviceId);
+  if (!device) return false;
+
+  if (isPatchType(device.type) && peerDeviceId != null) {
+    const peer = devices.find((d) => d.id === Number(peerDeviceId));
+    const side = peer ? patchPortSideForPeer(peer.type) : "front";
+    return isPortUsedOnSide(deviceId, port, side, excludeId);
+  }
+
+  return isPortUsedOnSide(deviceId, port, "front", excludeId);
 }
 
 function pruneConnectionsForDevice(deviceId) {
@@ -518,10 +562,28 @@ function patchCableSvgAnchors(device, port) {
   return null;
 }
 
-function portCablePoints(deviceId, port, wrapperRect) {
+function patchRearPortAnchor(device, port, wrapperRect, row) {
+  const rear = row.querySelector(".rack-device__rear");
+  if (!rear) return null;
+  const r = rear.getBoundingClientRect();
+  const total = devicePortCount(device);
+  const pct = (port - 0.5) / total;
+  return {
+    x: r.left - wrapperRect.left + r.width,
+    y: r.top - wrapperRect.top + pct * r.height,
+  };
+}
+
+function portCablePoints(deviceId, port, wrapperRect, conn = null) {
   const row = document.querySelector(`[data-device="${deviceId}"]`);
   const device = devices.find((d) => d.id === deviceId);
   if (!row || !device) return null;
+
+  if (isPatchType(device.type) && conn && connectionPatchSide(deviceId, conn) === "rear") {
+    const bend = patchRearPortAnchor(device, port, wrapperRect, row);
+    if (!bend) return null;
+    return { bend, tip: bend, stub: null };
+  }
 
   const patchAnchors = patchCableSvgAnchors(device, port);
   if (patchAnchors) {
@@ -530,6 +592,12 @@ function portCablePoints(deviceId, port, wrapperRect) {
     if (!bend || !tip) return null;
     const hasStub = Math.abs(bend.x - tip.x) > 0.5 || Math.abs(bend.y - tip.y) > 0.5;
     return { bend, tip, stub: hasStub ? portCableStub(device, deviceId, port) : null };
+  }
+
+  if (devicePortPlacement(device.type) === "rear") {
+    const bend = patchRearPortAnchor(device, port, wrapperRect, row);
+    if (!bend) return null;
+    return { bend, tip: bend, stub: null };
   }
 
   const bend = portAnchorOnFaceplate(device, port, wrapperRect, row);
@@ -543,15 +611,22 @@ function portCablePoints(deviceId, port, wrapperRect) {
   };
 }
 
-function deviceLinkedPorts(deviceId) {
+function deviceLinkedPortsForPlacement(deviceId, placement) {
+  const device = devices.find((d) => d.id === deviceId);
   const entries = [];
   connections.forEach((c) => {
-    if (c.fromDeviceId === deviceId) {
-      entries.push({ port: c.fromPort, color: c.color || CABLE_COLORS[0].value, connId: c.id });
+    let port;
+    if (c.fromDeviceId === deviceId) port = c.fromPort;
+    else if (c.toDeviceId === deviceId) port = c.toPort;
+    else return;
+
+    if (isPatchType(device?.type)) {
+      if (connectionPatchSide(deviceId, c) !== placement) return;
+    } else if (devicePortPlacement(device.type) !== placement) {
+      return;
     }
-    if (c.toDeviceId === deviceId) {
-      entries.push({ port: c.toPort, color: c.color || CABLE_COLORS[0].value, connId: c.id });
-    }
+
+    entries.push({ port, color: c.color || CABLE_COLORS[0].value, connId: c.id });
   });
   const byPort = new Map();
   entries.forEach((e) => byPort.set(e.port, e));
@@ -586,12 +661,38 @@ function portDotMarkup(device, { port, color, connId, linked }, placement, total
   return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
 }
 
+function buildPatchSidePorts(device, placement, total) {
+  const linkedMap = new Map(
+    deviceLinkedPortsForPlacement(device.id, placement).map((e) => [e.port, e])
+  );
+  const ports = Array.from({ length: total }, (_, i) => {
+    const port = i + 1;
+    const entry = linkedMap.get(port);
+    return { port, color: entry?.color, connId: entry?.connId, linked: !!entry };
+  });
+  return ports.map((entry) => portDotMarkup(device, entry, placement, total)).join("");
+}
+
 function buildDevicePortParts(device) {
   const total = devicePortCount(device);
-  const placement = devicePortPlacement(device.type);
   if (total === 0) return { front: "", rear: "" };
 
-  const linkedMap = new Map(deviceLinkedPorts(device.id).map((e) => [e.port, e]));
+  if (isPatchType(device.type)) {
+    const frontDots = buildPatchSidePorts(device, "front", total);
+    const rearDots = buildPatchSidePorts(device, "rear", total);
+    return {
+      front: `<div class="rack-device__ports rack-device__ports--front" aria-hidden="true">${frontDots}</div>`,
+      rear: `<div class="rack-device__rear" aria-hidden="true" title="${I18n.t("cabling.patchRearIo")}">
+        <span class="rack-device__rear-tag">${I18n.t("cabling.rear")}</span>
+        <div class="rack-device__ports rack-device__ports--rear">${rearDots}</div>
+      </div>`,
+    };
+  }
+
+  const placement = devicePortPlacement(device.type);
+  const linkedMap = new Map(
+    deviceLinkedPortsForPlacement(device.id, placement).map((e) => [e.port, e])
+  );
   const showAllFront = placement === "front" && usesJackPortStyle(device.type);
   const ports = showAllFront
     ? Array.from({ length: total }, (_, i) => {
@@ -757,8 +858,8 @@ function renderRackCabling() {
 
     const entries = connections
       .map((c) => {
-        const from = portCablePoints(c.fromDeviceId, c.fromPort, wrapperRect);
-        const to = portCablePoints(c.toDeviceId, c.toPort, wrapperRect);
+        const from = portCablePoints(c.fromDeviceId, c.fromPort, wrapperRect, c);
+        const to = portCablePoints(c.toDeviceId, c.toPort, wrapperRect, c);
         if (!from || !to) return null;
         return { c, from, to, midY: (from.bend.y + to.bend.y) / 2 };
       })
@@ -934,7 +1035,7 @@ function onRackClick(u) {
   updateHint();
 }
 
-function fillPortSelect(selectEl, deviceId) {
+function fillPortSelect(selectEl, deviceId, peerDeviceId = null) {
   const device = devices.find((d) => d.id === Number(deviceId));
   selectEl.innerHTML = "";
   if (!device) {
@@ -950,7 +1051,7 @@ function fillPortSelect(selectEl, deviceId) {
   for (let p = 1; p <= count; p++) {
     const opt = document.createElement("option");
     opt.value = String(p);
-    opt.textContent = isPortUsed(device.id, p)
+    opt.textContent = isPortUsed(device.id, p, null, peerDeviceId)
       ? `${p} (${I18n.t("cabling.portUsed")})`
       : String(p);
     selectEl.appendChild(opt);
@@ -1017,8 +1118,8 @@ function renderCablingForm() {
     });
   }
 
-  fillPortSelect(fromPortSel, fromSel.value);
-  fillPortSelect(toPortSel, toSel.value);
+  fillPortSelect(fromPortSel, fromSel.value, toSel.value);
+  fillPortSelect(toPortSel, toSel.value, fromSel.value);
   renderCablingBulk();
 }
 
@@ -1185,7 +1286,7 @@ function bulkConnectPatchPanel({ count, switchOffset, patchStart = 1 }) {
   for (let i = 0; i < count; i++) {
     const patchPort = patchStart + i;
     const switchPort = switchOffset + 1 + i;
-    if (isPortUsed(switchId, switchPort) || isPortUsed(patchId, patchPort)) {
+    if (isPortUsed(switchId, switchPort) || isPortUsedOnSide(patchId, patchPort, "front")) {
       skipped++;
       continue;
     }
@@ -1373,7 +1474,10 @@ function addConnection(e) {
     return;
   }
 
-  if (isPortUsed(fromDeviceId, fromPort) || isPortUsed(toDeviceId, toPort)) {
+  if (
+    isPortUsed(fromDeviceId, fromPort, null, toDeviceId) ||
+    isPortUsed(toDeviceId, toPort, null, fromDeviceId)
+  ) {
     flashHint(I18n.t("cabling.portBusy"));
     return;
   }
@@ -1583,19 +1687,35 @@ async function init() {
   const cableFromDevice = document.getElementById("cable-from-device");
   const cableToDevice = document.getElementById("cable-to-device");
   cableFromDevice.addEventListener("change", () => {
-    fillPortSelect(document.getElementById("cable-from-port"), cableFromDevice.value);
+    fillPortSelect(
+      document.getElementById("cable-from-port"),
+      cableFromDevice.value,
+      cableToDevice.value
+    );
     if (cableFromDevice.value === cableToDevice.value) {
       const alt = devicesWithPorts().find((d) => d.id !== Number(cableFromDevice.value));
       if (alt) cableToDevice.value = String(alt.id);
-      fillPortSelect(document.getElementById("cable-to-port"), cableToDevice.value);
+      fillPortSelect(
+        document.getElementById("cable-to-port"),
+        cableToDevice.value,
+        cableFromDevice.value
+      );
     }
   });
   cableToDevice.addEventListener("change", () => {
-    fillPortSelect(document.getElementById("cable-to-port"), cableToDevice.value);
+    fillPortSelect(
+      document.getElementById("cable-to-port"),
+      cableToDevice.value,
+      cableFromDevice.value
+    );
     if (cableFromDevice.value === cableToDevice.value) {
       const alt = devicesWithPorts().find((d) => d.id !== Number(cableToDevice.value));
       if (alt) cableFromDevice.value = String(alt.id);
-      fillPortSelect(document.getElementById("cable-from-port"), cableFromDevice.value);
+      fillPortSelect(
+        document.getElementById("cable-from-port"),
+        cableFromDevice.value,
+        cableToDevice.value
+      );
     }
   });
 
