@@ -1,7 +1,7 @@
 const STORAGE_KEY = "rackforge-plan";
 const PLAN_ID_KEY = "rackforge-plan-id";
 const LEGACY_STORAGE_KEYS = ["openrack-plan", "home-lab-rack-plan", "stef-rack-plan"];
-const ICON_V = "52";
+const ICON_V = "53";
 
 let planId = null;
 let skipCloudSync = false;
@@ -429,7 +429,7 @@ function normalizeDeviceType(type) {
 const FRONT_PORT_LAYOUTS = {
   "switch-16": (port) => gridPortPercent(port, 228, 13, 8, 13, 11, 12, 6),
   "switch-24": (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 6),
-  "switch-48": (port) => gridPortPercent(port, 68, 12, 24, 14.5, 10, 15, 5.5),
+  "switch-48": (port) => gridPortPercent(port, 68, 11, 24, 14.5, 10, 20, 5.5),
   switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
   "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 21),
