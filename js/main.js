@@ -1,7 +1,7 @@
 const STORAGE_KEY = "rackforge-plan";
 const PLAN_ID_KEY = "rackforge-plan-id";
 const LEGACY_STORAGE_KEYS = ["openrack-plan", "home-lab-rack-plan", "stef-rack-plan"];
-const ICON_V = "54";
+const ICON_V = "55";
 
 let planId = null;
 let skipCloudSync = false;
