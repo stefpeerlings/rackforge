@@ -1671,7 +1671,7 @@ body.avatar-crop-dragging .avatar-crop-stage {
 }
 
 .rack-wrapper--cabled {
-  grid-template-columns: 24px 10px 1fr 10px 22px;
+  grid-template-columns: 24px 10px 1fr 10px var(--cable-bay-w, 18px);
   padding-right: 6px;
 }
 
@@ -1754,8 +1754,10 @@ body.avatar-crop-dragging .avatar-crop-stage {
 
 .rack-cable-bay {
   display: none;
+  width: 100%;
   align-self: stretch;
   min-height: 100%;
+  transition: width 0.25s ease;
   background:
     repeating-linear-gradient(
       180deg,

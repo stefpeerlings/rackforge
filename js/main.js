@@ -475,6 +475,17 @@ function portAnchorInWrapper(deviceId, port, wrapperRect) {
   };
 }
 
+const CABLE_BAY_MIN = 14;
+const CABLE_BAY_PER = 5;
+const CABLE_BAY_MAX = 76;
+
+function cableBayWidth(count) {
+  if (count < 1) return 0;
+  return Math.round(
+    Math.min(CABLE_BAY_MAX, CABLE_BAY_MIN + Math.max(0, count - 1) * CABLE_BAY_PER)
+  );
+}
+
 function rackCableBayMetrics(wrapperRect) {
   const bay = document.getElementById("rack-cable-bay");
   const rackEl = document.getElementById("rack");
@@ -528,11 +539,14 @@ function renderRackCabling() {
 
   if (connections.length === 0) {
     wrapper.classList.remove("rack-wrapper--cabled");
+    wrapper.style.removeProperty("--cable-bay-w");
     svg.innerHTML = "";
     return;
   }
 
+  const cableCount = connections.length;
   wrapper.classList.add("rack-wrapper--cabled");
+  wrapper.style.setProperty("--cable-bay-w", `${cableBayWidth(cableCount)}px`);
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -545,7 +559,7 @@ function renderRackCabling() {
     svg.setAttribute("viewBox", `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
     svg.innerHTML = "";
 
-    const guideCount = Math.max(2, Math.min(connections.length + 1, 5));
+    const guideCount = Math.max(2, Math.min(cableCount + 1, 8));
     const guideStep = bay.width / (guideCount + 1);
     for (let g = 1; g <= guideCount; g++) {
       const gx = bay.left + guideStep * g;
