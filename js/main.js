@@ -1038,6 +1038,14 @@ function getBulkConnectOptions(switchDev, patchDev) {
   const patchCount = devicePortCount(patchDev);
   if (swCount <= 0 || patchCount <= 0) return [];
 
+  if (swCount === 48 && patchCount === 48) {
+    return [
+      { count: 24, switchOffset: 0, patchStart: 1, tier: "top" },
+      { count: 24, switchOffset: 24, patchStart: 25, tier: "bottom" },
+      { count: 48, switchOffset: 0, patchStart: 1, tier: "all" },
+    ];
+  }
+
   if (swCount === patchCount) {
     return [{ count: swCount, switchOffset: 0, patchStart: 1 }];
   }
@@ -1059,11 +1067,16 @@ function getBulkConnectOptions(switchDev, patchDev) {
 function bulkActionLabel(option) {
   const swStart = option.switchOffset + 1;
   const swEnd = option.switchOffset + option.count;
+  const patchStart = option.patchStart ?? 1;
+  const patchEnd = patchStart + option.count - 1;
   if (option.tier === "top") {
-    return I18n.t("cabling.bulkConnectTop", { start: swStart, end: swEnd });
+    return I18n.t("cabling.bulkConnectPatchTop", { swStart, swEnd, patchStart, patchEnd });
   }
   if (option.tier === "bottom") {
-    return I18n.t("cabling.bulkConnectBottom", { start: swStart, end: swEnd });
+    return I18n.t("cabling.bulkConnectPatchBottom", { swStart, swEnd, patchStart, patchEnd });
+  }
+  if (option.tier === "all") {
+    return I18n.t("cabling.bulkConnectAll", { count: option.count });
   }
   return I18n.t("cabling.bulkConnectRange", { start: swStart, end: swEnd });
 }
