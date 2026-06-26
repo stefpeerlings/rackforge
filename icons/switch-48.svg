@@ -29,7 +29,7 @@
     <text x="5" y="19" fill="#1bdb7a" font-family="JetBrains Mono, monospace" font-size="4.5">L2/L3</text>
   </g>
 
-  <g transform="translate(68, 9)">
+  <g transform="translate(68, 8)">
     <text x="0" y="0" fill="#64748b" font-family="Arial, sans-serif" font-size="3">1–24</text>
     <text x="174" y="0" fill="#64748b" font-family="Arial, sans-serif" font-size="3">25–48</text>
     <g transform="translate(0, 4)" fill="#14141c" stroke="#3a3a48" stroke-width="0.35">
@@ -45,24 +45,24 @@
       <rect x="261" y="0" width="10" height="8" rx="0.5"/><rect x="275.5" y="0" width="10" height="8" rx="0.5"/>
       <rect x="290" y="0" width="10" height="8" rx="0.5"/><rect x="304.5" y="0" width="10" height="8" rx="0.5"/>
       <rect x="319" y="0" width="10" height="8" rx="0.5"/><rect x="333.5" y="0" width="10" height="8" rx="0.5"/>
-      <rect x="0" y="11" width="10" height="8" rx="0.5"/><rect x="14.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="29" y="11" width="10" height="8" rx="0.5"/><rect x="43.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="58" y="11" width="10" height="8" rx="0.5"/><rect x="72.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="87" y="11" width="10" height="8" rx="0.5"/><rect x="101.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="116" y="11" width="10" height="8" rx="0.5"/><rect x="130.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="145" y="11" width="10" height="8" rx="0.5"/><rect x="159.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="174" y="11" width="10" height="8" rx="0.5"/><rect x="188.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="203" y="11" width="10" height="8" rx="0.5"/><rect x="217.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="232" y="11" width="10" height="8" rx="0.5"/><rect x="246.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="261" y="11" width="10" height="8" rx="0.5"/><rect x="275.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="290" y="11" width="10" height="8" rx="0.5"/><rect x="304.5" y="11" width="10" height="8" rx="0.5"/>
-      <rect x="319" y="11" width="10" height="8" rx="0.5"/><rect x="333.5" y="11" width="10" height="8" rx="0.5"/>
+      <rect x="0" y="15" width="10" height="8" rx="0.5"/><rect x="14.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="29" y="15" width="10" height="8" rx="0.5"/><rect x="43.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="58" y="15" width="10" height="8" rx="0.5"/><rect x="72.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="87" y="15" width="10" height="8" rx="0.5"/><rect x="101.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="116" y="15" width="10" height="8" rx="0.5"/><rect x="130.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="145" y="15" width="10" height="8" rx="0.5"/><rect x="159.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="174" y="15" width="10" height="8" rx="0.5"/><rect x="188.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="203" y="15" width="10" height="8" rx="0.5"/><rect x="217.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="232" y="15" width="10" height="8" rx="0.5"/><rect x="246.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="261" y="15" width="10" height="8" rx="0.5"/><rect x="275.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="290" y="15" width="10" height="8" rx="0.5"/><rect x="304.5" y="15" width="10" height="8" rx="0.5"/>
+      <rect x="319" y="15" width="10" height="8" rx="0.5"/><rect x="333.5" y="15" width="10" height="8" rx="0.5"/>
     </g>
     <g fill="#b8860b" opacity="0.4">
       <rect x="1.5" y="4.5" width="7" height="2" rx="0.3"/><rect x="30.5" y="4.5" width="7" height="2" rx="0.3"/>
       <rect x="175.5" y="4.5" width="7" height="2" rx="0.3"/><rect x="334.5" y="4.5" width="7" height="2" rx="0.3"/>
-      <rect x="1.5" y="15.5" width="7" height="2" rx="0.3"/><rect x="218.5" y="15.5" width="7" height="2" rx="0.3"/>
-      <rect x="334.5" y="15.5" width="7" height="2" rx="0.3"/>
+      <rect x="1.5" y="19.5" width="7" height="2" rx="0.3"/><rect x="218.5" y="19.5" width="7" height="2" rx="0.3"/>
+      <rect x="334.5" y="19.5" width="7" height="2" rx="0.3"/>
     </g>
   </g>
 
