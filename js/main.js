@@ -469,6 +469,8 @@ function frontPortPosition(device, port, total) {
   return pos;
 }
 
+const SWITCH_CABLE_STUB_LEN = 4;
+
 function switchCableAnchorOffset(device, port) {
   const norm = normalizeDeviceType(device.type);
   if (!norm.startsWith("switch-") || devicePortPlacement(device.type) !== "front") {
@@ -478,6 +480,28 @@ function switchCableAnchorOffset(device, port) {
   return {
     dx: -3,
     dy: row === 0 ? -2 : 1,
+  };
+}
+
+function switchPortCableStub(device, port) {
+  const norm = normalizeDeviceType(device?.type);
+  if (!device || !norm.startsWith("switch-") || devicePortPlacement(device.type) !== "front") {
+    return null;
+  }
+  const row = switchPortRow(device.type, port);
+  return { len: SWITCH_CABLE_STUB_LEN, dir: row === 0 ? -1 : 1 };
+}
+
+function portCablePoints(deviceId, port, wrapperRect) {
+  const bend = portAnchorInWrapper(deviceId, port, wrapperRect);
+  if (!bend) return null;
+  const device = devices.find((d) => d.id === deviceId);
+  const stub = device ? switchPortCableStub(device, port) : null;
+  if (!stub) return { bend, tip: bend, stub: null };
+  return {
+    bend,
+    tip: { x: bend.x, y: bend.y + stub.dir * stub.len },
+    stub,
   };
 }
 
@@ -632,16 +656,21 @@ function assignCableLaneXs(entries, bay) {
   return entries.map((_, idx) => start + idx * step);
 }
 
-function rackCablePath(from, to, laneX, bay) {
+function rackCablePath(fromPts, toPts, laneX, bay) {
   const rackExit = bay.rackRight + 1;
   const railPass = bay.railRight + 1;
+  const from = fromPts.bend;
+  const to = toPts.bend;
 
-  let d = `M ${from.x} ${from.y}`;
+  let d = fromPts.stub
+    ? `M ${fromPts.tip.x} ${fromPts.tip.y} V ${from.y}`
+    : `M ${from.x} ${from.y}`;
   if (from.x < rackExit - 1) d += ` H ${rackExit}`;
   if (from.x < railPass - 1) d += ` H ${railPass}`;
   d += ` H ${laneX} V ${to.y} H ${railPass}`;
   if (to.x < rackExit - 1) d += ` H ${rackExit}`;
   d += ` H ${to.x}`;
+  if (toPts.stub) d += ` V ${toPts.tip.y}`;
   return d;
 }
 
@@ -687,10 +716,10 @@ function renderRackCabling() {
 
     const entries = connections
       .map((c) => {
-        const from = portAnchorInWrapper(c.fromDeviceId, c.fromPort, wrapperRect);
-        const to = portAnchorInWrapper(c.toDeviceId, c.toPort, wrapperRect);
+        const from = portCablePoints(c.fromDeviceId, c.fromPort, wrapperRect);
+        const to = portCablePoints(c.toDeviceId, c.toPort, wrapperRect);
         if (!from || !to) return null;
-        return { c, from, to, midY: (from.y + to.y) / 2 };
+        return { c, from, to, midY: (from.bend.y + to.bend.y) / 2 };
       })
       .filter(Boolean)
       .sort((a, b) => a.midY - b.midY || a.c.id - b.c.id);
