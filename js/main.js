@@ -1,7 +1,7 @@
 const STORAGE_KEY = "rackforge-plan";
 const PLAN_ID_KEY = "rackforge-plan-id";
 const LEGACY_STORAGE_KEYS = ["openrack-plan", "home-lab-rack-plan", "stef-rack-plan"];
-const ICON_V = "49";
+const ICON_V = "50";
 
 let planId = null;
 let skipCloudSync = false;
@@ -11,7 +11,9 @@ const EQUIPMENT_TYPES = [
   { type: "server-1u", name: "1U Server", icon: "icons/server-1u.svg", height: 1, color: "#0076ce" },
   { type: "server-2u", name: "2U Server", icon: "icons/server-2u.svg", height: 2, color: "#14a85e" },
   { type: "server-4u", name: "4U Server", icon: "icons/server-4u.svg", height: 4, color: "#0d8a4a" },
-  { type: "switch", name: "1U Switch", icon: "icons/switch.svg", height: 1, color: "#3b9eff" },
+  { type: "switch-16", name: "16p Switch", icon: "icons/switch-16.svg", height: 1, color: "#3b9eff" },
+  { type: "switch-24", name: "24p Switch", icon: "icons/switch-24.svg", height: 1, color: "#3b9eff" },
+  { type: "switch-48", name: "48p Switch", icon: "icons/switch-48.svg", height: 1, color: "#3b9eff" },
   { type: "router", name: "1U Router", icon: "icons/router.svg", height: 1, color: "#2563eb" },
   { type: "nas-2u", name: "2U NAS", icon: "icons/nas-2u.svg", height: 2, color: "#a78bfa" },
   { type: "nas-4u", name: "4U NAS", icon: "icons/nas-4u.svg", height: 4, color: "#7c3aed" },
@@ -37,6 +39,9 @@ const PORT_COUNTS = {
   "server-1u": 2,
   "server-2u": 2,
   "server-4u": 4,
+  "switch-16": 16,
+  "switch-24": 24,
+  "switch-48": 48,
   switch: 24,
   router: 4,
   "nas-2u": 2,
@@ -72,8 +77,15 @@ let detailsTab = "device";
 let nextId = 1;
 let cablingMapResizeTimer = null;
 
+function parseDevices(raw) {
+  return (raw || [])
+    .map((d) => ({ ...d, type: normalizeDeviceType(d.type) }))
+    .filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+}
+
 function typeInfo(type) {
-  const base = EQUIPMENT_TYPES.find((t) => t.type === type) || EQUIPMENT_TYPES[0];
+  const normalized = normalizeDeviceType(type);
+  const base = EQUIPMENT_TYPES.find((t) => t.type === normalized) || EQUIPMENT_TYPES[0];
   return { ...base, name: I18n.t(`equipment.${base.type}`) };
 }
 
@@ -91,7 +103,7 @@ function blankNeighborBleed(device) {
 }
 
 function devicePortCount(device) {
-  return PORT_COUNTS[device.type] ?? 0;
+  return PORT_COUNTS[normalizeDeviceType(device.type)] ?? 0;
 }
 
 function devicesWithPorts() {
@@ -209,7 +221,7 @@ async function loadAccountPlan() {
   const data = await res.json();
   skipCloudSync = true;
   rackHeight = data.rackHeight || 25;
-  devices = (data.devices || []).filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+  devices = parseDevices(data.devices);
   connections = Array.isArray(data.connections) ? data.connections : [];
   nextId = data.nextId || 1;
   sanitizeConnections();
@@ -227,7 +239,7 @@ async function cloudLoad(id) {
   const data = await res.json();
   skipCloudSync = true;
   rackHeight = data.rackHeight || 25;
-  devices = (data.devices || []).filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+  devices = parseDevices(data.devices);
   connections = Array.isArray(data.connections) ? data.connections : [];
   nextId = data.nextId || 1;
   sanitizeConnections();
@@ -251,7 +263,7 @@ function load() {
     if (!raw) return;
     const data = JSON.parse(raw);
     rackHeight = data.rackHeight || 25;
-    devices = (data.devices || []).filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+    devices = parseDevices(data.devices);
     connections = Array.isArray(data.connections) ? data.connections : [];
     nextId = data.nextId || 1;
     sanitizeConnections();
@@ -408,7 +420,16 @@ function rowPortPercent(port, firstCx, stepCx, cy) {
   return svgPortPercent(firstCx + (port - 1) * stepCx, cy);
 }
 
+const LEGACY_TYPE_ALIASES = { switch: "switch-24" };
+
+function normalizeDeviceType(type) {
+  return LEGACY_TYPE_ALIASES[type] || type;
+}
+
 const FRONT_PORT_LAYOUTS = {
+  "switch-16": (port) => gridPortPercent(port, 228, 13, 8, 13, 11, 12, 7),
+  "switch-24": (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
+  "switch-48": (port) => gridPortPercent(port, 6, 10, 24, 17.4, 11, 12, 7),
   switch: (port) => gridPortPercent(port, 168, 13, 12, 13, 11, 12, 7),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
   "patch-16": (port) => rowPortPercent(port, 18.4, 26.9, 21),
@@ -428,7 +449,7 @@ function devicePortPlacement(type) {
 }
 
 function frontPortPosition(device, port, total) {
-  const layout = FRONT_PORT_LAYOUTS[device.type];
+  const layout = FRONT_PORT_LAYOUTS[normalizeDeviceType(device.type)];
   if (layout) return layout(port, total);
   return { left: ((port - 0.5) / total) * 100, top: 72 };
 }
