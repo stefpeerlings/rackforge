@@ -901,6 +901,40 @@ function renderCablingForm() {
   renderCablingBulk();
 }
 
+const BULK_SWITCH_TYPES = new Set(["switch-48", "switch-24"]);
+
+function bulkPatchPreset(switchDev, mode) {
+  const type = normalizeDeviceType(switchDev.type);
+  if (type === "switch-48") {
+    if (mode === "top") return { count: 24, switchOffset: 0 };
+    if (mode === "bottom") return { count: 24, switchOffset: 24 };
+    return null;
+  }
+  if (type === "switch-24" && mode === "all") return { count: 24, switchOffset: 0 };
+  return null;
+}
+
+function updateBulkPatchActions() {
+  const switchSel = document.getElementById("bulk-switch");
+  const actions48 = document.getElementById("bulk-actions-48");
+  const btnAll = document.getElementById("btn-bulk-patch-all");
+  if (!switchSel || !actions48 || !btnAll) return;
+
+  const switchDev = devices.find((d) => d.id === Number(switchSel.value));
+  const type = switchDev ? normalizeDeviceType(switchDev.type) : null;
+
+  if (type === "switch-48") {
+    actions48.hidden = false;
+    btnAll.hidden = true;
+  } else if (type === "switch-24") {
+    actions48.hidden = true;
+    btnAll.hidden = false;
+  } else {
+    actions48.hidden = true;
+    btnAll.hidden = true;
+  }
+}
+
 function renderCablingBulk() {
   const section = document.getElementById("cabling-bulk");
   const switchSel = document.getElementById("bulk-switch");
@@ -908,7 +942,7 @@ function renderCablingBulk() {
   if (!section || !switchSel || !patchSel) return;
 
   const switches = devices
-    .filter((d) => normalizeDeviceType(d.type) === "switch-48")
+    .filter((d) => BULK_SWITCH_TYPES.has(normalizeDeviceType(d.type)))
     .sort((a, b) => b.startU - a.startU);
   const patches = devices
     .filter((d) => d.type === "patch-24")
@@ -942,6 +976,8 @@ function renderCablingBulk() {
     const alt = patches.find((d) => d.id !== Number(switchSel.value));
     if (alt) patchSel.value = String(alt.id);
   }
+
+  updateBulkPatchActions();
 }
 
 function refreshCablingUI() {
@@ -951,14 +987,14 @@ function refreshCablingUI() {
   renderCablingMap();
 }
 
-function bulkConnectPatchPanel() {
+function bulkConnectPatchPanel(mode) {
   const switchId = Number(document.getElementById("bulk-switch").value);
   const patchId = Number(document.getElementById("bulk-patch").value);
   const switchDev = devices.find((d) => d.id === switchId);
   const patchDev = devices.find((d) => d.id === patchId);
 
   if (!switchDev || !patchDev) return;
-  if (normalizeDeviceType(switchDev.type) !== "switch-48" || patchDev.type !== "patch-24") {
+  if (!BULK_SWITCH_TYPES.has(normalizeDeviceType(switchDev.type)) || patchDev.type !== "patch-24") {
     flashHint(I18n.t("cabling.bulkInvalid"));
     return;
   }
@@ -967,12 +1003,18 @@ function bulkConnectPatchPanel() {
     return;
   }
 
+  const preset = bulkPatchPreset(switchDev, mode);
+  if (!preset) {
+    flashHint(I18n.t("cabling.bulkInvalid"));
+    return;
+  }
+
   const color = document.getElementById("cable-color").value || CABLE_COLORS[0].value;
   let added = 0;
   let skipped = 0;
 
-  for (let patchPort = 1; patchPort <= 24; patchPort++) {
-    const switchPort = patchPort + 24;
+  for (let patchPort = 1; patchPort <= preset.count; patchPort++) {
+    const switchPort = patchPort + preset.switchOffset;
     if (isPortUsed(switchId, switchPort) || isPortUsed(patchId, patchPort)) {
       skipped++;
       continue;
@@ -1365,7 +1407,10 @@ async function init() {
   document.getElementById("tab-device").addEventListener("click", () => switchDetailsTab("device"));
   document.getElementById("tab-cabling").addEventListener("click", () => switchDetailsTab("cabling"));
   document.getElementById("cabling-form").addEventListener("submit", addConnection);
-  document.getElementById("btn-bulk-patch").addEventListener("click", bulkConnectPatchPanel);
+  document.getElementById("btn-bulk-patch-top").addEventListener("click", () => bulkConnectPatchPanel("top"));
+  document.getElementById("btn-bulk-patch-bottom").addEventListener("click", () => bulkConnectPatchPanel("bottom"));
+  document.getElementById("btn-bulk-patch-all").addEventListener("click", () => bulkConnectPatchPanel("all"));
+  document.getElementById("bulk-switch").addEventListener("change", updateBulkPatchActions);
 
   const cableFromDevice = document.getElementById("cable-from-device");
   const cableToDevice = document.getElementById("cable-to-device");

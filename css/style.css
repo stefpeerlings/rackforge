@@ -2496,9 +2496,15 @@ body.avatar-crop-dragging .avatar-crop-stage {
   width: 100%;
 }
 
+.cabling-bulk__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
 .cabling-bulk__btn {
   width: 100%;
-  margin-top: 0.15rem;
   border-color: rgba(59, 158, 255, 0.4);
   background: rgba(59, 158, 255, 0.12);
   color: #93c5fd;
