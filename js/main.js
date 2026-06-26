@@ -487,11 +487,15 @@ function portDotMarkup(device, { port, color, connId, linked }, placement, total
     const { left, top } = frontPortPosition(device, port, total);
     pos = `left: ${left}%; top: ${top}%`;
   }
+  const normType = normalizeDeviceType(device.type);
   const jack = placement === "front" && usesJackPortStyle(device.type);
+  const isSwitch = normType.startsWith("switch-");
   const state = linked ? "rack-port--linked" : "rack-port--idle";
   const shape = jack ? "rack-port--jack" : "";
   const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
-  const cls = ["rack-port", side, shape, state].filter(Boolean).join(" ");
+  const cls = ["rack-port", side, shape, state, isSwitch ? "rack-port--switch" : ""]
+    .filter(Boolean)
+    .join(" ");
   const connAttr = connId ? ` data-conn="${connId}"` : "";
   const colorStyle = linked && color ? `--port-color: ${color};` : "";
   return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
