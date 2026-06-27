@@ -6,8 +6,12 @@ http://10.0.40.12, http://ubuntu-sever-laptop, http://netwerkengineer.com, http:
 }
 
 https://10.0.40.12, https://ubuntu-sever-laptop, https://netwerkengineer.com, https://www.netwerkengineer.com {
-	tls internal
+	tls /var/www/html/private-certs/netwerkengineer.pem /var/www/html/private-certs/netwerkengineer-key.pem
 	root * /var/www/html
+
+	handle /private-certs/* {
+		respond 404
+	}
 
 	handle /admin* {
 		reverse_proxy 127.0.0.1:8080
