@@ -283,7 +283,8 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
 
   if (fromPts?.stub) {
     if (fromPts.stub.intoPort) {
-      appendRj45PlugIntoPort(g, fromPts.bend.x, fromPts.bend.y, colors, fromPts.stub.tilt);
+      const plug = plugAnchorPoint(fromPts);
+      appendRj45PlugIntoPort(g, plug.x, plug.y, colors, fromPts.stub.tilt);
     } else if (fromPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
     } else {
@@ -292,7 +293,8 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
   }
   if (toPts?.stub) {
     if (toPts.stub.intoPort) {
-      appendRj45PlugIntoPort(g, toPts.bend.x, toPts.bend.y, colors, toPts.stub.tilt);
+      const plug = plugAnchorPoint(toPts);
+      appendRj45PlugIntoPort(g, plug.x, plug.y, colors, toPts.stub.tilt);
     } else if (toPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
     } else {
@@ -800,8 +802,8 @@ const FRONT_PORT_LAYOUTS = {
   "switch-48": (port) => gridPortPercent(port, 68, 11, 24, 14.5, 10, 20, 5.5),
   switch: (port) => gridPortPercent(port, 168, 12, 12, 13, 11, 20, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
-  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 15.5),
-  "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 15),
+  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 16),
+  "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 14.5),
   "patch-48": (port) => {
     const col = (port - 1) % 24;
     const row = Math.floor((port - 1) / 24);
@@ -835,8 +837,10 @@ function portAnchorOnFaceplate(device, port, wrapperRect, rowEl) {
 
 const PORT_CABLE_STUB_LEN = 5;
 const PORT_PLUG_LEAN_Y = 1.5;
-const PORT_PLUG_TILT_DEG = 8;
+const PORT_PLUG_TILT_DEG = 6;
 const PORT_PLUG_LEAN_X = 0.8;
+const PATCH_CORD_RISE = 14;
+const PATCH_PLUG_DEPTH = 3;
 
 function patchPortRow(type, port) {
   if (type === "patch-48") return Math.floor((port - 1) / 24);
@@ -857,6 +861,7 @@ function portCableStub(device, deviceId, port) {
 function verticalDownCableStub(bend) {
   return {
     bend: { x: bend.x, y: bend.y + PORT_PLUG_LEAN_Y * 0.35 },
+    plugAt: { x: bend.x, y: bend.y },
     tip: {
       x: bend.x - PORT_PLUG_LEAN_X,
       y: bend.y - PORT_CABLE_STUB_LEN,
@@ -866,7 +871,29 @@ function verticalDownCableStub(bend) {
 }
 
 function patchFrontCableStub(bend) {
-  return verticalDownCableStub(bend);
+  const jackY = bend.y;
+  return {
+    bend: { x: bend.x, y: jackY + PATCH_PLUG_DEPTH },
+    plugAt: { x: bend.x, y: jackY },
+    tip: { x: bend.x, y: jackY - PATCH_CORD_RISE },
+    stub: { intoPort: true, tilt: PORT_PLUG_TILT_DEG, patchCord: true },
+  };
+}
+
+function plugAnchorPoint(pts) {
+  return pts.plugAt || pts.bend;
+}
+
+function cableRoutingPoint(pts) {
+  if (pts.stub?.patchCord) return pts.tip;
+  if (pts.stub?.intoPort) return pts.tip;
+  return pts.bend;
+}
+
+function patchCordCurvePath(from, to) {
+  const cpx = from.x + (to.x - from.x) * 0.35 + 1;
+  const cpy = (from.y + to.y) / 2 - 1.5;
+  return `M ${from.x} ${from.y} Q ${cpx} ${cpy} ${to.x} ${to.y}`;
 }
 
 function rackDeviceElement(deviceId) {
@@ -1180,6 +1207,9 @@ function cablePathStart(pts) {
   if (pts.stub.axis === "h") {
     return `M ${pts.tip.x} ${pts.tip.y} H ${pts.bend.x}`;
   }
+  if (pts.stub.patchCord) {
+    return patchCordCurvePath(plugAnchorPoint(pts), pts.tip);
+  }
   if (pts.stub.intoPort) {
     return `M ${pts.tip.x} ${pts.tip.y} L ${pts.bend.x} ${pts.bend.y}`;
   }
@@ -1187,14 +1217,18 @@ function cablePathStart(pts) {
 }
 
 function cableApproachY(pts) {
-  if (pts.stub && pts.stub.intoPort) return pts.tip.y;
-  if (pts.stub && pts.stub.axis !== "h" && pts.stub.dir < 0) return pts.tip.y;
-  return pts.bend.y;
+  return cableRoutingPoint(pts).y;
 }
 
 function cablePathEnd(pts, d) {
   if (!pts.stub) return d;
   if (pts.stub.axis === "h") return `${d} H ${pts.tip.x}`;
+  if (pts.stub.patchCord) {
+    const plug = plugAnchorPoint(pts);
+    const cpx = plug.x - (pts.tip.x - plug.x) * 0.35 - 1;
+    const cpy = (plug.y + pts.tip.y) / 2 - 1.5;
+    return `${d} Q ${cpx} ${cpy} ${plug.x} ${plug.y}`;
+  }
   if (pts.stub.intoPort) return `${d} L ${pts.bend.x} ${pts.bend.y}`;
   if (pts.stub.dir < 0) return `${d} V ${pts.bend.y}`;
   return `${d} V ${pts.tip.y}`;
@@ -1211,15 +1245,16 @@ function rearPortCableStub(bend) {
 function rackCablePath(fromPts, toPts, laneX, bay) {
   const rackExit = bay.rackRight + 1;
   const railPass = bay.railRight + 1;
-  const from = fromPts.bend;
+  const from = cableRoutingPoint(fromPts);
   const toY = cableApproachY(toPts);
+  const toX = toPts.plugAt?.x ?? toPts.bend.x;
 
   let d = cablePathStart(fromPts);
   if (from.x < rackExit - 1) d += ` H ${rackExit}`;
   if (from.x < railPass - 1) d += ` H ${railPass}`;
   d += ` H ${laneX} V ${toY} H ${railPass}`;
-  if (toPts.bend.x < rackExit - 1) d += ` H ${rackExit}`;
-  d += ` H ${toPts.bend.x}`;
+  if (toX < rackExit - 1) d += ` H ${rackExit}`;
+  d += ` H ${toX}`;
   return cablePathEnd(toPts, d);
 }
 
