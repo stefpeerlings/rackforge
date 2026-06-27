@@ -208,6 +208,7 @@ let detailsTab = "device";
 let nextId = 1;
 let cablingMapResizeTimer = null;
 let dragDeviceId = null;
+let cablingFocusDeviceId = null;
 
 function parseDevices(raw) {
   return (raw || [])
@@ -506,10 +507,16 @@ function moveDevice(deviceId, clickedU) {
 function selectDevice(deviceId) {
   selectedDeviceId = deviceId;
   selectedType = null;
+  const device = devices.find((d) => d.id === deviceId);
+  if (device && devicePortCount(device) > 0) {
+    cablingFocusDeviceId = deviceId;
+    detailsTab = "cabling";
+  }
   renderPalette();
   renderRack();
   renderDetails();
-  renderCablingForm();
+  switchDetailsTab(detailsTab);
+  if (cablingFocusDeviceId) renderCablingForm();
   renderCablingList();
   renderCablingMap();
   renderInventory();
@@ -531,7 +538,7 @@ function switchDetailsTab(tab) {
   panelDevice.hidden = !isDevice;
   panelCabling.hidden = isDevice;
 
-  if (!isDevice) renderCablingForm();
+  if (!isDevice && !cablingFocusDeviceId) renderCablingForm();
 }
 
 function clearPlacementPreview() {
@@ -1156,7 +1163,7 @@ function renderRack() {
     }
 
     rows.push(
-      `<div class="${slotClass}" data-u="${u}" role="gridcell"${device && isTop ? ` data-device="${device.id}"` : ""}>${content}</div>`
+      `<div class="${slotClass}" data-u="${u}" role="gridcell"${device ? ` data-device="${device.id}"` : ""}>${content}</div>`
     );
   }
 
@@ -1294,6 +1301,9 @@ function fillPortSelect(selectEl, deviceId, peerDeviceId = null) {
 }
 
 function renderCablingForm() {
+  const focusId = cablingFocusDeviceId;
+  cablingFocusDeviceId = null;
+
   const cabled = devicesWithPorts().sort((a, b) => b.startU - a.startU);
   const fromSel = document.getElementById("cable-from-device");
   const toSel = document.getElementById("cable-to-device");
@@ -1322,13 +1332,18 @@ function renderCablingForm() {
     fromSel.innerHTML = cabled.map(optionHtml).join("");
     toSel.innerHTML = cabled.map(optionHtml).join("");
 
-    if (prevFrom && cabled.some((d) => d.id === Number(prevFrom))) {
+    if (focusId && cabled.some((d) => d.id === focusId)) {
+      fromSel.value = String(focusId);
+    } else if (prevFrom && cabled.some((d) => d.id === Number(prevFrom))) {
       fromSel.value = prevFrom;
     } else if (selectedDeviceId && cabled.some((d) => d.id === selectedDeviceId)) {
       fromSel.value = String(selectedDeviceId);
     }
 
-    if (prevTo && cabled.some((d) => d.id === Number(prevTo))) {
+    if (focusId && cabled.some((d) => d.id === focusId)) {
+      const alt = cabled.find((d) => d.id !== focusId);
+      if (alt) toSel.value = String(alt.id);
+    } else if (prevTo && cabled.some((d) => d.id === Number(prevTo))) {
       toSel.value = prevTo;
     } else {
       const alt = cabled.find((d) => d.id !== Number(fromSel.value));
@@ -1355,7 +1370,7 @@ function renderCablingForm() {
 
   fillPortSelect(fromPortSel, fromSel.value, toSel.value);
   fillPortSelect(toPortSel, toSel.value, fromSel.value);
-  renderCablingBulk();
+  renderCablingBulk(focusId);
 }
 
 function isBulkSwitchType(type) {
@@ -1491,7 +1506,7 @@ function renderBulkActionButtons() {
   }
 }
 
-function renderCablingBulk() {
+function renderCablingBulk(focusId = null) {
   const section = document.getElementById("cabling-bulk");
   const switchSel = document.getElementById("bulk-switch");
   const patchSel = document.getElementById("bulk-patch");
@@ -1524,14 +1539,18 @@ function renderCablingBulk() {
     ? patches.map(deviceOption).join("")
     : `<option value="">${I18n.t("cabling.bulkNoPatch")}</option>`;
 
-  if (prevSwitch && switches.some((d) => d.id === Number(prevSwitch))) {
+  if (focusId && switches.some((d) => d.id === focusId)) {
+    switchSel.value = String(focusId);
+  } else if (prevSwitch && switches.some((d) => d.id === Number(prevSwitch))) {
     switchSel.value = prevSwitch;
   } else if (selectedDeviceId && switches.some((d) => d.id === selectedDeviceId)) {
     switchSel.value = String(selectedDeviceId);
   }
 
   if (patches.length > 0) {
-    if (prevPatch && patches.some((d) => d.id === Number(prevPatch))) {
+    if (focusId && patches.some((d) => d.id === focusId)) {
+      patchSel.value = String(focusId);
+    } else if (prevPatch && patches.some((d) => d.id === Number(prevPatch))) {
       patchSel.value = prevPatch;
     } else {
       const alt = patches.find((d) => d.id !== Number(switchSel.value));
