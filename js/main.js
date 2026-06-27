@@ -173,12 +173,15 @@ function appendRj45PlugHorizontal(group, x, y, colors, dir) {
   group.appendChild(latch);
 }
 
-function appendRj45PlugIntoPort(group, x, y, colors) {
+function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DEG) {
   const plugW = 6.5;
   const bootLen = 4;
-  const plugH = 3.5;
+  const plugH = 3.5 + PORT_PLUG_LEAN_Y;
   const plugY = y;
   const bootY = y - bootLen;
+
+  const inner = document.createElementNS(SVG_NS, "g");
+  inner.setAttribute("transform", `rotate(${tiltDeg} ${x} ${y})`);
 
   const boot = document.createElementNS(SVG_NS, "rect");
   boot.setAttribute("x", String(x - plugW / 2));
@@ -188,7 +191,7 @@ function appendRj45PlugIntoPort(group, x, y, colors) {
   boot.setAttribute("rx", "1.2");
   boot.setAttribute("fill", colors.boot);
   boot.setAttribute("class", "rack-cable__boot");
-  group.appendChild(boot);
+  inner.appendChild(boot);
 
   const plug = document.createElementNS(SVG_NS, "rect");
   plug.setAttribute("x", String(x - plugW / 2 + 0.4));
@@ -198,7 +201,7 @@ function appendRj45PlugIntoPort(group, x, y, colors) {
   plug.setAttribute("rx", "0.6");
   plug.setAttribute("fill", "url(#rack-plug-face)");
   plug.setAttribute("class", "rack-cable__plug-body");
-  group.appendChild(plug);
+  inner.appendChild(plug);
 
   const contactY = plugY + plugH - 0.85;
   const contacts = document.createElementNS(SVG_NS, "line");
@@ -207,7 +210,7 @@ function appendRj45PlugIntoPort(group, x, y, colors) {
   contacts.setAttribute("y1", String(contactY));
   contacts.setAttribute("y2", String(contactY));
   contacts.setAttribute("class", "rack-cable__contacts");
-  group.appendChild(contacts);
+  inner.appendChild(contacts);
 
   const latch = document.createElementNS(SVG_NS, "rect");
   latch.setAttribute("x", String(x + plugW / 2 - 1.1));
@@ -216,7 +219,9 @@ function appendRj45PlugIntoPort(group, x, y, colors) {
   latch.setAttribute("height", String(plugH * 0.35));
   latch.setAttribute("rx", "0.2");
   latch.setAttribute("class", "rack-cable__latch");
-  group.appendChild(latch);
+  inner.appendChild(latch);
+
+  group.appendChild(inner);
 }
 
 function appendRj45Plug(group, x, y, colors, dir) {
@@ -278,7 +283,7 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
 
   if (fromPts?.stub) {
     if (fromPts.stub.intoPort) {
-      appendRj45PlugIntoPort(g, fromPts.bend.x, fromPts.bend.y, colors);
+      appendRj45PlugIntoPort(g, fromPts.bend.x, fromPts.bend.y, colors, fromPts.stub.tilt);
     } else if (fromPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
     } else {
@@ -287,7 +292,7 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
   }
   if (toPts?.stub) {
     if (toPts.stub.intoPort) {
-      appendRj45PlugIntoPort(g, toPts.bend.x, toPts.bend.y, colors);
+      appendRj45PlugIntoPort(g, toPts.bend.x, toPts.bend.y, colors, toPts.stub.tilt);
     } else if (toPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
     } else {
@@ -829,6 +834,9 @@ function portAnchorOnFaceplate(device, port, wrapperRect, rowEl) {
 }
 
 const PORT_CABLE_STUB_LEN = 5;
+const PORT_PLUG_LEAN_Y = 1.5;
+const PORT_PLUG_TILT_DEG = 8;
+const PORT_PLUG_LEAN_X = 0.8;
 
 function patchPortRow(type, port) {
   if (type === "patch-48") return Math.floor((port - 1) / 24);
@@ -848,9 +856,12 @@ function portCableStub(device, deviceId, port) {
 
 function verticalDownCableStub(bend) {
   return {
-    bend,
-    tip: { x: bend.x, y: bend.y - PORT_CABLE_STUB_LEN },
-    stub: { len: PORT_CABLE_STUB_LEN, dir: -1, intoPort: true },
+    bend: { x: bend.x, y: bend.y + PORT_PLUG_LEAN_Y * 0.35 },
+    tip: {
+      x: bend.x - PORT_PLUG_LEAN_X,
+      y: bend.y - PORT_CABLE_STUB_LEN,
+    },
+    stub: { len: PORT_CABLE_STUB_LEN, dir: -1, intoPort: true, tilt: PORT_PLUG_TILT_DEG },
   };
 }
 
@@ -1169,6 +1180,9 @@ function cablePathStart(pts) {
   if (pts.stub.axis === "h") {
     return `M ${pts.tip.x} ${pts.tip.y} H ${pts.bend.x}`;
   }
+  if (pts.stub.intoPort) {
+    return `M ${pts.tip.x} ${pts.tip.y} L ${pts.bend.x} ${pts.bend.y}`;
+  }
   return `M ${pts.tip.x} ${pts.tip.y} V ${pts.bend.y}`;
 }
 
@@ -1181,7 +1195,8 @@ function cableApproachY(pts) {
 function cablePathEnd(pts, d) {
   if (!pts.stub) return d;
   if (pts.stub.axis === "h") return `${d} H ${pts.tip.x}`;
-  if (pts.stub.intoPort || pts.stub.dir < 0) return `${d} V ${pts.bend.y}`;
+  if (pts.stub.intoPort) return `${d} L ${pts.bend.x} ${pts.bend.y}`;
+  if (pts.stub.dir < 0) return `${d} V ${pts.bend.y}`;
   return `${d} V ${pts.tip.y}`;
 }
 
