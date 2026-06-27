@@ -173,6 +173,52 @@ function appendRj45PlugHorizontal(group, x, y, colors, dir) {
   group.appendChild(latch);
 }
 
+function appendRj45PlugIntoPort(group, x, y, colors) {
+  const plugW = 6.5;
+  const bootLen = 4;
+  const plugH = 3.5;
+  const plugY = y;
+  const bootY = y - bootLen;
+
+  const boot = document.createElementNS(SVG_NS, "rect");
+  boot.setAttribute("x", String(x - plugW / 2));
+  boot.setAttribute("y", String(bootY));
+  boot.setAttribute("width", String(plugW));
+  boot.setAttribute("height", String(bootLen));
+  boot.setAttribute("rx", "1.2");
+  boot.setAttribute("fill", colors.boot);
+  boot.setAttribute("class", "rack-cable__boot");
+  group.appendChild(boot);
+
+  const plug = document.createElementNS(SVG_NS, "rect");
+  plug.setAttribute("x", String(x - plugW / 2 + 0.4));
+  plug.setAttribute("y", String(plugY));
+  plug.setAttribute("width", String(plugW - 0.8));
+  plug.setAttribute("height", String(plugH));
+  plug.setAttribute("rx", "0.6");
+  plug.setAttribute("fill", "url(#rack-plug-face)");
+  plug.setAttribute("class", "rack-cable__plug-body");
+  group.appendChild(plug);
+
+  const contactY = plugY + plugH - 0.85;
+  const contacts = document.createElementNS(SVG_NS, "line");
+  contacts.setAttribute("x1", String(x - 2.1));
+  contacts.setAttribute("x2", String(x + 2.1));
+  contacts.setAttribute("y1", String(contactY));
+  contacts.setAttribute("y2", String(contactY));
+  contacts.setAttribute("class", "rack-cable__contacts");
+  group.appendChild(contacts);
+
+  const latch = document.createElementNS(SVG_NS, "rect");
+  latch.setAttribute("x", String(x + plugW / 2 - 1.1));
+  latch.setAttribute("y", String(plugY + 0.15));
+  latch.setAttribute("width", "0.9");
+  latch.setAttribute("height", String(plugH * 0.35));
+  latch.setAttribute("rx", "0.2");
+  latch.setAttribute("class", "rack-cable__latch");
+  group.appendChild(latch);
+}
+
 function appendRj45Plug(group, x, y, colors, dir) {
   const plugW = 6.5;
   const bootLen = 4.5;
@@ -231,14 +277,18 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
   g.appendChild(cablePathLayer(d, colors.body, 3, 1, "rack-cable__body"));
 
   if (fromPts?.stub) {
-    if (fromPts.stub.axis === "h") {
+    if (fromPts.stub.intoPort) {
+      appendRj45PlugIntoPort(g, fromPts.bend.x, fromPts.bend.y, colors);
+    } else if (fromPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
     } else {
       appendRj45Plug(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
     }
   }
   if (toPts?.stub) {
-    if (toPts.stub.axis === "h") {
+    if (toPts.stub.intoPort) {
+      appendRj45PlugIntoPort(g, toPts.bend.x, toPts.bend.y, colors);
+    } else if (toPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
     } else {
       appendRj45Plug(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
@@ -790,7 +840,7 @@ function portCableStub(device, deviceId, port) {
   const norm = normalizeDeviceType(device.type);
 
   if (norm.startsWith("switch-")) {
-    return { len: PORT_CABLE_STUB_LEN, dir: -1 };
+    return { len: PORT_CABLE_STUB_LEN, dir: -1, intoPort: true };
   }
 
   return null;
@@ -800,7 +850,7 @@ function verticalDownCableStub(bend) {
   return {
     bend,
     tip: { x: bend.x, y: bend.y - PORT_CABLE_STUB_LEN },
-    stub: { len: PORT_CABLE_STUB_LEN, dir: -1 },
+    stub: { len: PORT_CABLE_STUB_LEN, dir: -1, intoPort: true },
   };
 }
 
@@ -1123,6 +1173,7 @@ function cablePathStart(pts) {
 }
 
 function cableApproachY(pts) {
+  if (pts.stub && pts.stub.intoPort) return pts.tip.y;
   if (pts.stub && pts.stub.axis !== "h" && pts.stub.dir < 0) return pts.tip.y;
   return pts.bend.y;
 }
@@ -1130,7 +1181,7 @@ function cableApproachY(pts) {
 function cablePathEnd(pts, d) {
   if (!pts.stub) return d;
   if (pts.stub.axis === "h") return `${d} H ${pts.tip.x}`;
-  if (pts.stub.dir < 0) return `${d} V ${pts.bend.y}`;
+  if (pts.stub.intoPort || pts.stub.dir < 0) return `${d} V ${pts.bend.y}`;
   return `${d} V ${pts.tip.y}`;
 }
 
