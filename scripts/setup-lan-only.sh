@@ -24,6 +24,9 @@ bind-interfaces
 listen-address=${LAN_IP}
 except-interface=lo
 
+# Niet doorsturen naar Cloudflare (voorkomt IPv6 AAAA-lek)
+local=/${DOMAIN}/
+local=/www.${DOMAIN}/
 address=/${DOMAIN}/${LAN_IP}
 address=/www.${DOMAIN}/${LAN_IP}
 
