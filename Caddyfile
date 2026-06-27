@@ -1,9 +1,11 @@
-# Lokaal netwerk
-http://10.0.40.12, http://ubuntu-sever-laptop {
+# RackForge — alleen lokaal netwerk (10.0.40.0/24)
+# DNS: netwerkengineer.com → 10.0.40.12 via lokale DNS (dnsmasq / router)
+
+http://10.0.40.12, http://ubuntu-sever-laptop, http://netwerkengineer.com, http://www.netwerkengineer.com {
 	redir https://{host}{uri} permanent
 }
 
-https://10.0.40.12, https://ubuntu-sever-laptop {
+https://10.0.40.12, https://ubuntu-sever-laptop, https://netwerkengineer.com, https://www.netwerkengineer.com {
 	tls internal
 	root * /var/www/html
 

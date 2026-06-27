@@ -45,7 +45,7 @@ SESSION_COOKIE = "rackforge_session"
 SESSION_DAYS = 30
 PBKDF2_ROUNDS = 260_000
 SECURE_COOKIE = os.environ.get("RACKFORGE_SECURE_COOKIE", "1") == "1"
-APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://10.0.40.12").rstrip("/")
+APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rstrip("/")
 SMTP_HOST = os.environ.get("RACKFORGE_SMTP_HOST", "")
 SMTP_PORT = int(os.environ.get("RACKFORGE_SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("RACKFORGE_SMTP_USER", "")

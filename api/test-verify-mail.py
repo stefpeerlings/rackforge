@@ -57,7 +57,7 @@ def main() -> int:
     user = os.environ.get("RACKFORGE_SMTP_USER", "")
     password = os.environ.get("RACKFORGE_SMTP_PASS", "")
     from_addr = os.environ.get("RACKFORGE_SMTP_FROM", user)
-    app_url = os.environ.get("RACKFORGE_APP_URL", "https://10.0.40.12").rstrip("/")
+    app_url = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rstrip("/")
 
     if not host or not user or not password:
         print("SMTP_INCOMPLETE")

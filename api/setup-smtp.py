@@ -11,7 +11,7 @@ RACKFORGE_SMTP_PORT=587
 RACKFORGE_SMTP_USER=noreply@netwerkengineer.com
 RACKFORGE_SMTP_PASS=VERVANG_MET_ZOHO_APP_WACHTWOORD
 RACKFORGE_SMTP_FROM=noreply RackForge <noreply@netwerkengineer.com>
-RACKFORGE_APP_URL=https://10.0.40.12
+RACKFORGE_APP_URL=https://netwerkengineer.com
 """
 
 def main() -> None:

@@ -28,7 +28,7 @@ from urllib.parse import parse_qs, quote, unquote_plus, urlparse
 ADMIN_COOKIE = "rackforge_admin"
 ADMIN_SESSION_HOURS = 8
 ADMIN_PASSWORD = os.environ.get("RACKFORGE_ADMIN_PASSWORD", "").strip()
-APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://10.0.40.12").rstrip("/")
+APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rstrip("/")
 AVATAR_DIR = os.environ.get("RACKFORGE_AVATAR_DIR", "/home/stef/rackforge/avatars")
 ADMIN_SESSIONS: dict[str, dict[str, Any]] = {}
 ADMIN_FLASH: dict[str, str] = {}

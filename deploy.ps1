@@ -80,6 +80,10 @@ if (Test-Path $apiLocal) {
     if (Test-Path $serviceLocal) {
         & scp @scpArgs $serviceLocal "${remote}:/home/stef/rackforge-api.user.service"
     }
+    $lanSetup = Join-Path $LocalPath "scripts\setup-lan-only.sh"
+    if (Test-Path $lanSetup) {
+        & scp @scpArgs $lanSetup "${remote}:/home/stef/setup-lan-only.sh"
+    }
     $apiCmd = "mkdir -p ~/.config/systemd/user; cp /home/stef/rackforge-api.user.service ~/.config/systemd/user/rackforge-api.service 2>/dev/null || true; chmod +x /home/stef/rackforge/server.py; rm -rf /home/stef/rackforge/__pycache__; systemctl --user daemon-reload; systemctl --user enable rackforge-api 2>/dev/null || true; systemctl --user restart rackforge-api; sleep 1; curl -sf http://127.0.0.1:8080/api/health >/dev/null && echo API_OK || echo API_START_FAILED"
     & ssh @sshArgs $remote $apiCmd
 }
@@ -107,4 +111,4 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "Klaar! https://10.0.40.12/" -ForegroundColor Green
+Write-Host "Klaar! https://netwerkengineer.com/ (alleen LAN)" -ForegroundColor Green
