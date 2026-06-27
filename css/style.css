@@ -2352,23 +2352,39 @@ body.avatar-crop-dragging .avatar-crop-stage {
   opacity: 0.95;
 }
 
+.rack-cables__slots {
+  pointer-events: none;
+}
+
+.rack-cable__slot-fill {
+  stroke-linecap: butt;
+}
+
+.rack-cable__slot-jacket {
+  stroke-linecap: butt;
+  opacity: 0.9;
+}
+
 .rack-cable {
   pointer-events: none;
 }
 
-.rack-cable__jacket {
+.rack-cable__jacket,
+.rack-cable__body,
+.rack-cable__sheen,
+.rack-cable__bay-jacket,
+.rack-cable__bay-body,
+.rack-cable__bay-sheen {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-.rack-cable__body {
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.rack-cable__bay-jacket {
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
 }
 
-.rack-cable__sheen {
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.rack-cable__bay-sheen {
+  stroke-linecap: butt;
 }
 
 .rack-cable__boot {

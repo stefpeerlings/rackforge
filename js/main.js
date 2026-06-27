@@ -91,10 +91,11 @@ function mixHex(hex, targetHex, amount) {
 
 function cableColorSet(hex) {
   return {
-    jacket: mixHex(hex, "#0a1018", 0.55),
+    jacket: mixHex(hex, "#0a1018", 0.58),
     body: hex,
-    sheen: mixHex(hex, "#ffffff", 0.38),
-    boot: mixHex(hex, "#000000", 0.22),
+    sheen: mixHex(hex, "#ffffff", 0.42),
+    boot: mixHex(hex, "#000000", 0.25),
+    slot: mixHex(hex, "#000000", 0.72),
   };
 }
 
@@ -173,16 +174,28 @@ function appendRj45Plug(group, x, y, colors, dir) {
   group.appendChild(latch);
 }
 
-function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
+function appendBayCableSlot(parent, bayRun, colors) {
+  if (!bayRun) return;
+  parent.appendChild(cablePathLayer(bayRun, colors.slot, 9.5, 0.22, "rack-cable__slot-fill"));
+  parent.appendChild(cablePathLayer(bayRun, colors.jacket, 7.2, 0.35, "rack-cable__slot-jacket"));
+}
+
+function appendEthernetCable(svg, { d, color, fromPts, toPts, label, bayRun }) {
   const colors = cableColorSet(color);
   const g = document.createElementNS(SVG_NS, "g");
   g.setAttribute("class", "rack-cable");
   g.setAttribute("filter", "url(#rack-cable-shadow)");
   if (label) g.setAttribute("aria-label", label);
 
-  g.appendChild(cablePathLayer(d, colors.jacket, 6.5, 1, "rack-cable__jacket"));
-  g.appendChild(cablePathLayer(d, colors.body, 4.5, 1, "rack-cable__body"));
-  g.appendChild(cablePathLayer(d, colors.sheen, 1.5, 0.62, "rack-cable__sheen"));
+  g.appendChild(cablePathLayer(d, colors.jacket, 5.8, 1, "rack-cable__jacket"));
+  g.appendChild(cablePathLayer(d, colors.body, 4.2, 1, "rack-cable__body"));
+  g.appendChild(cablePathLayer(d, colors.sheen, 1.4, 0.58, "rack-cable__sheen"));
+
+  if (bayRun) {
+    g.appendChild(cablePathLayer(bayRun, colors.jacket, 6.8, 1, "rack-cable__bay-jacket"));
+    g.appendChild(cablePathLayer(bayRun, colors.body, 5, 1, "rack-cable__bay-body"));
+    g.appendChild(cablePathLayer(bayRun, colors.sheen, 1.8, 0.72, "rack-cable__bay-sheen"));
+  }
 
   if (fromPts?.stub) appendRj45Plug(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
   if (toPts?.stub) appendRj45Plug(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
@@ -889,7 +902,8 @@ function portAnchorInWrapper(deviceId, port, wrapperRect) {
 const CABLE_BAY_MIN = 22;
 const CABLE_BAY_PER = 5;
 const CABLE_BAY_MAX = 84;
-const CABLE_BAY_CORNER_R = 4.5;
+const CABLE_BAY_CORNER_R = 6;
+const CABLE_BAY_INSET = 4;
 
 function cableBayWidth(count) {
   if (count < 1) return 0;
@@ -921,7 +935,7 @@ function rackCableBayMetrics(wrapperRect) {
 }
 
 function assignCableLaneXs(entries, bay) {
-  const pad = 3;
+  const pad = CABLE_BAY_INSET;
   const count = entries.length;
   if (count === 1) return [bay.center];
 
@@ -931,19 +945,29 @@ function assignCableLaneXs(entries, bay) {
   return entries.map((_, idx) => start + idx * step);
 }
 
+function rackCableBayRun(fromY, toY, laneX) {
+  const y1 = Math.min(fromY, toY);
+  const y2 = Math.max(fromY, toY);
+  if (y2 - y1 < 2) return null;
+  return { d: `M ${laneX} ${y1} V ${y2}`, y1, y2 };
+}
+
 function rackCablePath(fromPts, toPts, laneX, bay) {
   const rackExit = bay.rackRight + 1;
   const railPass = bay.railRight + 1;
+  const bayMouth = bay.left + CABLE_BAY_INSET - 1;
   const from = fromPts.bend;
   const to = toPts.bend;
   const dy = to.y - from.y;
   const down = dy >= 0 ? 1 : -1;
   const r = Math.min(
     CABLE_BAY_CORNER_R,
-    Math.abs(dy) / 3,
-    Math.abs(laneX - railPass) / 2,
-    Math.abs(laneX - to.x) / 2
+    Math.abs(dy) / 2.2,
+    Math.abs(laneX - bayMouth) / 2.5,
+    Math.max(2, Math.abs(laneX - railPass) / 3)
   );
+  const enterX = bayMouth + (laneX - bayMouth) * 0.28;
+  const exitX = bayMouth + (laneX - bayMouth) * 0.72;
 
   let d = fromPts.stub
     ? `M ${fromPts.tip.x} ${fromPts.tip.y} V ${from.y}`
@@ -951,9 +975,15 @@ function rackCablePath(fromPts, toPts, laneX, bay) {
   if (from.x < rackExit - 1) d += ` H ${rackExit}`;
   if (from.x < railPass - 1) d += ` H ${railPass}`;
 
-  if (r > 0.5 && Math.abs(laneX - railPass) > r) {
-    d += ` H ${laneX - r} Q ${laneX} ${from.y} ${laneX} ${from.y + down * r}`;
-    d += ` V ${to.y - down * r} Q ${laneX} ${to.y} ${laneX - r} ${to.y}`;
+  if (laneX > railPass + 0.5) {
+    d += ` H ${bayMouth}`;
+    if (r > 0.5 && Math.abs(laneX - bayMouth) > r) {
+      d += ` C ${enterX} ${from.y} ${laneX - r * 0.4} ${from.y} ${laneX} ${from.y + down * r}`;
+      d += ` V ${to.y - down * r}`;
+      d += ` C ${laneX - r * 0.4} ${to.y} ${exitX} ${to.y} ${bayMouth} ${to.y}`;
+    } else {
+      d += ` H ${laneX} V ${to.y} H ${bayMouth}`;
+    }
     d += ` H ${railPass}`;
   } else {
     d += ` H ${laneX} V ${to.y} H ${railPass}`;
@@ -1072,16 +1102,29 @@ function renderRackCabling() {
     ensureCableDefs(svg);
     drawCableBayChrome(svg, bay, wrapperRect.height, laneXs);
 
+    const slotLayer = document.createElementNS(SVG_NS, "g");
+    slotLayer.setAttribute("class", "rack-cables__slots");
+    entries.forEach((entry, idx) => {
+      const { from, to, c } = entry;
+      const laneX = laneXs[idx];
+      const color = c.color || CABLE_COLORS[0].value;
+      const bayRun = rackCableBayRun(from.bend.y, to.bend.y, laneX);
+      appendBayCableSlot(slotLayer, bayRun?.d, cableColorSet(color));
+    });
+    svg.appendChild(slotLayer);
+
     entries.forEach((entry, idx) => {
       const { c, from, to } = entry;
       const laneX = laneXs[idx];
       const color = c.color || CABLE_COLORS[0].value;
+      const bayRun = rackCableBayRun(from.bend.y, to.bend.y, laneX);
       appendEthernetCable(svg, {
         d: rackCablePath(from, to, laneX, bay),
         color,
         fromPts: from,
         toPts: to,
         label: c.label,
+        bayRun: bayRun?.d,
       });
     });
     });
