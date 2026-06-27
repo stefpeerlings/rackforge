@@ -207,6 +207,7 @@ let selectedDeviceId = null;
 let detailsTab = "device";
 let nextId = 1;
 let cablingMapResizeTimer = null;
+let dragDeviceId = null;
 
 function parseDevices(raw) {
   return (raw || [])
@@ -474,10 +475,32 @@ function isTopOfDevice(u, device) {
 }
 
 // Klik = onderste U; apparaat vult clickedU t/m clickedU+height-1 (blijft in rack).
-function findPlacementStart(clickedU, height) {
+function findPlacementStart(clickedU, height, excludeId = null) {
   if (clickedU < 1 || clickedU + height - 1 > rackHeight) return null;
-  if (!isRangeFree(clickedU, height)) return null;
+  if (!isRangeFree(clickedU, height, excludeId)) return null;
   return clickedU;
+}
+
+function moveDevice(deviceId, clickedU) {
+  const device = devices.find((d) => d.id === deviceId);
+  if (!device) return false;
+
+  const startU = findPlacementStart(clickedU, device.height, deviceId);
+  if (startU == null) {
+    flashHint(I18n.t("hints.wontFit"));
+    return false;
+  }
+  if (startU === device.startU) return true;
+
+  device.startU = startU;
+  save();
+  renderRack();
+  renderStats();
+  renderInventory();
+  renderCablingForm();
+  renderCablingMap();
+  updateHint();
+  return true;
 }
 
 function selectDevice(deviceId) {
@@ -512,31 +535,80 @@ function switchDetailsTab(tab) {
 }
 
 function clearPlacementPreview() {
-  document.querySelectorAll(".rack-u--preview, .rack-u--preview-anchor, .rack-u--blocked").forEach((row) => {
-    row.classList.remove("rack-u--preview", "rack-u--preview-anchor", "rack-u--blocked");
-  });
+  document
+    .querySelectorAll(
+      ".rack-u--preview, .rack-u--preview-anchor, .rack-u--blocked, .rack-u--move-preview, .rack-u--move-anchor"
+    )
+    .forEach((row) => {
+      row.classList.remove(
+        "rack-u--preview",
+        "rack-u--preview-anchor",
+        "rack-u--blocked",
+        "rack-u--move-preview",
+        "rack-u--move-anchor"
+      );
+    });
 }
 
-function highlightPlacementPreview(clickedU) {
-  clearPlacementPreview();
-  if (!selectedType) return;
-  const info = typeInfo(selectedType);
-  const startU = findPlacementStart(clickedU, info.height);
-  const rack = document.getElementById("rack");
+function paintRangePreview(rack, clickedU, height, startU, mode) {
+  const previewCls = mode === "move" ? "rack-u--move-preview" : "rack-u--preview";
+  const anchorCls = mode === "move" ? "rack-u--move-anchor" : "rack-u--preview-anchor";
+
   if (startU == null) {
-    for (const u of uRange(clickedU, info.height)) {
+    for (const u of uRange(clickedU, height)) {
       if (u > rackHeight) break;
       rack.querySelector(`[data-u="${u}"]`)?.classList.add("rack-u--blocked");
     }
     return;
   }
-  for (const u of uRange(startU, info.height)) {
+
+  for (const u of uRange(startU, height)) {
     const row = rack.querySelector(`[data-u="${u}"]`);
-    if (row) {
-      row.classList.add("rack-u--preview");
-      if (u === clickedU) row.classList.add("rack-u--preview-anchor");
-    }
+    if (!row) continue;
+    row.classList.add(previewCls);
+    if (u === clickedU) row.classList.add(anchorCls);
   }
+}
+
+function highlightPlacementPreview(clickedU) {
+  clearPlacementPreview();
+  const rack = document.getElementById("rack");
+
+  if (dragDeviceId) {
+    const device = devices.find((d) => d.id === dragDeviceId);
+    if (!device) return;
+    paintRangePreview(
+      rack,
+      clickedU,
+      device.height,
+      findPlacementStart(clickedU, device.height, device.id),
+      "move"
+    );
+    return;
+  }
+
+  if (selectedDeviceId && !selectedType) {
+    const device = devices.find((d) => d.id === selectedDeviceId);
+    if (!device) return;
+    paintRangePreview(
+      rack,
+      clickedU,
+      device.height,
+      findPlacementStart(clickedU, device.height, device.id),
+      "move"
+    );
+    return;
+  }
+
+  if (!selectedType) return;
+  const info = typeInfo(selectedType);
+  paintRangePreview(
+    rack,
+    clickedU,
+    info.height,
+    findPlacementStart(clickedU, info.height),
+    "place"
+  );
 }
 
 function renderPalette() {
@@ -1050,13 +1122,13 @@ function renderRack() {
       const deviceStyle = `--dev-color: ${info.color}; --span: ${span}; --u-end: ${uEnd}; height: ${heightCalc};${blankTop}`;
       if (isBlankType(device.type)) {
         content = `
-        <div class="rack-device rack-device--blank" style="${deviceStyle}">
+        <div class="rack-device rack-device--blank" style="${deviceStyle}" draggable="true" data-device-id="${device.id}">
           <div class="rack-device__face rack-device__face--blank" role="img" aria-label="${info.name}"></div>
         </div>`;
       } else {
         const portParts = buildDevicePortParts(device);
         content = `
-        <div class="rack-device" style="${deviceStyle}">
+        <div class="rack-device" style="${deviceStyle}" draggable="true" data-device-id="${device.id}">
           <div class="rack-device__ear rack-device__ear--left" aria-hidden="true">${earHoles(span)}</div>
           <div class="rack-device__side rack-device__side--left" aria-hidden="true"></div>
           <div class="rack-device__faceplate rack-device__faceplate--${normalizeDeviceType(device.type)}">
@@ -1104,13 +1176,52 @@ function renderRack() {
     row.addEventListener("click", () => onRackClick(u));
     row.addEventListener("mouseenter", () => highlightPlacementPreview(u));
     row.addEventListener("mouseleave", clearPlacementPreview);
+    row.addEventListener("dragover", (e) => {
+      if (!dragDeviceId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      highlightPlacementPreview(u);
+    });
+    row.addEventListener("drop", (e) => {
+      if (!dragDeviceId) return;
+      e.preventDefault();
+      const id = dragDeviceId;
+      dragDeviceId = null;
+      clearPlacementPreview();
+      moveDevice(id, u);
+    });
   });
 
   rack.querySelectorAll(".rack-device").forEach((el) => {
+    const deviceId = Number(el.dataset.deviceId);
+
     el.addEventListener("click", (e) => {
       e.stopPropagation();
-      const deviceId = Number(el.closest("[data-device]")?.dataset.device);
       if (deviceId) selectDevice(deviceId);
+    });
+
+    el.addEventListener("dragstart", (e) => {
+      if (selectedType) {
+        e.preventDefault();
+        return;
+      }
+      dragDeviceId = deviceId;
+      selectedDeviceId = deviceId;
+      selectedType = null;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(deviceId));
+      el.classList.add("rack-device--dragging");
+      renderPalette();
+      updateHint();
+    });
+
+    el.addEventListener("dragend", () => {
+      dragDeviceId = null;
+      clearPlacementPreview();
+      renderRack();
+      renderDetails();
+      renderInventory();
+      updateHint();
     });
   });
 
@@ -1122,6 +1233,11 @@ function onRackClick(u) {
   const existing = deviceAtU(u);
   if (existing) {
     selectDevice(existing.id);
+    return;
+  }
+
+  if (selectedDeviceId && !selectedType) {
+    moveDevice(selectedDeviceId, u);
     return;
   }
 
@@ -1769,7 +1885,7 @@ function renderInventory() {
 function updateHint() {
   const hint = document.getElementById("placement-hint");
   if (selectedDeviceId) {
-    hint.textContent = I18n.t("hints.editOrRemove");
+    hint.textContent = I18n.t("hints.moveOrEdit");
   } else if (selectedType) {
     hint.textContent = I18n.t("hints.clickToPlace");
   } else {

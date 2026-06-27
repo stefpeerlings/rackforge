@@ -1848,6 +1848,16 @@ body.avatar-crop-dragging .avatar-crop-stage {
   cursor: not-allowed;
 }
 
+.rack-u--move-preview {
+  background: rgba(59, 158, 255, 0.07);
+  outline: 1px dashed rgba(59, 158, 255, 0.45);
+  outline-offset: -1px;
+}
+
+.rack-u--move-anchor {
+  cursor: copy;
+}
+
 .rack-u--part {
   background: transparent;
   pointer-events: auto;
@@ -1873,10 +1883,19 @@ body.avatar-crop-dragging .avatar-crop-stage {
   top: 0;
   display: flex;
   align-items: stretch;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: grab;
   min-height: var(--u-h);
   z-index: var(--u-end);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+}
+
+.rack-device:active {
+  cursor: grabbing;
+}
+
+.rack-device--dragging {
+  opacity: 0.42;
 }
 
 .rack-u--blank-slot {
