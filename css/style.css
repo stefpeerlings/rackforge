@@ -2158,6 +2158,23 @@ body.avatar-crop-dragging .avatar-crop-stage {
     2px 0 6px rgba(0, 0, 0, 0.25);
   z-index: 4;
   pointer-events: none;
+  transition: width 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rack-device__rear--active,
+.rack-device--rear-cabled .rack-device__rear {
+  width: 16px;
+  border-left-color: rgba(27, 219, 122, 0.45);
+  box-shadow:
+    inset -3px 0 8px rgba(0, 0, 0, 0.65),
+    2px 0 8px rgba(0, 0, 0, 0.3),
+    inset 0 0 10px rgba(27, 219, 122, 0.08);
+}
+
+.rack-device--rear-cabled .rack-device__rear-tag {
+  color: #8fd4a8;
+  opacity: 0.9;
+  font-weight: 700;
 }
 
 .rack-device__rear-tag {
@@ -2257,6 +2274,62 @@ body.avatar-crop-dragging .avatar-crop-stage {
   transform: translate(-50%, -50%);
   width: 6px;
   height: 6px;
+}
+
+.rack-port--jack-rear {
+  width: 5px;
+  height: 9px;
+  border-radius: 1px;
+  margin-left: -2.5px;
+  margin-top: -4.5px;
+}
+
+.rack-port--patch-rear.rack-port--idle {
+  background: rgba(12, 16, 22, 0.85);
+  border: 1px solid rgba(74, 93, 112, 0.42);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.65);
+  opacity: 0.55;
+}
+
+.rack-port--patch-rear.rack-port--linked {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--port-color, var(--accent)) 88%, #ffffff 12%) 0%,
+    var(--port-color, var(--accent)) 55%,
+    color-mix(in srgb, var(--port-color, var(--accent)) 72%, #000000 28%) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 0 5px var(--port-color, var(--accent)),
+    0 0 12px color-mix(in srgb, var(--port-color, var(--accent)) 65%, transparent),
+    inset -1px 0 2px rgba(255, 255, 255, 0.35);
+  animation: rack-port-pulse 2.4s ease-in-out infinite;
+  z-index: 2;
+}
+
+.rack-port--patch-rear.rack-port--linked::before {
+  content: "";
+  position: absolute;
+  left: calc(100% + 1px);
+  top: 50%;
+  width: 7px;
+  height: 2.5px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  background: var(--port-color, var(--accent));
+  box-shadow:
+    0 0 4px var(--port-color, var(--accent)),
+    1px 0 3px color-mix(in srgb, var(--port-color, var(--accent)) 50%, transparent);
+}
+
+.rack-port--patch-rear.rack-port--linked::after {
+  content: attr(data-port-label);
+  opacity: 0.92;
+  left: calc(100% + 10px);
+  font-size: 0.42rem;
+  font-weight: 700;
+  color: var(--port-color, var(--accent));
+  text-shadow: 0 0 4px color-mix(in srgb, var(--port-color, var(--accent)) 70%, transparent);
 }
 
 .rack-port::after {

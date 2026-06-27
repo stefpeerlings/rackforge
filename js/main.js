@@ -126,6 +126,53 @@ function cablePathLayer(d, stroke, width, opacity, className) {
   return path;
 }
 
+function appendRj45PlugHorizontal(group, x, y, colors, dir) {
+  const plugW = 3.2;
+  const bootLen = 4.5;
+  const plugH = 6.5;
+  const dirRight = dir > 0;
+  const bootX = dirRight ? x - bootLen : x;
+  const plugX = dirRight ? x - bootLen - plugW + 0.5 : x + bootLen - 0.5;
+
+  const boot = document.createElementNS(SVG_NS, "rect");
+  boot.setAttribute("x", String(bootX));
+  boot.setAttribute("y", String(y - plugH / 2));
+  boot.setAttribute("width", String(bootLen));
+  boot.setAttribute("height", String(plugH));
+  boot.setAttribute("rx", "1.2");
+  boot.setAttribute("fill", colors.boot);
+  boot.setAttribute("class", "rack-cable__boot");
+  group.appendChild(boot);
+
+  const plug = document.createElementNS(SVG_NS, "rect");
+  plug.setAttribute("x", String(plugX));
+  plug.setAttribute("y", String(y - plugH / 2 + 0.4));
+  plug.setAttribute("width", String(plugW));
+  plug.setAttribute("height", String(plugH - 0.8));
+  plug.setAttribute("rx", "0.6");
+  plug.setAttribute("fill", "url(#rack-plug-face)");
+  plug.setAttribute("class", "rack-cable__plug-body");
+  group.appendChild(plug);
+
+  const contactX = dirRight ? plugX + plugW - 0.85 : plugX + 0.85;
+  const contacts = document.createElementNS(SVG_NS, "line");
+  contacts.setAttribute("x1", String(contactX));
+  contacts.setAttribute("x2", String(contactX));
+  contacts.setAttribute("y1", String(y - 2.1));
+  contacts.setAttribute("y2", String(y + 2.1));
+  contacts.setAttribute("class", "rack-cable__contacts");
+  group.appendChild(contacts);
+
+  const latch = document.createElementNS(SVG_NS, "rect");
+  latch.setAttribute("x", String(plugX + plugW * 0.35));
+  latch.setAttribute("y", String(dirRight ? y + plugH / 2 - 1.1 : y - plugH / 2 + 0.2));
+  latch.setAttribute("width", String(plugH * 0.35));
+  latch.setAttribute("height", "0.9");
+  latch.setAttribute("rx", "0.2");
+  latch.setAttribute("class", "rack-cable__latch");
+  group.appendChild(latch);
+}
+
 function appendRj45Plug(group, x, y, colors, dir) {
   const plugW = 6.5;
   const bootLen = 4.5;
@@ -183,8 +230,20 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
   g.appendChild(cablePathLayer(d, colors.jacket, 4.5, 1, "rack-cable__jacket"));
   g.appendChild(cablePathLayer(d, colors.body, 3, 1, "rack-cable__body"));
 
-  if (fromPts?.stub) appendRj45Plug(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
-  if (toPts?.stub) appendRj45Plug(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
+  if (fromPts?.stub) {
+    if (fromPts.stub.axis === "h") {
+      appendRj45PlugHorizontal(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
+    } else {
+      appendRj45Plug(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
+    }
+  }
+  if (toPts?.stub) {
+    if (toPts.stub.axis === "h") {
+      appendRj45PlugHorizontal(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
+    } else {
+      appendRj45Plug(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
+    }
+  }
 
   svg.appendChild(g);
 }
@@ -792,7 +851,7 @@ function portCablePoints(deviceId, port, wrapperRect, conn = null) {
   if (isPatchType(device.type) && conn && connectionPatchSide(deviceId, conn) === "rear") {
     const bend = patchRearPortAnchor(device, port, wrapperRect, row);
     if (!bend) return null;
-    return { bend, tip: bend, stub: null };
+    return rearPortCableStub(bend);
   }
 
   const patchAnchors = patchCableSvgAnchors(device, port);
@@ -807,7 +866,7 @@ function portCablePoints(deviceId, port, wrapperRect, conn = null) {
   if (devicePortPlacement(device.type) === "rear") {
     const bend = patchRearPortAnchor(device, port, wrapperRect, row);
     if (!bend) return null;
-    return { bend, tip: bend, stub: null };
+    return rearPortCableStub(bend);
   }
 
   const bend = portAnchorOnFaceplate(device, port, wrapperRect, row);
@@ -861,14 +920,17 @@ function portDotMarkup(device, { port, color, connId, linked }, placement, total
     const { left, top } = frontPortPosition(device, port, total);
     pos = `left: ${left}%; top: ${top}%`;
   }
-  const jack = placement === "front" && usesJackPortStyle(device.type);
+  const isPatchRear = isPatchType(device.type) && placement === "rear";
+  const jack = (placement === "front" && usesJackPortStyle(device.type)) || isPatchRear;
   const state = linked ? "rack-port--linked" : "rack-port--idle";
-  const shape = jack ? "rack-port--jack" : "";
+  const shape = jack ? (isPatchRear ? "rack-port--jack-rear" : "rack-port--jack") : "";
   const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
-  const cls = ["rack-port", side, shape, state].filter(Boolean).join(" ");
+  const patchRear = isPatchRear ? "rack-port--patch-rear" : "";
+  const cls = ["rack-port", side, shape, patchRear, state].filter(Boolean).join(" ");
   const connAttr = connId ? ` data-conn="${connId}"` : "";
   const colorStyle = linked && color ? `--port-color: ${color};` : "";
-  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
+  const portLabel = linked && isPatchRear ? ` data-port-label="${port}"` : "";
+  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr}${portLabel} style="${colorStyle} ${pos}" title="${title}"></span>`;
 }
 
 function buildPatchSidePorts(device, placement, total) {
@@ -890,10 +952,16 @@ function buildDevicePortParts(device) {
   if (isPatchType(device.type)) {
     const frontDots = buildPatchSidePorts(device, "front", total);
     const rearDots = buildPatchSidePorts(device, "rear", total);
+    const rearLinks = deviceLinkedPortsForPlacement(device.id, "rear");
+    const rearTag =
+      rearLinks.length > 0
+        ? `${I18n.t("cabling.rear")} · ${rearLinks.length}`
+        : I18n.t("cabling.rear");
+    const rearActive = rearLinks.length > 0 ? " rack-device__rear--active" : "";
     return {
       front: `<div class="rack-device__ports rack-device__ports--front" aria-hidden="true">${frontDots}</div>`,
-      rear: `<div class="rack-device__rear" aria-hidden="true" title="${I18n.t("cabling.patchRearIo")}">
-        <span class="rack-device__rear-tag">${I18n.t("cabling.rear")}</span>
+      rear: `<div class="rack-device__rear${rearActive}" aria-hidden="true" title="${I18n.t("cabling.patchRearIo")}">
+        <span class="rack-device__rear-tag">${rearTag}</span>
         <div class="rack-device__ports rack-device__ports--rear">${rearDots}</div>
       </div>`,
     };
@@ -1008,22 +1076,41 @@ function assignCableLaneXs(entries, bay) {
   return entries.map((_, idx) => start + idx * step);
 }
 
+function cablePathStart(pts) {
+  if (!pts.stub) return `M ${pts.bend.x} ${pts.bend.y}`;
+  if (pts.stub.axis === "h") {
+    return `M ${pts.tip.x} ${pts.tip.y} H ${pts.bend.x}`;
+  }
+  return `M ${pts.tip.x} ${pts.tip.y} V ${pts.bend.y}`;
+}
+
+function cablePathEnd(pts, d) {
+  if (!pts.stub) return d;
+  if (pts.stub.axis === "h") return `${d} H ${pts.tip.x}`;
+  return `${d} V ${pts.tip.y}`;
+}
+
+function rearPortCableStub(bend) {
+  return {
+    bend,
+    tip: { x: bend.x + PORT_CABLE_STUB_LEN, y: bend.y },
+    stub: { len: PORT_CABLE_STUB_LEN, dir: 1, axis: "h" },
+  };
+}
+
 function rackCablePath(fromPts, toPts, laneX, bay) {
   const rackExit = bay.rackRight + 1;
   const railPass = bay.railRight + 1;
   const from = fromPts.bend;
   const to = toPts.bend;
 
-  let d = fromPts.stub
-    ? `M ${fromPts.tip.x} ${fromPts.tip.y} V ${from.y}`
-    : `M ${from.x} ${from.y}`;
+  let d = cablePathStart(fromPts);
   if (from.x < rackExit - 1) d += ` H ${rackExit}`;
   if (from.x < railPass - 1) d += ` H ${railPass}`;
   d += ` H ${laneX} V ${to.y} H ${railPass}`;
   if (to.x < rackExit - 1) d += ` H ${rackExit}`;
   d += ` H ${to.x}`;
-  if (toPts.stub) d += ` V ${toPts.tip.y}`;
-  return d;
+  return cablePathEnd(toPts, d);
 }
 
 function renderRackCabling() {
@@ -1134,8 +1221,12 @@ function renderRack() {
         </div>`;
       } else {
         const portParts = buildDevicePortParts(device);
+        const rearCabled =
+          isPatchType(device.type) && deviceLinkedPortsForPlacement(device.id, "rear").length > 0
+            ? " rack-device--rear-cabled"
+            : "";
         content = `
-        <div class="rack-device" style="${deviceStyle}" draggable="true" data-device-id="${device.id}">
+        <div class="rack-device${rearCabled}" style="${deviceStyle}" draggable="true" data-device-id="${device.id}">
           <div class="rack-device__ear rack-device__ear--left" aria-hidden="true">${earHoles(span)}</div>
           <div class="rack-device__side rack-device__side--left" aria-hidden="true"></div>
           <div class="rack-device__faceplate rack-device__faceplate--${normalizeDeviceType(device.type)}">
