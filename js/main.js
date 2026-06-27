@@ -173,9 +173,9 @@ function appendRj45PlugHorizontal(group, x, y, colors, dir) {
   group.appendChild(latch);
 }
 
-function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DEG, plugW = 6.5, plugH = null) {
-  const bootLen = 4;
-  const bodyH = plugH ?? 3.5 + PORT_PLUG_LEAN_Y;
+function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DEG, plugW = 5, plugH = null) {
+  const bootLen = 3;
+  const bodyH = plugH ?? 2.8 + PORT_PLUG_LEAN_Y;
   const plugY = y;
   const bootY = y - bootLen;
 
@@ -224,9 +224,9 @@ function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DE
 }
 
 function appendRj45Plug(group, x, y, colors, dir) {
-  const plugW = 6.5;
-  const bootLen = 4.5;
-  const plugH = 3.2;
+  const plugW = 5;
+  const bootLen = 3.5;
+  const plugH = 2.6;
   const dirUp = dir < 0;
   const bootY = dirUp ? y - bootLen : y;
   const plugY = dirUp ? y - bootLen - plugH + 0.5 : y + bootLen - 0.5;
@@ -896,16 +896,16 @@ function patchJackPlugTopCy(device, port) {
 function patchCordSpec(device) {
   const norm = normalizeDeviceType(device.type);
   const specs = {
-    "patch-16": { depth: 9, rise: 8, plugW: 13, plugH: 9, tilt: 3 },
-    "patch-24": { depth: 6, rise: 11, plugW: 9, plugH: 5, tilt: 5 },
-    "patch-48": { depth: 5, rise: 10, plugW: 8, plugH: 4, tilt: 5 },
+    "patch-16": { depth: 7, rise: 8, plugW: 10, plugH: 7, tilt: 3 },
+    "patch-24": { depth: 5, rise: 11, plugW: 7, plugH: 4, tilt: 5 },
+    "patch-48": { depth: 4, rise: 10, plugW: 6.5, plugH: 3.2, tilt: 5 },
   };
   return (
     specs[norm] || {
       depth: PATCH_PLUG_DEPTH,
       rise: PATCH_CORD_RISE,
-      plugW: 6.5,
-      plugH: 5,
+      plugW: 5,
+      plugH: 4,
       tilt: PORT_PLUG_TILT_DEG,
     }
   );
