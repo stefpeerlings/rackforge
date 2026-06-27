@@ -1758,102 +1758,18 @@ body.avatar-crop-dragging .avatar-crop-stage {
   align-self: stretch;
   min-height: 100%;
   transition: width 0.25s ease;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(0, 0, 0, 0.22) 0px,
-      rgba(0, 0, 0, 0.22) 1px,
-      transparent 1px,
-      transparent 5px
-    ),
-    repeating-linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.02) 0px,
-      rgba(255, 255, 255, 0.02) 1px,
-      transparent 1px,
-      transparent 9px
-    ),
-    linear-gradient(
-      90deg,
-      #2a3848 0%,
-      #121a22 12%,
-      #060a0f 50%,
-      #121a22 88%,
-      #2a3848 100%
-    );
-  border-left: 2px solid #4a5d70;
-  border-right: 2px solid #3d5166;
-  box-shadow:
-    inset 5px 0 14px rgba(0, 0, 0, 0.75),
-    inset -5px 0 14px rgba(0, 0, 0, 0.75),
-    inset 0 3px 6px rgba(255, 255, 255, 0.04),
-    2px 0 6px rgba(0, 0, 0, 0.35);
-  border-radius: 0 5px 5px 0;
+  background: linear-gradient(180deg, #0a0f14 0%, #060a0f 50%, #0a0f14 100%);
+  border-left: 1px solid rgba(74, 93, 112, 0.3);
+  box-shadow: inset 2px 0 6px rgba(0, 0, 0, 0.5);
+  border-radius: 0 3px 3px 0;
   position: relative;
   z-index: 5;
   pointer-events: none;
   margin-left: 2px;
-  overflow: hidden;
-}
-
-.rack-cable-bay::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 7px;
-  background: linear-gradient(180deg, #5a6f82 0%, #3d5166 55%, #2a3848 100%);
-  border-radius: 0 4px 0 0;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
-  z-index: 1;
-}
-
-.rack-cable-bay::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 6px;
-  background: linear-gradient(0deg, #1a2530 0%, transparent 100%);
-  z-index: 1;
 }
 
 .rack-wrapper--cabled .rack-cable-bay {
   display: block;
-}
-
-.rack-cable-bay__channel {
-  fill: rgba(4, 8, 12, 0.45);
-  stroke: rgba(74, 93, 112, 0.28);
-  stroke-width: 0.6;
-}
-
-.rack-cable-bay__rail {
-  stroke: #5a7088;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  opacity: 0.85;
-}
-
-.rack-cable-bay__rung {
-  stroke: rgba(90, 112, 136, 0.22);
-  stroke-width: 0.8;
-  stroke-linecap: round;
-}
-
-.rack-cable-bay__mouth {
-  fill: none;
-  stroke: rgba(90, 112, 136, 0.45);
-  stroke-width: 1.2;
-  stroke-linecap: round;
-}
-
-.rack-cable-bay__slot {
-  stroke: rgba(100, 116, 139, 0.16);
-  stroke-width: 0.9;
-  stroke-dasharray: 2 5;
 }
 
 .rack {
@@ -2352,39 +2268,14 @@ body.avatar-crop-dragging .avatar-crop-stage {
   opacity: 0.95;
 }
 
-.rack-cables__slots {
-  pointer-events: none;
-}
-
-.rack-cable__slot-fill {
-  stroke-linecap: butt;
-}
-
-.rack-cable__slot-jacket {
-  stroke-linecap: butt;
-  opacity: 0.9;
-}
-
 .rack-cable {
   pointer-events: none;
 }
 
 .rack-cable__jacket,
-.rack-cable__body,
-.rack-cable__sheen,
-.rack-cable__bay-jacket,
-.rack-cable__bay-body,
-.rack-cable__bay-sheen {
+.rack-cable__body {
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.rack-cable__bay-jacket {
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
-}
-
-.rack-cable__bay-sheen {
-  stroke-linecap: butt;
 }
 
 .rack-cable__boot {
