@@ -13,7 +13,7 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 GOOGLE_CLIENT_ID = os.environ.get("RACKFORGE_GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.environ.get("RACKFORGE_GOOGLE_CLIENT_SECRET", "").strip()
-APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://www.home-labe.com").rstrip("/")
+APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://10.0.40.12").rstrip("/")
 
 
 def google_configured() -> bool:

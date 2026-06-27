@@ -107,4 +107,4 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "Klaar! https://www.home-labe.com/" -ForegroundColor Green
+Write-Host "Klaar! https://10.0.40.12/" -ForegroundColor Green
