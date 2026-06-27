@@ -1264,6 +1264,30 @@ function isBulkPatchType(type) {
   return typeof type === "string" && type.startsWith("patch-");
 }
 
+function switchPortTierRange(switchDev, tier) {
+  const count = devicePortCount(switchDev);
+  const norm = normalizeDeviceType(switchDev.type);
+  if (count < 2) return null;
+
+  if (norm === "switch-48" || count === 48) {
+    return tier === "top" ? { start: 1, end: 24 } : { start: 25, end: 48 };
+  }
+  if (norm === "switch-24" || count === 24) {
+    return tier === "top" ? { start: 1, end: 12 } : { start: 13, end: 24 };
+  }
+  if (norm === "switch-16" || count === 16) {
+    return tier === "top" ? { start: 1, end: 8 } : { start: 9, end: 16 };
+  }
+
+  const half = Math.floor(count / 2);
+  if (half < 1) return null;
+  return tier === "top" ? { start: 1, end: half } : { start: half + 1, end: count };
+}
+
+function switchHasPortTiers(switchDev) {
+  return isBulkSwitchType(switchDev?.type) && switchPortTierRange(switchDev, "bottom") !== null;
+}
+
 function getBulkConnectOptions(switchDev, patchDev) {
   if (!switchDev || !patchDev) return [];
   if (!isBulkSwitchType(switchDev.type) || !isBulkPatchType(patchDev.type)) return [];
@@ -1317,13 +1341,15 @@ function bulkActionLabel(option) {
 
 function renderBulkActionButtons() {
   const container = document.getElementById("bulk-actions");
+  const disconnectWrap = document.getElementById("bulk-disconnect");
+  const disconnectContainer = document.getElementById("bulk-disconnect-actions");
   const switchSel = document.getElementById("bulk-switch");
   const patchSel = document.getElementById("bulk-patch");
-  if (!container || !switchSel || !patchSel) return;
+  if (!container || !switchSel || !patchSel || !disconnectWrap || !disconnectContainer) return;
 
   const switchDev = devices.find((d) => d.id === Number(switchSel.value));
   const patchDev = devices.find((d) => d.id === Number(patchSel.value));
-  const options = getBulkConnectOptions(switchDev, patchDev);
+  const options = patchDev ? getBulkConnectOptions(switchDev, patchDev) : [];
 
   container.innerHTML = options
     .map((opt, i) => {
@@ -1342,6 +1368,25 @@ function renderBulkActionButtons() {
       if (opt) bulkConnectPatchPanel(opt);
     });
   });
+
+  if (switchDev && switchHasPortTiers(switchDev)) {
+    const top = switchPortTierRange(switchDev, "top");
+    const bottom = switchPortTierRange(switchDev, "bottom");
+    disconnectContainer.innerHTML = [
+      `<button type="button" class="btn btn--sm cabling-bulk__btn cabling-bulk__btn--disconnect" data-disconnect-tier="top">${I18n.t("cabling.bulkDisconnectTop", { start: top.start, end: top.end })}</button>`,
+      `<button type="button" class="btn btn--sm cabling-bulk__btn cabling-bulk__btn--disconnect" data-disconnect-tier="bottom">${I18n.t("cabling.bulkDisconnectBottom", { start: bottom.start, end: bottom.end })}</button>`,
+    ].join("");
+    disconnectWrap.hidden = false;
+
+    disconnectContainer.querySelectorAll("[data-disconnect-tier]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        bulkDisconnectSwitchPorts(btn.dataset.disconnectTier);
+      });
+    });
+  } else {
+    disconnectContainer.innerHTML = "";
+    disconnectWrap.hidden = true;
+  }
 }
 
 function renderCablingBulk() {
@@ -1357,12 +1402,14 @@ function renderCablingBulk() {
     .filter((d) => isBulkPatchType(d.type))
     .sort((a, b) => b.startU - a.startU);
 
-  if (switches.length === 0 || patches.length === 0) {
+  if (switches.length === 0) {
     section.hidden = true;
     return;
   }
 
   section.hidden = false;
+  const patchField = document.getElementById("bulk-patch-field");
+  if (patchField) patchField.hidden = patches.length === 0;
   const deviceOption = (d) => {
     const name = deviceDisplayName(d);
     return `<option value="${d.id}">U${d.startU} · ${name}</option>`;
@@ -1371,7 +1418,9 @@ function renderCablingBulk() {
   const prevSwitch = switchSel.value;
   const prevPatch = patchSel.value;
   switchSel.innerHTML = switches.map(deviceOption).join("");
-  patchSel.innerHTML = patches.map(deviceOption).join("");
+  patchSel.innerHTML = patches.length
+    ? patches.map(deviceOption).join("")
+    : `<option value="">${I18n.t("cabling.bulkNoPatch")}</option>`;
 
   if (prevSwitch && switches.some((d) => d.id === Number(prevSwitch))) {
     switchSel.value = prevSwitch;
@@ -1379,11 +1428,13 @@ function renderCablingBulk() {
     switchSel.value = String(selectedDeviceId);
   }
 
-  if (prevPatch && patches.some((d) => d.id === Number(prevPatch))) {
-    patchSel.value = prevPatch;
-  } else {
-    const alt = patches.find((d) => d.id !== Number(switchSel.value));
-    if (alt) patchSel.value = String(alt.id);
+  if (patches.length > 0) {
+    if (prevPatch && patches.some((d) => d.id === Number(prevPatch))) {
+      patchSel.value = prevPatch;
+    } else {
+      const alt = patches.find((d) => d.id !== Number(switchSel.value));
+      if (alt) patchSel.value = String(alt.id);
+    }
   }
 
   renderBulkActionButtons();
@@ -1394,6 +1445,36 @@ function refreshCablingUI() {
   renderCablingForm();
   renderCablingList();
   renderCablingMap();
+}
+
+function bulkDisconnectSwitchPorts(tier) {
+  const switchId = Number(document.getElementById("bulk-switch").value);
+  const switchDev = devices.find((d) => d.id === switchId);
+  if (!switchDev || !isBulkSwitchType(switchDev.type)) return;
+
+  const range = switchPortTierRange(switchDev, tier);
+  if (!range) return;
+
+  const before = connections.length;
+  connections = connections.filter((c) => {
+    if (c.fromDeviceId === switchId && c.fromPort >= range.start && c.fromPort <= range.end) {
+      return false;
+    }
+    if (c.toDeviceId === switchId && c.toPort >= range.start && c.toPort <= range.end) {
+      return false;
+    }
+    return true;
+  });
+
+  const removed = before - connections.length;
+  if (removed === 0) {
+    flashHint(I18n.t("cabling.bulkDisconnectNone"));
+    return;
+  }
+
+  save();
+  refreshCablingUI();
+  flashHint(I18n.t("cabling.bulkDisconnectDone", { removed }));
 }
 
 function bulkConnectPatchPanel({ count, switchOffset, patchStart = 1 }) {

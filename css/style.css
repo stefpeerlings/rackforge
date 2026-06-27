@@ -2594,6 +2594,32 @@ body.avatar-crop-dragging .avatar-crop-stage {
   border-color: rgba(59, 158, 255, 0.55);
 }
 
+.cabling-bulk__disconnect {
+  margin-top: 0.65rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.cabling-bulk__disconnect-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cabling-bulk__btn--disconnect {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.cabling-bulk__btn--disconnect:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
 .cabling-list {
   list-style: none;
   display: flex;
