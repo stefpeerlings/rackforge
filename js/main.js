@@ -68,6 +68,138 @@ const CABLE_COLORS = [
   { value: "#ef4444", key: "red" },
 ];
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function parseHexColor(hex) {
+  const h = hex.replace("#", "");
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+function mixHex(hex, targetHex, amount) {
+  const a = parseHexColor(hex);
+  const t = parseHexColor(targetHex);
+  const mix = (c, tc) => Math.round(c + (tc - c) * amount);
+  const r = mix(a.r, t.r);
+  const g = mix(a.g, t.g);
+  const b = mix(a.b, t.b);
+  return `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function cableColorSet(hex) {
+  return {
+    jacket: mixHex(hex, "#0a1018", 0.55),
+    body: hex,
+    sheen: mixHex(hex, "#ffffff", 0.38),
+    boot: mixHex(hex, "#000000", 0.22),
+  };
+}
+
+function ensureCableDefs(svg) {
+  if (svg.querySelector("#rack-cable-defs")) return;
+  const defs = document.createElementNS(SVG_NS, "defs");
+  defs.setAttribute("id", "rack-cable-defs");
+  defs.innerHTML = `<filter id="rack-cable-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0.5" dy="1.1" stdDeviation="1.1" flood-color="#020408" flood-opacity="0.62"/>
+    </filter>
+    <linearGradient id="rack-plug-face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a5d70"/>
+      <stop offset="55%" stop-color="#2a3542"/>
+      <stop offset="100%" stop-color="#151c24"/>
+    </linearGradient>`;
+  svg.insertBefore(defs, svg.firstChild);
+}
+
+function cablePathLayer(d, stroke, width, opacity, className) {
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", d);
+  path.setAttribute("fill", "none");
+  path.setAttribute("stroke", stroke);
+  path.setAttribute("stroke-width", String(width));
+  path.setAttribute("stroke-opacity", String(opacity));
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("stroke-linejoin", "round");
+  path.setAttribute("class", className);
+  return path;
+}
+
+function appendRj45Plug(group, x, y, colors, dir) {
+  const plugW = 6.5;
+  const bootLen = 4.5;
+  const plugH = 3.2;
+  const dirUp = dir < 0;
+  const bootY = dirUp ? y - bootLen : y;
+  const plugY = dirUp ? y - bootLen - plugH + 0.5 : y + bootLen - 0.5;
+
+  const boot = document.createElementNS(SVG_NS, "rect");
+  boot.setAttribute("x", String(x - plugW / 2));
+  boot.setAttribute("y", String(bootY));
+  boot.setAttribute("width", String(plugW));
+  boot.setAttribute("height", String(bootLen));
+  boot.setAttribute("rx", "1.2");
+  boot.setAttribute("fill", colors.boot);
+  boot.setAttribute("class", "rack-cable__boot");
+  group.appendChild(boot);
+
+  const plug = document.createElementNS(SVG_NS, "rect");
+  plug.setAttribute("x", String(x - plugW / 2 + 0.4));
+  plug.setAttribute("y", String(plugY));
+  plug.setAttribute("width", String(plugW - 0.8));
+  plug.setAttribute("height", String(plugH));
+  plug.setAttribute("rx", "0.6");
+  plug.setAttribute("fill", "url(#rack-plug-face)");
+  plug.setAttribute("class", "rack-cable__plug-body");
+  group.appendChild(plug);
+
+  const contactY = dirUp ? plugY + plugH - 0.85 : plugY + 0.85;
+  const contacts = document.createElementNS(SVG_NS, "line");
+  contacts.setAttribute("x1", String(x - 2.1));
+  contacts.setAttribute("x2", String(x + 2.1));
+  contacts.setAttribute("y1", String(contactY));
+  contacts.setAttribute("y2", String(contactY));
+  contacts.setAttribute("class", "rack-cable__contacts");
+  group.appendChild(contacts);
+
+  const latch = document.createElementNS(SVG_NS, "rect");
+  latch.setAttribute("x", String(x + plugW / 2 - 1.1));
+  latch.setAttribute("y", String(plugY + plugH * 0.35));
+  latch.setAttribute("width", "0.9");
+  latch.setAttribute("height", String(plugH * 0.35));
+  latch.setAttribute("rx", "0.2");
+  latch.setAttribute("class", "rack-cable__latch");
+  group.appendChild(latch);
+}
+
+function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
+  const colors = cableColorSet(color);
+  const g = document.createElementNS(SVG_NS, "g");
+  g.setAttribute("class", "rack-cable");
+  g.setAttribute("filter", "url(#rack-cable-shadow)");
+  if (label) g.setAttribute("aria-label", label);
+
+  g.appendChild(cablePathLayer(d, colors.jacket, 6.5, 1, "rack-cable__jacket"));
+  g.appendChild(cablePathLayer(d, colors.body, 4.5, 1, "rack-cable__body"));
+  g.appendChild(cablePathLayer(d, colors.sheen, 1.5, 0.62, "rack-cable__sheen"));
+
+  if (fromPts?.stub) appendRj45Plug(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
+  if (toPts?.stub) appendRj45Plug(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
+
+  svg.appendChild(g);
+}
+
+function appendMapEthernetCable(svg, d, color) {
+  const colors = cableColorSet(color);
+  const g = document.createElementNS(SVG_NS, "g");
+  g.setAttribute("class", "map-cable");
+  g.appendChild(cablePathLayer(d, colors.jacket, 5.5, 0.92, "map-cable__jacket"));
+  g.appendChild(cablePathLayer(d, colors.body, 3.8, 1, "map-cable__body"));
+  g.appendChild(cablePathLayer(d, colors.sheen, 1.3, 0.55, "map-cable__sheen"));
+  svg.appendChild(g);
+}
+
 let rackHeight = 25;
 let devices = [];
 let connections = [];
@@ -867,18 +999,19 @@ function renderRackCabling() {
       .sort((a, b) => a.midY - b.midY || a.c.id - b.c.id);
 
     const laneXs = assignCableLaneXs(entries, bay);
+    ensureCableDefs(svg);
 
     entries.forEach((entry, idx) => {
       const { c, from, to } = entry;
       const laneX = laneXs[idx];
       const color = c.color || CABLE_COLORS[0].value;
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", rackCablePath(from, to, laneX, bay));
-      path.setAttribute("stroke", color);
-      path.setAttribute("stroke-opacity", "0.92");
-      path.setAttribute("class", "rack-cable-line");
-      if (c.label) path.setAttribute("aria-label", c.label);
-      svg.appendChild(path);
+      appendEthernetCable(svg, {
+        d: rackCablePath(from, to, laneX, bay),
+        color,
+        fromPts: from,
+        toPts: to,
+        label: c.label,
+      });
     });
     });
   });
@@ -1383,13 +1516,11 @@ function drawCablingLines(conns, mapDevices) {
     if (!from || !to) return;
     const color = c.color || CABLE_COLORS[0].value;
     const midY = (from.y + to.y) / 2;
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`);
-    path.setAttribute("fill", "none");
-    path.setAttribute("stroke", color);
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("stroke-opacity", "0.8");
-    svg.appendChild(path);
+    appendMapEthernetCable(
+      svg,
+      `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`,
+      color
+    );
   });
 }
 

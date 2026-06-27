@@ -2284,12 +2284,51 @@ body.avatar-crop-dragging .avatar-crop-stage {
   opacity: 0.95;
 }
 
-.rack-cable-line {
-  fill: none;
+.rack-cable {
+  pointer-events: none;
+}
+
+.rack-cable__jacket {
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.5;
-  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.6));
+}
+
+.rack-cable__body {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rack-cable__sheen {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.rack-cable__boot {
+  filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.45));
+}
+
+.rack-cable__plug-body {
+  stroke: rgba(8, 12, 18, 0.85);
+  stroke-width: 0.35;
+}
+
+.rack-cable__contacts {
+  stroke: #c9a227;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.rack-cable__latch {
+  fill: #6a7a88;
+  opacity: 0.85;
+}
+
+.map-cable__jacket,
+.map-cable__body,
+.map-cable__sheen {
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .rack-toolbar {
