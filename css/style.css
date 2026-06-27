@@ -2251,8 +2251,8 @@ body.avatar-crop-dragging .avatar-crop-stage {
 }
 
 .rack-device__faceplate--patch-16 .rack-port--jack {
-  width: 12px;
-  height: 5px;
+  width: 14px;
+  height: 9px;
   border-radius: 1px;
 }
 
@@ -2286,17 +2286,7 @@ body.avatar-crop-dragging .avatar-crop-stage {
 .rack-device__faceplate--patch-16 .rack-port--jack.rack-port--linked::after,
 .rack-device__faceplate--patch-24 .rack-port--jack.rack-port--linked::after,
 .rack-device__faceplate--patch-48 .rack-port--jack.rack-port--linked::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: -5px;
-  width: 2.5px;
-  height: 5px;
-  transform: translateX(-50%);
-  border-radius: 1px;
-  background: var(--port-color, var(--accent));
-  box-shadow: 0 0 3px color-mix(in srgb, var(--port-color, var(--accent)) 60%, transparent);
-  opacity: 0.85;
+  content: none;
 }
 
 @keyframes rack-port-pulse {

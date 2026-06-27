@@ -173,10 +173,9 @@ function appendRj45PlugHorizontal(group, x, y, colors, dir) {
   group.appendChild(latch);
 }
 
-function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DEG) {
-  const plugW = 6.5;
+function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DEG, plugW = 6.5, plugH = null) {
   const bootLen = 4;
-  const plugH = 3.5 + PORT_PLUG_LEAN_Y;
+  const bodyH = plugH ?? 3.5 + PORT_PLUG_LEAN_Y;
   const plugY = y;
   const bootY = y - bootLen;
 
@@ -197,13 +196,13 @@ function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DE
   plug.setAttribute("x", String(x - plugW / 2 + 0.4));
   plug.setAttribute("y", String(plugY));
   plug.setAttribute("width", String(plugW - 0.8));
-  plug.setAttribute("height", String(plugH));
+  plug.setAttribute("height", String(bodyH));
   plug.setAttribute("rx", "0.6");
   plug.setAttribute("fill", "url(#rack-plug-face)");
   plug.setAttribute("class", "rack-cable__plug-body");
   inner.appendChild(plug);
 
-  const contactY = plugY + plugH - 0.85;
+  const contactY = plugY + bodyH - 0.85;
   const contacts = document.createElementNS(SVG_NS, "line");
   contacts.setAttribute("x1", String(x - 2.1));
   contacts.setAttribute("x2", String(x + 2.1));
@@ -216,7 +215,7 @@ function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DE
   latch.setAttribute("x", String(x + plugW / 2 - 1.1));
   latch.setAttribute("y", String(plugY + 0.15));
   latch.setAttribute("width", "0.9");
-  latch.setAttribute("height", String(plugH * 0.35));
+  latch.setAttribute("height", String(bodyH * 0.35));
   latch.setAttribute("rx", "0.2");
   latch.setAttribute("class", "rack-cable__latch");
   inner.appendChild(latch);
@@ -284,7 +283,15 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
   if (fromPts?.stub) {
     if (fromPts.stub.intoPort) {
       const plug = plugAnchorPoint(fromPts);
-      appendRj45PlugIntoPort(g, plug.x, plug.y, colors, fromPts.stub.tilt);
+      appendRj45PlugIntoPort(
+        g,
+        plug.x,
+        plug.y,
+        colors,
+        fromPts.stub.tilt,
+        fromPts.stub.plugW,
+        fromPts.stub.plugH
+      );
     } else if (fromPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
     } else {
@@ -294,7 +301,15 @@ function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
   if (toPts?.stub) {
     if (toPts.stub.intoPort) {
       const plug = plugAnchorPoint(toPts);
-      appendRj45PlugIntoPort(g, plug.x, plug.y, colors, toPts.stub.tilt);
+      appendRj45PlugIntoPort(
+        g,
+        plug.x,
+        plug.y,
+        colors,
+        toPts.stub.tilt,
+        toPts.stub.plugW,
+        toPts.stub.plugH
+      );
     } else if (toPts.stub.axis === "h") {
       appendRj45PlugHorizontal(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
     } else {
@@ -802,7 +817,7 @@ const FRONT_PORT_LAYOUTS = {
   "switch-48": (port) => gridPortPercent(port, 68, 11, 24, 14.5, 10, 20, 5.5),
   switch: (port) => gridPortPercent(port, 168, 12, 12, 13, 11, 20, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
-  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 16),
+  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 21),
   "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 14.5),
   "patch-48": (port) => {
     const col = (port - 1) % 24;
@@ -870,13 +885,57 @@ function verticalDownCableStub(bend) {
   };
 }
 
-function patchFrontCableStub(bend) {
-  const jackY = bend.y;
+function patchJackPlugTopCy(device, port) {
+  const norm = normalizeDeviceType(device.type);
+  if (norm === "patch-48") return patchPortRow(norm, port) === 0 ? 12 : 25.5;
+  if (norm === "patch-16") return 15.5;
+  if (norm === "patch-24") return 14.5;
+  return 15;
+}
+
+function patchCordSpec(device) {
+  const norm = normalizeDeviceType(device.type);
+  const specs = {
+    "patch-16": { depth: 9, rise: 8, plugW: 13, plugH: 9, tilt: 3 },
+    "patch-24": { depth: 6, rise: 11, plugW: 9, plugH: 5, tilt: 5 },
+    "patch-48": { depth: 5, rise: 10, plugW: 8, plugH: 4, tilt: 5 },
+  };
+  return (
+    specs[norm] || {
+      depth: PATCH_PLUG_DEPTH,
+      rise: PATCH_CORD_RISE,
+      plugW: 6.5,
+      plugH: 5,
+      tilt: PORT_PLUG_TILT_DEG,
+    }
+  );
+}
+
+function patchJackPlugAnchor(device, port, wrapperRect, deviceEl) {
+  const face = deviceEl?.querySelector(".rack-device__faceplate");
+  if (!face) return null;
+  const faceRect = face.getBoundingClientRect();
+  const { left } = frontPortPosition(device, port, devicePortCount(device));
+  const topPct = (patchJackPlugTopCy(device, port) / FACE_VIEW.h) * 100;
   return {
-    bend: { x: bend.x, y: jackY + PATCH_PLUG_DEPTH },
-    plugAt: { x: bend.x, y: jackY },
-    tip: { x: bend.x, y: jackY - PATCH_CORD_RISE },
-    stub: { intoPort: true, tilt: PORT_PLUG_TILT_DEG, patchCord: true },
+    x: faceRect.left - wrapperRect.left + (left / 100) * faceRect.width,
+    y: faceRect.top - wrapperRect.top + (topPct / 100) * faceRect.height,
+  };
+}
+
+function patchFrontCableStub(plugTop, device) {
+  const spec = patchCordSpec(device);
+  return {
+    bend: { x: plugTop.x, y: plugTop.y + spec.depth },
+    plugAt: { x: plugTop.x, y: plugTop.y },
+    tip: { x: plugTop.x, y: plugTop.y - spec.rise },
+    stub: {
+      intoPort: true,
+      tilt: spec.tilt,
+      patchCord: true,
+      plugW: spec.plugW,
+      plugH: spec.plugH,
+    },
   };
 }
 
@@ -949,7 +1008,13 @@ function frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl) {
     computedFrontPortAnchor(device, port, wrapperRect, deviceEl);
   if (!bend) return null;
 
-  if (isPatchType(device.type)) return patchFrontCableStub(bend);
+  if (isPatchType(device.type)) {
+    const plugTop =
+      patchJackPlugAnchor(device, port, wrapperRect, deviceEl) ||
+      computedFrontPortAnchor(device, port, wrapperRect, deviceEl);
+    if (!plugTop) return null;
+    return patchFrontCableStub(plugTop, device);
+  }
 
   const stub = portCableStub(device, deviceId, port);
   if (!stub) return { bend, tip: bend, stub: null };
