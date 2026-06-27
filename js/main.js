@@ -886,9 +886,10 @@ function portAnchorInWrapper(deviceId, port, wrapperRect) {
   };
 }
 
-const CABLE_BAY_MIN = 14;
+const CABLE_BAY_MIN = 22;
 const CABLE_BAY_PER = 5;
-const CABLE_BAY_MAX = 76;
+const CABLE_BAY_MAX = 84;
+const CABLE_BAY_CORNER_R = 4.5;
 
 function cableBayWidth(count) {
   if (count < 1) return 0;
@@ -935,17 +936,99 @@ function rackCablePath(fromPts, toPts, laneX, bay) {
   const railPass = bay.railRight + 1;
   const from = fromPts.bend;
   const to = toPts.bend;
+  const dy = to.y - from.y;
+  const down = dy >= 0 ? 1 : -1;
+  const r = Math.min(
+    CABLE_BAY_CORNER_R,
+    Math.abs(dy) / 3,
+    Math.abs(laneX - railPass) / 2,
+    Math.abs(laneX - to.x) / 2
+  );
 
   let d = fromPts.stub
     ? `M ${fromPts.tip.x} ${fromPts.tip.y} V ${from.y}`
     : `M ${from.x} ${from.y}`;
   if (from.x < rackExit - 1) d += ` H ${rackExit}`;
   if (from.x < railPass - 1) d += ` H ${railPass}`;
-  d += ` H ${laneX} V ${to.y} H ${railPass}`;
+
+  if (r > 0.5 && Math.abs(laneX - railPass) > r) {
+    d += ` H ${laneX - r} Q ${laneX} ${from.y} ${laneX} ${from.y + down * r}`;
+    d += ` V ${to.y - down * r} Q ${laneX} ${to.y} ${laneX - r} ${to.y}`;
+    d += ` H ${railPass}`;
+  } else {
+    d += ` H ${laneX} V ${to.y} H ${railPass}`;
+  }
+
   if (to.x < rackExit - 1) d += ` H ${rackExit}`;
   d += ` H ${to.x}`;
   if (toPts.stub) d += ` V ${toPts.tip.y}`;
   return d;
+}
+
+function drawCableBayChrome(svg, bay, height, laneXs) {
+  const g = document.createElementNS(SVG_NS, "g");
+  g.setAttribute("class", "rack-cable-bay__chrome");
+
+  const x = bay.left;
+  const w = bay.width;
+  const inset = 2.5;
+
+  const channel = document.createElementNS(SVG_NS, "rect");
+  channel.setAttribute("x", String(x + inset));
+  channel.setAttribute("y", "6");
+  channel.setAttribute("width", String(Math.max(w - inset * 2, 2)));
+  channel.setAttribute("height", String(Math.max(height - 10, 4)));
+  channel.setAttribute("rx", "2.5");
+  channel.setAttribute("class", "rack-cable-bay__channel");
+  g.appendChild(channel);
+
+  const leftRail = document.createElementNS(SVG_NS, "line");
+  leftRail.setAttribute("x1", String(x + 1));
+  leftRail.setAttribute("x2", String(x + 1));
+  leftRail.setAttribute("y1", "4");
+  leftRail.setAttribute("y2", String(height - 4));
+  leftRail.setAttribute("class", "rack-cable-bay__rail");
+  g.appendChild(leftRail);
+
+  const rightRail = document.createElementNS(SVG_NS, "line");
+  rightRail.setAttribute("x1", String(x + w - 1));
+  rightRail.setAttribute("x2", String(x + w - 1));
+  rightRail.setAttribute("y1", "4");
+  rightRail.setAttribute("y2", String(height - 4));
+  rightRail.setAttribute("class", "rack-cable-bay__rail");
+  g.appendChild(rightRail);
+
+  const rungStep = Math.max(18, Math.min(26, height / 14));
+  for (let y = 14; y < height - 10; y += rungStep) {
+    const rung = document.createElementNS(SVG_NS, "line");
+    rung.setAttribute("x1", String(x + inset + 1));
+    rung.setAttribute("x2", String(x + w - inset - 1));
+    rung.setAttribute("y1", String(y));
+    rung.setAttribute("y2", String(y));
+    rung.setAttribute("class", "rack-cable-bay__rung");
+    g.appendChild(rung);
+  }
+
+  const mouthY = height * 0.12;
+  const mouth = document.createElementNS(SVG_NS, "path");
+  mouth.setAttribute(
+    "d",
+    `M ${x - 1} ${mouthY - 5} Q ${x + 2} ${mouthY} ${x - 1} ${mouthY + 5}`
+  );
+  mouth.setAttribute("class", "rack-cable-bay__mouth");
+  g.appendChild(mouth);
+
+  laneXs.forEach((lx) => {
+    const slot = document.createElementNS(SVG_NS, "line");
+    slot.setAttribute("x1", String(lx));
+    slot.setAttribute("x2", String(lx));
+    slot.setAttribute("y1", "8");
+    slot.setAttribute("y2", String(height - 6));
+    slot.setAttribute("class", "rack-cable-bay__slot");
+    g.appendChild(slot);
+  });
+
+  svg.appendChild(g);
 }
 
 function renderRackCabling() {
@@ -975,19 +1058,6 @@ function renderRackCabling() {
     svg.setAttribute("viewBox", `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
     svg.innerHTML = "";
 
-    const guideCount = Math.max(2, Math.min(cableCount + 1, 8));
-    const guideStep = bay.width / (guideCount + 1);
-    for (let g = 1; g <= guideCount; g++) {
-      const gx = bay.left + guideStep * g;
-      const guide = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      guide.setAttribute("x1", String(gx));
-      guide.setAttribute("y1", "4");
-      guide.setAttribute("x2", String(gx));
-      guide.setAttribute("y2", String(wrapperRect.height - 4));
-      guide.setAttribute("class", "rack-cable-bay__guide");
-      svg.appendChild(guide);
-    }
-
     const entries = connections
       .map((c) => {
         const from = portCablePoints(c.fromDeviceId, c.fromPort, wrapperRect, c);
@@ -1000,6 +1070,7 @@ function renderRackCabling() {
 
     const laneXs = assignCableLaneXs(entries, bay);
     ensureCableDefs(svg);
+    drawCableBayChrome(svg, bay, wrapperRect.height, laneXs);
 
     entries.forEach((entry, idx) => {
       const { c, from, to } = entry;
