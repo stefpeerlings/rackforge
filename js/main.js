@@ -1093,35 +1093,57 @@ function usesJackPortStyle(type) {
   return norm.startsWith("switch-") || norm.startsWith("patch-");
 }
 
+function patchPortMarkup(device, { port, color, connId, linked }, placement, total, title) {
+  const variant = normalizeDeviceType(device.type);
+  let pos;
+  if (placement === "rear") {
+    const { top } = frontPortPosition(device, port, total);
+    pos = `top: ${top}%; left: 50%`;
+  } else {
+    const { left, top } = frontPortPosition(device, port, total);
+    pos = `left: ${left}%; top: ${top}%`;
+  }
+  const state = linked ? "rack-port--linked" : "rack-port--idle";
+  const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
+  const rearMod = placement === "rear" ? " rack-port--patch-jack-rear" : "";
+  const connAttr = connId ? ` data-conn="${connId}"` : "";
+  const colorStyle = linked && color ? `--port-color: ${color};` : "";
+  const portLabel = linked && placement === "rear" ? ` data-port-label="${port}"` : "";
+  const cls = `rack-port ${side} rack-port--patch-jack rack-port--${variant}${rearMod} ${state}`;
+  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr}${portLabel} style="${colorStyle} ${pos}" title="${title}">
+    <span class="rack-port__bezel" aria-hidden="true">
+      <span class="rack-port__cavity"></span>
+      <span class="rack-port__contacts"></span>
+    </span>
+  </span>`;
+}
+
 function portDotMarkup(device, { port, color, connId, linked }, placement, total) {
   const conn = connId ? connections.find((x) => x.id === connId) : null;
   const title = conn?.label
     ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
     : I18n.t("cabling.rackPort", { port });
+
+  if (isPatchType(device.type) && (placement === "front" || placement === "rear")) {
+    return patchPortMarkup(device, { port, color, connId, linked }, placement, total, title);
+  }
+
   let pos;
   if (placement === "rear") {
-    if (isPatchType(device.type)) {
-      const { top } = frontPortPosition(device, port, total);
-      pos = `top: ${top}%; left: 50%`;
-    } else {
-      const pct = ((port - 0.5) / total) * 100;
-      pos = `top: ${pct}%; left: 50%`;
-    }
+    const pct = ((port - 0.5) / total) * 100;
+    pos = `top: ${pct}%; left: 50%`;
   } else {
     const { left, top } = frontPortPosition(device, port, total);
     pos = `left: ${left}%; top: ${top}%`;
   }
-  const isPatchRear = isPatchType(device.type) && placement === "rear";
-  const jack = (placement === "front" && usesJackPortStyle(device.type)) || isPatchRear;
+  const jack = placement === "front" && usesJackPortStyle(device.type);
   const state = linked ? "rack-port--linked" : "rack-port--idle";
-  const shape = jack ? (isPatchRear ? "rack-port--jack-rear" : "rack-port--jack") : "";
+  const shape = jack ? "rack-port--jack" : "";
   const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
-  const patchRear = isPatchRear ? "rack-port--patch-rear" : "";
-  const cls = ["rack-port", side, shape, patchRear, state].filter(Boolean).join(" ");
+  const cls = ["rack-port", side, shape, state].filter(Boolean).join(" ");
   const connAttr = connId ? ` data-conn="${connId}"` : "";
   const colorStyle = linked && color ? `--port-color: ${color};` : "";
-  const portLabel = linked && isPatchRear ? ` data-port-label="${port}"` : "";
-  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr}${portLabel} style="${colorStyle} ${pos}" title="${title}"></span>`;
+  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
 }
 
 function buildPatchSidePorts(device, placement, total) {

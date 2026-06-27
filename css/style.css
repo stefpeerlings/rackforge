@@ -2250,43 +2250,148 @@ body.avatar-crop-dragging .avatar-crop-stage {
   animation: rack-port-pulse 2.4s ease-in-out infinite;
 }
 
-.rack-device__faceplate--patch-16 .rack-port--jack {
-  width: 14px;
-  height: 9px;
-  border-radius: 1px;
+.rack-port--patch-jack {
+  display: block;
+  width: var(--patch-port-w, 10px);
+  height: var(--patch-port-h, 7px);
+  margin: 0;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  animation: none;
 }
 
-.rack-device__faceplate--patch-24 .rack-port--jack {
-  width: 9px;
-  height: 4px;
-  border-radius: 1px;
+.rack-port--patch-jack-16 {
+  --patch-port-w: 15px;
+  --patch-port-h: 10px;
 }
 
-.rack-device__faceplate--patch-48 .rack-port--jack {
-  width: 8px;
-  height: 3.5px;
-  border-radius: 1px;
+.rack-port--patch-jack-24 {
+  --patch-port-w: 10px;
+  --patch-port-h: 7px;
 }
 
-.rack-device__faceplate--patch-16 .rack-port--jack.rack-port--linked,
-.rack-device__faceplate--patch-24 .rack-port--jack.rack-port--linked,
-.rack-device__faceplate--patch-48 .rack-port--jack.rack-port--linked {
+.rack-port--patch-jack-48 {
+  --patch-port-w: 8px;
+  --patch-port-h: 6px;
+}
+
+.rack-port--patch-jack-rear {
+  --patch-port-w: 5px;
+  --patch-port-h: 8px;
+}
+
+.rack-port__bezel {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+  border: 1px solid #4a4a52;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.rack-port__cavity {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 1px;
+  bottom: 3px;
+  border-radius: 0.5px;
+  background: linear-gradient(180deg, #e0e0e0 0%, #c8c8c8 40%, #a8a8a8 100%);
+  border: 1px solid #888;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35);
+}
+
+.rack-port--patch-jack-24 .rack-port__cavity,
+.rack-port--patch-jack-48 .rack-port__cavity {
+  background: linear-gradient(180deg, #2a2a2a 0%, #141414 55%, #0a0a0a 100%);
+  border-color: #3a3a3a;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.rack-port--patch-jack-rear .rack-port__bezel {
+  border-color: #3a4a5c;
+  background: linear-gradient(90deg, #141820 0%, #0c1016 100%);
+}
+
+.rack-port--patch-jack-rear .rack-port__cavity {
+  background: linear-gradient(90deg, #1e2430 0%, #12161e 100%);
+  border-color: #3a4555;
+  bottom: 2px;
+}
+
+.rack-port__contacts {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 0.5px;
+  background: linear-gradient(180deg, #e8d8a8 0%, #c9a227 50%, #a08018 100%);
+  box-shadow: 0 0 1px rgba(212, 196, 160, 0.6);
+}
+
+.rack-port--patch-jack-16 .rack-port__contacts {
+  height: 2.5px;
+}
+
+.rack-port--patch-jack-rear .rack-port__contacts {
+  left: 1px;
+  right: auto;
+  width: 2px;
+  top: 2px;
+  bottom: 2px;
+  height: auto;
+  background: linear-gradient(90deg, #e8d8a8 0%, #c9a227 100%);
+}
+
+.rack-port--patch-jack.rack-port--idle {
+  opacity: 0.92;
+}
+
+.rack-port--patch-jack.rack-port--linked .rack-port__bezel {
+  border-color: color-mix(in srgb, var(--port-color, var(--accent)) 45%, #4a4a52);
+  box-shadow:
+    0 0 4px color-mix(in srgb, var(--port-color, var(--accent)) 40%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.rack-port--patch-jack.rack-port--linked .rack-port__cavity {
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--port-color, var(--accent)) 55%, #1a1a1a) 0%,
-    var(--port-color, var(--accent)) 45%,
-    color-mix(in srgb, var(--port-color, var(--accent)) 80%, #000000) 100%
+    color-mix(in srgb, var(--port-color, var(--accent)) 35%, #e8e8e8) 0%,
+    var(--port-color, var(--accent)) 50%,
+    color-mix(in srgb, var(--port-color, var(--accent)) 75%, #1a1a1a) 100%
   );
-  box-shadow:
-    0 0 3px var(--port-color, var(--accent)),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: color-mix(in srgb, var(--port-color, var(--accent)) 60%, #888);
 }
 
-.rack-device__faceplate--patch-16 .rack-port--jack.rack-port--linked::after,
-.rack-device__faceplate--patch-24 .rack-port--jack.rack-port--linked::after,
-.rack-device__faceplate--patch-48 .rack-port--jack.rack-port--linked::after {
-  content: none;
+.rack-port--patch-jack-24.rack-port--linked .rack-port__cavity,
+.rack-port--patch-jack-48.rack-port--linked .rack-port__cavity {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--port-color, var(--accent)) 25%, #3a3a3a) 0%,
+    var(--port-color, var(--accent)) 55%,
+    color-mix(in srgb, var(--port-color, var(--accent)) 70%, #0a0a0a) 100%
+  );
+  border-color: color-mix(in srgb, var(--port-color, var(--accent)) 50%, #3a3a3a);
+}
+
+.rack-port--patch-jack-rear.rack-port--linked::after {
+  content: attr(data-port-label);
+  opacity: 0.92;
+  left: calc(100% + 8px);
+  font-size: 0.42rem;
+  font-weight: 700;
+  color: var(--port-color, var(--accent));
+  text-shadow: 0 0 4px color-mix(in srgb, var(--port-color, var(--accent)) 70%, transparent);
 }
 
 @keyframes rack-port-pulse {
