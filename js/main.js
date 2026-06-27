@@ -745,13 +745,13 @@ const FRONT_PORT_LAYOUTS = {
   "switch-48": (port) => gridPortPercent(port, 68, 11, 24, 14.5, 10, 20, 5.5),
   switch: (port) => gridPortPercent(port, 168, 12, 12, 13, 11, 20, 6),
   router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
-  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 25.5),
-  "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 22.3),
+  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 21),
+  "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 19),
   "patch-48": (port) => {
     const col = (port - 1) % 24;
     const row = Math.floor((port - 1) / 24);
     const cx = 6 + col * 17.5 + 16.3 / 2;
-    const cy = row === 0 ? 18 : 28.5;
+    const cy = row === 0 ? 15.5 : 28.5;
     return svgPortPercent(cx, cy);
   },
 };
@@ -793,20 +793,25 @@ function portCableStub(device, deviceId, port) {
     return { len: PORT_CABLE_STUB_LEN, dir: -1 };
   }
 
-  if (!device.type.startsWith("patch-")) return null;
+  return null;
+}
 
-  const normType = normalizeDeviceType(device.type);
-  if (normType === "patch-48" && patchPortRow(normType, port) === 1) {
-    return { len: PORT_CABLE_STUB_LEN, dir: 1 };
-  }
+function patchFrontCableStub(bend) {
+  return {
+    bend,
+    tip: { x: bend.x + PORT_CABLE_STUB_LEN, y: bend.y },
+    stub: { len: PORT_CABLE_STUB_LEN, dir: 1, axis: "h" },
+  };
+}
 
-  return { len: PORT_CABLE_STUB_LEN, dir: -1 };
+function rackDeviceElement(deviceId) {
+  return document.querySelector(`.rack-device[data-device-id="${deviceId}"]`);
 }
 
 function portDotAnchor(deviceId, port, placement, wrapperRect) {
-  const row = document.querySelector(`[data-device="${deviceId}"]`);
-  if (!row) return null;
-  const dot = row.querySelector(
+  const deviceEl = rackDeviceElement(deviceId);
+  if (!deviceEl) return null;
+  const dot = deviceEl.querySelector(
     `.rack-port[data-port="${port}"][data-placement="${placement}"]`
   );
   if (!dot) return null;
@@ -818,8 +823,8 @@ function portDotAnchor(deviceId, port, placement, wrapperRect) {
   };
 }
 
-function computedFrontPortAnchor(device, port, wrapperRect, rowEl) {
-  const face = rowEl.querySelector(".rack-device__faceplate");
+function computedFrontPortAnchor(device, port, wrapperRect, deviceEl) {
+  const face = deviceEl?.querySelector(".rack-device__faceplate");
   if (!face) return null;
   const faceRect = face.getBoundingClientRect();
   const { left, top } = frontPortPosition(device, port, devicePortCount(device));
@@ -829,8 +834,8 @@ function computedFrontPortAnchor(device, port, wrapperRect, rowEl) {
   };
 }
 
-function patchRearPortAnchor(device, port, wrapperRect, row) {
-  const rear = row.querySelector(".rack-device__rear");
+function patchRearPortAnchor(device, port, wrapperRect, deviceEl) {
+  const rear = deviceEl?.querySelector(".rack-device__rear");
   if (!rear) return null;
   const r = rear.getBoundingClientRect();
   const total = devicePortCount(device);
@@ -846,51 +851,54 @@ function patchRearPortAnchor(device, port, wrapperRect, row) {
   };
 }
 
-function frontPortCablePoints(device, deviceId, port, wrapperRect, row) {
+function frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl) {
   const bend =
     portDotAnchor(deviceId, port, "front", wrapperRect) ||
-    computedFrontPortAnchor(device, port, wrapperRect, row);
+    computedFrontPortAnchor(device, port, wrapperRect, deviceEl);
   if (!bend) return null;
+
+  if (isPatchType(device.type)) return patchFrontCableStub(bend);
 
   const stub = portCableStub(device, deviceId, port);
   if (!stub) return { bend, tip: bend, stub: null };
 
-  const tip =
-    stub.axis === "h"
-      ? { x: bend.x + stub.dir * PORT_CABLE_STUB_LEN, y: bend.y }
-      : { x: bend.x, y: bend.y + stub.dir * PORT_CABLE_STUB_LEN };
-  return { bend, tip, stub };
+  return {
+    bend,
+    tip: { x: bend.x, y: bend.y + stub.dir * PORT_CABLE_STUB_LEN },
+    stub,
+  };
 }
 
 function portCablePoints(deviceId, port, wrapperRect, conn = null) {
+  const deviceEl = rackDeviceElement(deviceId);
   const row = document.querySelector(`[data-device="${deviceId}"]`);
   const device = devices.find((d) => d.id === deviceId);
-  if (!row || !device) return null;
+  if (!deviceEl || !device) return null;
 
   if (isPatchType(device.type)) {
     const side = conn ? connectionPatchSide(deviceId, conn) : "front";
     if (side === "rear") {
       const bend =
         portDotAnchor(deviceId, port, "rear", wrapperRect) ||
-        patchRearPortAnchor(device, port, wrapperRect, row);
+        patchRearPortAnchor(device, port, wrapperRect, deviceEl);
       if (!bend) return null;
       return rearPortCableStub(bend);
     }
-    return frontPortCablePoints(device, deviceId, port, wrapperRect, row);
+    return frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl);
   }
 
   if (devicePortPlacement(device.type) === "rear") {
     const bend =
       portDotAnchor(deviceId, port, "rear", wrapperRect) ||
-      patchRearPortAnchor(device, port, wrapperRect, row);
+      patchRearPortAnchor(device, port, wrapperRect, deviceEl);
     if (!bend) return null;
     return rearPortCableStub(bend);
   }
 
-  const frontPts = frontPortCablePoints(device, deviceId, port, wrapperRect, row);
+  const frontPts = frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl);
   if (frontPts) return frontPts;
 
-  const bend = portAnchorOnFaceplate(device, port, wrapperRect, row);
+  const bend = portAnchorOnFaceplate(device, port, wrapperRect, row || deviceEl);
   if (!bend) return null;
   const stub = portCableStub(device, deviceId, port);
   if (!stub) return { bend, tip: bend, stub: null };
