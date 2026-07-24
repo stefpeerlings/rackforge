@@ -749,6 +749,13 @@ def user_payload(conn: sqlite3.Connection, user: sqlite3.Row) -> dict[str, Any]:
     google_id = user["google_id"] if "google_id" in user.keys() else None
     data["hasPassword"] = user_has_password(user)
     data["signedInWithGoogle"] = bool(google_id)
+    tier = license_module.get_license_info(conn)["tier"]
+    data["license"] = {
+        "tier": tier,
+        "maxRacks": license_module.TIER_RACK_LIMITS[tier],
+        "maxCustomTypes": license_module.TIER_CUSTOM_TYPE_LIMITS[tier],
+        "maxCollaborators": license_module.TIER_COLLABORATOR_LIMITS[tier],
+    }
     return data
 
 

@@ -90,6 +90,23 @@ function userHasPassword(user) {
   return user?.hasPassword === true;
 }
 
+const TIER_DISPLAY_NAMES = { community: "Community", pro: "Pro", enterprise: "Enterprise" };
+
+function updateLicenseLine(user) {
+  const el = document.getElementById("settings-license-line");
+  if (!el) return;
+  const license = user?.license;
+  if (!license) {
+    el.textContent = "—";
+    return;
+  }
+  const tier = TIER_DISPLAY_NAMES[license.tier] || license.tier;
+  el.textContent =
+    license.maxRacks === null
+      ? I18n.t("settings.licenseUnlimited", { tier })
+      : I18n.t("settings.licenseLimited", { tier, limit: license.maxRacks });
+}
+
 function syncSettingsUI() {
   if (!isSettingsPage()) return;
 
@@ -121,6 +138,7 @@ function syncSettingsUI() {
   if (newPasswordInput) newPasswordInput.value = "";
   if (confirmPasswordInput) confirmPasswordInput.value = "";
   updateEmailStatus(user);
+  updateLicenseLine(user);
   clearAccountFormMessages();
   syncDeleteAccountModal();
 }
