@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Get started — RackForge</title>
-<meta name="description" content="Install RackForge with Docker or bare-metal on Ubuntu.">
+<meta name="description" content="Install RackForge with Docker or a Proxmox LXC.">
 <link rel="icon" href="icons/rackforge-avatar.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -76,7 +76,7 @@ docker compose up -d --build</pre>
     </div>
 
     <div class="install-block">
-      <h3>Bare-metal (Ubuntu)</h3>
+      <h3>Proxmox LXC</h3>
       <p class="desc">Installs directly onto the host as a systemd user service. Caddy is installed automatically if it isn&rsquo;t already present.</p>
       <pre class="code"><span class="muted"># one line — installs Caddy, the API, and starts the service</span>
 git clone https://github.com/stefpeerlings/rackforge.git rackforge-src \
