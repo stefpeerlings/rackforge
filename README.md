@@ -166,7 +166,7 @@ systemctl --user restart rackforge-api
 
 ### Requirements
 
-- Ubuntu server (Caddy is installed automatically by `install.sh` if missing)
+- A Debian or Ubuntu server/LXC (Caddy is installed automatically by `install.sh` if missing)
 - Python 3
 - systemd (user service for the API)
 

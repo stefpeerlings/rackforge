@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Proxmox LXC install — RackForge Docs</title>
-<meta name="description" content="Install RackForge directly on Ubuntu with a systemd user service.">
+<meta name="description" content="Install RackForge directly on a Debian or Ubuntu LXC/server with a systemd user service.">
 <link rel="icon" href="../icons/rackforge-avatar.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../style.css">
 </head>
@@ -122,7 +122,7 @@ systemctl --user restart rackforge-api</pre>
 
     <h2>Requirements</h2>
     <ul>
-      <li>Ubuntu server (Caddy is installed automatically by <code>install.sh</code> if missing)</li>
+      <li>A Debian or Ubuntu server/LXC (Caddy is installed automatically by <code>install.sh</code> if missing)</li>
       <li>Python 3</li>
       <li>systemd (user service for the API)</li>
     </ul>
