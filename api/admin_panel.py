@@ -682,6 +682,13 @@ tr:last-child td { border-bottom: none; }
 .pill--ok { color: var(--accent); border-color: rgba(27,219,122,.35); }
 .pill--warn { color: #f59e0b; border-color: rgba(245,158,11,.35); }
 .pill--danger { color: var(--danger); border-color: rgba(239,68,68,.35); }
+.tier-badge {
+  display: inline-block; padding: 0.3rem 0.85rem; border-radius: 999px;
+  font-size: 0.85rem; font-weight: 700; letter-spacing: 0.02em; border: 1px solid;
+}
+.tier-badge--community { background: rgba(122,146,168,.15); color: var(--muted); border-color: rgba(122,146,168,.35); }
+.tier-badge--pro { background: rgba(27,219,122,.15); color: var(--accent); border-color: rgba(27,219,122,.35); }
+.tier-badge--enterprise { background: rgba(245,158,11,.15); color: #f59e0b; border-color: rgba(245,158,11,.35); }
 .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--surface-2); border: 1px solid var(--border); }
 .avatar--empty { display: inline-block; }
 .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
@@ -3034,8 +3041,14 @@ def license_status_line(conn: sqlite3.Connection, session: dict[str, Any]) -> st
     else:
         key = "tables.licenseLimited"
         text = adminT("nl", key, tier=tier_label, limit=str(max_racks))
+    badge = (
+        f'<div style="margin-bottom:0.5rem;">'
+        f'<span class="tier-badge tier-badge--{tier}">{html.escape(tier_label)}</span>'
+        f"</div>"
+    )
     status = (
-        f'<p class="sub"><span data-i18n-admin="tables.licenseLabel">Licentie</span>: '
+        badge
+        + f'<p class="sub"><span data-i18n-admin="tables.licenseLabel">Licentie</span>: '
         f'<span data-i18n-admin="{key}" data-i18n-var-tier="{html.escape(tier_label)}" '
         f'data-i18n-var-limit="{html.escape(str(max_racks))}">{html.escape(text)}</span></p>'
     )
