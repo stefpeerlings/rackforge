@@ -23,13 +23,12 @@ from pathlib import Path
 from typing import Any
 
 # Public key only — verification-only, safe to ship. Generated via
-# `python3 issue_license.py genkey`. This is a real dev/test keypair
-# generated during initial setup; regenerate your own (and re-issue any
-# existing license keys) before relying on this for a real deployment —
-# whoever holds the matching private key can mint valid licenses for any
-# tier, so treat that key as the entire security boundary of this feature.
+# `python3 issue_license.py genkey` on a dedicated, offline-from-the-app
+# signing host — the matching private key never leaves that machine.
+# Whoever holds the private key can mint valid licenses for any tier, so
+# treat it as the entire security boundary of this feature.
 PUBLIC_KEY_PEM = """-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEA6PwqDGWYNUhjeOpANOtCSSzo/vnnzFWtAG6YgfDhbdw=
+MCowBQYDK2VwAyEAlFfcdItUURfjtzLn4GCQ/RZeTTeugEig4HepRIjP9Bo=
 -----END PUBLIC KEY-----
 """
 
