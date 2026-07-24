@@ -106,7 +106,7 @@ if (-not $SkipCaddy) {
         $caddyCmd = "sudo -n cp /home/stef/Caddyfile.new /etc/caddy/Caddyfile; sudo -n systemctl reload caddy"
         & ssh @sshArgs $remote $caddyCmd
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Caddy reload mislukt - run eenmalig: bash ~/setup-deploy.sh" -ForegroundColor Yellow
+            Write-Host "Caddy reload mislukt - run eenmalig: bash ~/setup-server.sh" -ForegroundColor Yellow
         }
         else {
             Write-Host "  Caddy herladen OK" -ForegroundColor DarkGray
@@ -117,7 +117,7 @@ if (-not $SkipCaddy) {
 $verifyCmd = "test -w ${RemotePath}/index.html; echo DEPLOY_WRITE_OK"
 & ssh @sshArgs $remote $verifyCmd
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Schrijftest mislukt - run eenmalig: bash ~/setup-deploy.sh" -ForegroundColor Red
+    Write-Host "Schrijftest mislukt - run eenmalig: bash ~/setup-server.sh" -ForegroundColor Red
     exit 1
 }
 

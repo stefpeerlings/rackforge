@@ -14,8 +14,10 @@ if ! getent group caddy >/dev/null; then
   exit 1
 fi
 sudo usermod -aG caddy stef
+sudo mkdir -p /var/www/html/{css,js,icons}
 sudo chown -R caddy:caddy /var/www/html
 sudo chmod -R g+rwX /var/www/html
+sudo find /var/www/html -type d -exec chmod g+s {} \;
 echo "OK: stef kan nu schrijven naar /var/www/html (groep caddy)"
 
 # 2) Caddyfile + reload zonder wachtwoord
@@ -53,6 +55,14 @@ else
   echo "SKIP: SSH key-only config bestaat al"
 fi
 
+# 5) Schrijftest (zonder nieuwe login-sessie kan de caddy-groep nog ontbreken)
+if sudo -u stef test -w /var/www/html/index.html 2>/dev/null || test -w /var/www/html/index.html; then
+  echo "OK: schrijftest geslaagd"
+else
+  echo "TIP: log uit en opnieuw in (of: newgrp caddy) en run:"
+  echo "  touch /var/www/html/.test && rm /var/www/html/.test"
+fi
+
 echo ""
 echo "Klaar. Log uit en opnieuw in (of: newgrp caddy) zodat groep caddy actief is."
-echo "Test vanaf Windows: ssh caddy-server 'touch /var/www/html/.write-test && rm /var/www/html/.write-test'"
+echo "Daarna kan deploy.ps1 alles zelf doen."
