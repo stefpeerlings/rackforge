@@ -50,3 +50,10 @@ __pycache__/
 
 # Promo/marketing website — deployed separately, not part of this repo
 site/
+
+# Self-service license checkout + internal signing listener — vendor-only
+# infra, never pushed to GitHub
+checkout/
+api/signing_server.py
+api/signing.env.example
+api/rackforge-signing.user.service
