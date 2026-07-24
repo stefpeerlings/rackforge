@@ -76,11 +76,37 @@ done
 echo "-> systemd user service"
 mkdir -p "$HOME/.config/systemd/user"
 cp "$REPO_ROOT/rackforge-api.user.service" "$HOME/.config/systemd/user/rackforge-api.service"
+
+# `systemctl --user` needs a running user session bus. A real SSH/console
+# login sets this up automatically (via pam_systemd); a root shell opened
+# directly in a container (pct exec/enter, docker exec, ...) usually
+# doesn't. Fix it up manually in that case instead of failing.
+FIXED_USER_SESSION=0
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || ! systemctl --user status >/dev/null 2>&1; then
+  echo "   Geen actieve systemd user-sessie — deze opzetten..."
+  FIXED_USER_SESSION=1
+  $SUDO loginctl enable-linger "$USER_NAME" 2>/dev/null || true
+  export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  mkdir -p "$XDG_RUNTIME_DIR"
+  $SUDO systemctl start "user@$(id -u).service" 2>/dev/null || true
+  for _ in 1 2 3 4 5; do
+    systemctl --user status >/dev/null 2>&1 && break
+    sleep 1
+  done
+fi
+
 systemctl --user daemon-reload
 systemctl --user enable rackforge-api
 systemctl --user restart rackforge-api
 sleep 2
 curl -sf "http://127.0.0.1:8080/api/health" >/dev/null && echo "   API health OK" || echo "   API start controleren: journalctl --user -u rackforge-api -n 30"
+
+if [ "$FIXED_USER_SESSION" = "1" ]; then
+  echo ""
+  echo "Let op: dit was een console-sessie zonder login-bus. Zet dit in ~/.bashrc"
+  echo "zodat systemctl --user ook in nieuwe sessies blijft werken:"
+  echo "  export XDG_RUNTIME_DIR=/run/user/\$(id -u)"
+fi
 
 if [ -f "$REPO_ROOT/Caddyfile" ] && [ -f "$HOME/Caddyfile.new" ] || command -v caddy >/dev/null 2>&1; then
   cp "$REPO_ROOT/Caddyfile" "$HOME/Caddyfile.new"
