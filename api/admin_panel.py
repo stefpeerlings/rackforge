@@ -14,6 +14,7 @@ import secrets
 import smtplib
 import sqlite3
 import time
+import license as license_module
 from datetime import datetime, timedelta, timezone
 from email_templates import (
     TOKEN_VALID_HOURS,
@@ -32,9 +33,13 @@ APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rst
 AVATAR_DIR = os.environ.get("RACKFORGE_AVATAR_DIR", "/home/stef/rackforge/avatars")
 ADMIN_SESSIONS: dict[str, dict[str, Any]] = {}
 ADMIN_FLASH: dict[str, str] = {}
+ADMIN_LOGIN_ATTEMPTS: dict[str, list[float]] = {}
+ADMIN_LOGIN_MAX_ATTEMPTS = 5
+ADMIN_LOGIN_WINDOW_SECONDS = 15 * 60
 ADMIN_LOGIN_PATH = "/admin/login"
 ADMIN_PANEL_PATH = "/admin/panel"
 ADMIN_USERS_PATH = "/admin/users"
+ADMIN_AUDIT_PATH = "/admin/audit"
 ADMIN_CHANGE_PASSWORD_PATH = "/admin/change-password"
 ADMIN_FORGOT_PATH = "/admin/forgot-password"
 ADMIN_FORGOT_VERIFY_PATH = "/admin/forgot-password/verify"
@@ -80,7 +85,32 @@ ADMIN_I18N: dict[str, dict[str, Any]] = {
         "nav": {
             "dashboard": "Dashboard",
             "adminUsers": "Gebruikers",
+            "auditLog": "Auditlog",
             "aria": "Admin navigatie",
+        },
+        "auditPage": {
+            "title": "Auditlog",
+            "subtitle": "Paneelacties",
+            "search": "Zoeken op gebruiker, actie of doel…",
+            "empty": "Nog geen paneelacties gelogd",
+            "limitNote": "Toont de meest recente 200 acties.",
+            "colTime": "Tijd",
+            "colActor": "Door",
+            "colAction": "Actie",
+            "colTarget": "Doel",
+            "colDetail": "Details",
+            "colIp": "IP",
+            "actionCreateAdmin": "Admin-gebruiker aangemaakt",
+            "actionUpdateRole": "Rol gewijzigd",
+            "actionDeleteAdmin": "Admin-gebruiker verwijderd",
+            "actionResetAdminPassword": "Wachtwoordreset afgedwongen",
+            "actionDeleteUser": "Gebruiker verwijderd",
+            "actionToggleBlock": "Blokkade gewijzigd",
+            "actionRevokeSession": "Sessie ingetrokken",
+            "actionDeletePlan": "Rack-plan verwijderd",
+            "actionPurgeOauth": "Verlopen data opgeschoond",
+            "actionUpdateLicense": "Licentie bijgewerkt",
+            "actionClearLicense": "Licentie verwijderd",
         },
         "usersPage": {
             "title": "Gebruikers",
@@ -206,10 +236,22 @@ ADMIN_I18N: dict[str, dict[str, Any]] = {
             "colState": "State",
             "noRegistrations": "Geen registraties in de laatste 14 dagen.",
             "dbLabel": "DB",
+            "licenseLabel": "Licentie",
+            "licenseLimited": "{tier} · max {limit} rack(s) per gebruiker",
+            "licenseUnlimited": "{tier} · onbeperkt racks per gebruiker",
+            "licensePlaceholder": "Licentiesleutel plakken…",
+            "licenseSave": "Opslaan",
+            "licenseClearConfirm": "Licentie verwijderen en terugvallen naar Community?",
+        },
+        "tiers": {
+            "community": "Community",
+            "pro": "Pro",
+            "enterprise": "Enterprise",
         },
         "login": {
             "title": "Inloggen",
             "wrongCredentials": "Onjuist gebruikersnaam of wachtwoord",
+            "tooManyAttempts": "Te veel mislukte inlogpogingen. Probeer het over {minutes} minuten opnieuw.",
             "notConfigured": "Admin niet geconfigureerd. Voeg een admin-gebruiker toe of zet RACKFORGE_ADMIN_PASSWORD in ~/.config/rackforge/admin.env.",
             "resetSuccess": "Wachtwoord bijgewerkt. Je kunt nu inloggen.",
             "forgotPassword": "Wachtwoord vergeten?",
@@ -293,6 +335,10 @@ ADMIN_I18N: dict[str, dict[str, Any]] = {
             "planDeleted": "Rack-plan verwijderd",
             "purged": "Verlopen records opgeschoond",
             "unknownAction": "Onbekende actie",
+            "licenseUpdated": "Licentie bijgewerkt: {tier}",
+            "licenseInvalid": "Ongeldige licentiesleutel",
+            "licenseCleared": "Licentie verwijderd (terug naar Community)",
+            "licenseKeyRequired": "Vul een licentiesleutel in",
         },
     },
     "en": {
@@ -309,7 +355,32 @@ ADMIN_I18N: dict[str, dict[str, Any]] = {
         "nav": {
             "dashboard": "Dashboard",
             "adminUsers": "Users",
+            "auditLog": "Audit log",
             "aria": "Admin navigation",
+        },
+        "auditPage": {
+            "title": "Audit log",
+            "subtitle": "Panel actions",
+            "search": "Search by user, action or target…",
+            "empty": "No panel actions logged yet",
+            "limitNote": "Showing the most recent 200 actions.",
+            "colTime": "Time",
+            "colActor": "By",
+            "colAction": "Action",
+            "colTarget": "Target",
+            "colDetail": "Details",
+            "colIp": "IP",
+            "actionCreateAdmin": "Admin user created",
+            "actionUpdateRole": "Role changed",
+            "actionDeleteAdmin": "Admin user deleted",
+            "actionResetAdminPassword": "Password reset enforced",
+            "actionDeleteUser": "User deleted",
+            "actionToggleBlock": "Block status changed",
+            "actionRevokeSession": "Session revoked",
+            "actionDeletePlan": "Rack plan deleted",
+            "actionPurgeOauth": "Expired data purged",
+            "actionUpdateLicense": "License updated",
+            "actionClearLicense": "License removed",
         },
         "usersPage": {
             "title": "Users",
@@ -440,10 +511,22 @@ ADMIN_I18N: dict[str, dict[str, Any]] = {
             "colState": "State",
             "noRegistrations": "No registrations in the last 14 days.",
             "dbLabel": "DB",
+            "licenseLabel": "License",
+            "licenseLimited": "{tier} · max {limit} rack(s) per user",
+            "licenseUnlimited": "{tier} · unlimited racks per user",
+            "licensePlaceholder": "Paste license key…",
+            "licenseSave": "Save",
+            "licenseClearConfirm": "Remove license and revert to Community?",
+        },
+        "tiers": {
+            "community": "Community",
+            "pro": "Pro",
+            "enterprise": "Enterprise",
         },
         "login": {
             "title": "Log in",
             "wrongCredentials": "Incorrect username or password",
+            "tooManyAttempts": "Too many failed login attempts. Try again in {minutes} minutes.",
             "notConfigured": "Admin is not configured. Add an admin user or set RACKFORGE_ADMIN_PASSWORD in ~/.config/rackforge/admin.env.",
             "resetSuccess": "Password updated. You can log in now.",
             "forgotPassword": "Forgot password?",
@@ -527,6 +610,10 @@ ADMIN_I18N: dict[str, dict[str, Any]] = {
             "planDeleted": "Rack plan deleted",
             "purged": "Expired records purged",
             "unknownAction": "Unknown action",
+            "licenseUpdated": "License updated: {tier}",
+            "licenseInvalid": "Invalid license key",
+            "licenseCleared": "License removed (back to Community)",
+            "licenseKeyRequired": "Enter a license key",
         },
     },
 }
@@ -997,7 +1084,7 @@ function applyAdminI18n() {
   document.querySelectorAll('[data-i18n-admin]').forEach((el) => {
     const attr = el.dataset.i18nAdminAttr;
     const value = adminT(el.dataset.i18nAdmin, adminFlashVars(el));
-    if (attr) el[attr] = value;
+    if (attr) el.setAttribute(attr, value);
     else el.textContent = value;
   });
   document.querySelectorAll('option[data-i18n-admin]').forEach((opt) => {
@@ -1107,7 +1194,28 @@ def ensure_admin_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         "UPDATE admin_users SET role = 'moderator' WHERE role IN ('viewer', 'alleen_lezen', 'read', 'readonly')"
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin_audit_log (
+            id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            actor_admin_id TEXT,
+            actor_username TEXT NOT NULL,
+            actor_role TEXT NOT NULL,
+            action TEXT NOT NULL,
+            target_type TEXT,
+            target_id TEXT,
+            target_label TEXT,
+            detail TEXT,
+            ip TEXT
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON admin_audit_log(created_at DESC)"
+    )
     conn.commit()
+    license_module.ensure_license_schema(conn)
 
 
 def upsert_bootstrap_admin(conn: sqlite3.Connection) -> str | None:
@@ -1332,6 +1440,33 @@ def purge_admin_sessions() -> None:
         if expires <= now:
             ADMIN_SESSIONS.pop(token, None)
             ADMIN_FLASH.pop(token, None)
+
+
+def get_admin_client_ip(handler: BaseHTTPRequestHandler) -> str:
+    forwarded = handler.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return handler.client_address[0]
+
+
+def admin_login_locked_seconds(ip: str) -> int:
+    now = time.time()
+    attempts = [t for t in ADMIN_LOGIN_ATTEMPTS.get(ip, []) if now - t < ADMIN_LOGIN_WINDOW_SECONDS]
+    if attempts:
+        ADMIN_LOGIN_ATTEMPTS[ip] = attempts
+    else:
+        ADMIN_LOGIN_ATTEMPTS.pop(ip, None)
+    if len(attempts) < ADMIN_LOGIN_MAX_ATTEMPTS:
+        return 0
+    return max(0, int(ADMIN_LOGIN_WINDOW_SECONDS - (now - min(attempts))))
+
+
+def record_admin_login_failure(ip: str) -> None:
+    ADMIN_LOGIN_ATTEMPTS.setdefault(ip, []).append(time.time())
+
+
+def clear_admin_login_failures(ip: str) -> None:
+    ADMIN_LOGIN_ATTEMPTS.pop(ip, None)
 
 
 def admin_redirect(handler: BaseHTTPRequestHandler, location: str) -> None:
@@ -1791,13 +1926,23 @@ def admin_auth_frame(panel_html: str) -> str:
 
 
 def login_page(
-    error: str = "", *, available: bool = True, reset_ok: bool = False
+    error: str = "",
+    *,
+    available: bool = True,
+    reset_ok: bool = False,
+    locked_minutes: int | None = None,
 ) -> str:
     err = ""
     if reset_ok:
         err = (
             '<p class="ok" data-i18n-admin="login.resetSuccess">'
             "Wachtwoord bijgewerkt. Je kunt nu inloggen.</p>"
+        )
+    elif locked_minutes is not None:
+        err = (
+            '<p class="err" data-i18n-admin="login.tooManyAttempts" '
+            f'data-i18n-var-minutes="{locked_minutes}">'
+            f"{html.escape(adminT('nl', 'login.tooManyAttempts', minutes=str(locked_minutes)))}</p>"
         )
     elif error:
         err = (
@@ -2060,9 +2205,12 @@ def action_form(
             f'<input type="hidden" name="return_to" value="{html.escape(return_to)}">'
         )
     if confirm_key:
-        confirm_attr = f' onsubmit="return confirmAdminAction({json.dumps(confirm_key)});"'
+        confirm_attr = (
+            f' onsubmit="return confirmAdminAction({html.escape(json.dumps(confirm_key))});"'
+        )
     else:
-        confirm_attr = f' onsubmit="return confirm({json.dumps(label + " — doorgaan?")});"'
+        confirm_js_arg = html.escape(json.dumps(label + " — doorgaan?"))
+        confirm_attr = f' onsubmit="return confirm({confirm_js_arg});"'
     i18n_attr = ""
     if confirm_key:
         i18n_attr = f' data-i18n-admin="{html.escape(confirm_key)}"'
@@ -2099,13 +2247,19 @@ def admin_password_reset_form(
     </form>"""
 
 
-def admin_nav(session: dict[str, Any], active: str) -> str:
+def admin_nav(conn: sqlite3.Connection, session: dict[str, Any], active: str) -> str:
     links = [
         ("panel", "Dashboard", ADMIN_PANEL_PATH),
     ]
     if can_manage_admin_users(session):
         links.append(("users", "Gebruikers", ADMIN_USERS_PATH))
-    nav_keys = {"panel": "nav.dashboard", "users": "nav.adminUsers"}
+    if can_write_admin(session) and license_module.get_license_info(conn)["tier"] != "community":
+        links.append(("audit", "Auditlog", ADMIN_AUDIT_PATH))
+    nav_keys = {
+        "panel": "nav.dashboard",
+        "users": "nav.adminUsers",
+        "audit": "nav.auditLog",
+    }
     items = []
     for key, label, href in links:
         current = ' aria-current="page"' if key == active else ""
@@ -2415,7 +2569,7 @@ def admin_users_page(
     content = f"""
     {admin_topbar(session, "Gebruikers", "Rollen en toegang", title_key="usersPage.title", subtitle_key="usersPage.subtitle")}
     <p class="sub" style="margin:-0.75rem 0 1rem;">{html.escape(now)}</p>
-    {admin_nav(session, "users")}
+    {admin_nav(conn, session, "users")}
     {flash_html}
     <div class="toolbar">
       <input type="search" id="admin-search" data-i18n-admin-attr="placeholder"
@@ -2446,8 +2600,10 @@ def users_table(
         SELECT u.*,
                (SELECT MAX(s.created_at) FROM sessions s WHERE s.user_id = u.id) AS last_login,
                (SELECT COUNT(*) FROM plans p WHERE p.user_id = u.id) AS plan_count,
-               (SELECT p.rack_height FROM plans p WHERE p.user_id = u.id LIMIT 1) AS rack_height,
-               (SELECT p.devices FROM plans p WHERE p.user_id = u.id LIMIT 1) AS devices
+               (SELECT p.rack_height FROM plans p WHERE p.user_id = u.id
+                 ORDER BY p.updated_at DESC LIMIT 1) AS rack_height,
+               (SELECT p.devices FROM plans p WHERE p.user_id = u.id
+                 ORDER BY p.updated_at DESC LIMIT 1) AS devices
         FROM users u
         ORDER BY u.created_at DESC
         """
@@ -2757,6 +2913,156 @@ def oauth_states_table(conn: sqlite3.Connection, *, writable: bool = True) -> st
     </section>"""
 
 
+ADMIN_AUDIT_ACTION_LABELS = {
+    "create_admin_user": "auditPage.actionCreateAdmin",
+    "update_admin_role": "auditPage.actionUpdateRole",
+    "delete_admin_user": "auditPage.actionDeleteAdmin",
+    "require_admin_password_reset": "auditPage.actionResetAdminPassword",
+    "delete_user": "auditPage.actionDeleteUser",
+    "toggle_block": "auditPage.actionToggleBlock",
+    "revoke_session": "auditPage.actionRevokeSession",
+    "delete_plan": "auditPage.actionDeletePlan",
+    "purge_oauth": "auditPage.actionPurgeOauth",
+    "update_license": "auditPage.actionUpdateLicense",
+    "clear_license": "auditPage.actionClearLicense",
+}
+
+
+def audit_log_detail_text(detail_raw: str | None) -> str:
+    if not detail_raw:
+        return "—"
+    try:
+        data = json.loads(detail_raw)
+    except (TypeError, ValueError):
+        return html.escape(str(detail_raw))
+    if not isinstance(data, dict):
+        return html.escape(str(data))
+    return html.escape(", ".join(f"{k}: {v}" for k, v in data.items()))
+
+
+def audit_log_table(conn: sqlite3.Connection) -> str:
+    rows = conn.execute(
+        "SELECT * FROM admin_audit_log ORDER BY created_at DESC LIMIT 200"
+    ).fetchall()
+    body = ""
+    for row in rows:
+        action_key = ADMIN_AUDIT_ACTION_LABELS.get(row["action"])
+        action_html = (
+            f'<span data-i18n-admin="{action_key}">{html.escape(row["action"])}</span>'
+            if action_key
+            else html.escape(row["action"])
+        )
+        target = "—"
+        if row["target_label"] or row["target_id"]:
+            target_type = html.escape(row["target_type"] or "")
+            target_label = html.escape(row["target_label"] or row["target_id"] or "")
+            target = (
+                f'{target_label} <span class="sub">({target_type})</span>'
+                if target_type
+                else target_label
+            )
+        actor_role_norm = normalize_admin_role(row["actor_role"]) or row["actor_role"] or ""
+        role_pill = (
+            f'<span class="pill admin-role-pill" data-admin-role="{html.escape(actor_role_norm)}">'
+            f'{html.escape(role_label(row["actor_role"] or ""))}</span>'
+        )
+        search = (
+            f"{row['actor_username']} {row['action']} "
+            f"{row['target_label'] or ''} {row['target_type'] or ''}"
+        ).lower()
+        body += f"""<tr data-search="{html.escape(search)}">
+          <td>{fmt_time(row["created_at"])}</td>
+          <td>{html.escape(row["actor_username"] or "—")} {role_pill}</td>
+          <td>{action_html}</td>
+          <td>{target}</td>
+          <td>{audit_log_detail_text(row["detail"])}</td>
+          <td class="mono">{html.escape(row["ip"] or "—")}</td>
+        </tr>"""
+    if not body:
+        body = (
+            '<tr><td colspan="6" data-i18n-admin="auditPage.empty">'
+            "Nog geen paneelacties gelogd</td></tr>"
+        )
+    return f"""
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th data-i18n-admin="auditPage.colTime">Tijd</th>
+        <th data-i18n-admin="auditPage.colActor">Door</th>
+        <th data-i18n-admin="auditPage.colAction">Actie</th>
+        <th data-i18n-admin="auditPage.colTarget">Doel</th>
+        <th data-i18n-admin="auditPage.colDetail">Details</th>
+        <th data-i18n-admin="auditPage.colIp">IP</th>
+      </tr></thead>
+      <tbody>{body}</tbody>
+    </table></div>"""
+
+
+def admin_audit_page(
+    conn: sqlite3.Connection,
+    flash: str = "",
+    session: dict[str, Any] | None = None,
+) -> str:
+    session = session or {}
+    now = fmt_time(utc_now_iso())
+    flash_html = admin_flash_html(flash)
+    table_html = audit_log_table(conn)
+    content = f"""
+    {admin_topbar(session, "Auditlog", "Paneelacties", title_key="auditPage.title", subtitle_key="auditPage.subtitle")}
+    <p class="sub" style="margin:-0.75rem 0 1rem;">{html.escape(now)}</p>
+    {admin_nav(conn, session, "audit")}
+    {flash_html}
+    <div class="toolbar">
+      <input type="search" id="admin-search" data-i18n-admin-attr="placeholder"
+        data-i18n-admin="auditPage.search" placeholder="Zoeken op gebruiker, actie of doel…">
+    </div>
+    <p class="sub" data-i18n-admin="auditPage.limitNote">Toont de meest recente 200 acties.</p>
+    {table_html}"""
+    return page_shell(
+        "Auditlog", content, with_js=True, page_title_key="auditPage.title"
+    )
+
+
+def license_status_line(conn: sqlite3.Connection, session: dict[str, Any]) -> str:
+    info = license_module.get_license_info(conn)
+    tier = info["tier"]
+    # Tier names are proper nouns, identical in nl/en — no per-language lookup needed.
+    tier_label = adminT("nl", f"tiers.{tier}")
+    max_racks = license_module.TIER_RACK_LIMITS[tier]
+    if max_racks is None:
+        key = "tables.licenseUnlimited"
+        text = adminT("nl", key, tier=tier_label)
+    else:
+        key = "tables.licenseLimited"
+        text = adminT("nl", key, tier=tier_label, limit=str(max_racks))
+    status = (
+        f'<p class="sub"><span data-i18n-admin="tables.licenseLabel">Licentie</span>: '
+        f'<span data-i18n-admin="{key}" data-i18n-var-tier="{html.escape(tier_label)}" '
+        f'data-i18n-var-limit="{html.escape(str(max_racks))}">{html.escape(text)}</span></p>'
+    )
+    if not is_owner_session(session):
+        return status
+
+    clear_btn = ""
+    if license_module.get_stored_license_key(conn) or os.environ.get("RACKFORGE_LICENSE_KEY"):
+        clear_btn = action_form(
+            "clear_license",
+            {},
+            "Verwijderen",
+            "btn--ghost",
+            confirm_key="tables.licenseClearConfirm",
+        )
+    return f"""
+    {status}
+    <form method="post" action="/admin/action" class="actions__form" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+      <input type="hidden" name="action" value="update_license">
+      <input type="text" name="license_key" class="input" style="flex:1;min-width:16rem;"
+        data-i18n-admin-attr="placeholder" data-i18n-admin="tables.licensePlaceholder"
+        placeholder="Licentiesleutel plakken…">
+      <button type="submit" class="btn btn--primary btn--sm" data-i18n-admin="tables.licenseSave">Opslaan</button>
+      {clear_btn}
+    </form>"""
+
+
 def dashboard_page(
     conn: sqlite3.Connection,
     db_path: str,
@@ -2779,7 +3085,7 @@ def dashboard_page(
     body = f"""
     {admin_topbar(session, "RackForge Panel", "Databasebeheer", title_key="dashboard.title", subtitle_key="dbManagement")}
     <p class="sub" style="margin:-0.75rem 0 1rem;">{html.escape(now)}</p>
-    {admin_nav(session, "panel")}
+    {admin_nav(conn, session, "panel")}
     {flash_html}
     <div class="toolbar">
       <input type="search" id="admin-search" data-i18n-admin-attr="placeholder"
@@ -2803,6 +3109,7 @@ def dashboard_page(
       {weekly_chart(conn)}
     </section>
     <p class="sub"><span data-i18n-admin="tables.dbLabel">DB</span>: <span class="mono">{html.escape(db_path)}</span></p>
+    {license_status_line(conn, session)}
     {users_table(conn, writable=writable, moderate=moderate)}
     {plans_table(conn, writable=writable)}
     {sessions_table(conn, writable=writable, moderate=moderate)}
@@ -2873,8 +3180,47 @@ def count_owners(conn: sqlite3.Connection) -> int:
     )
 
 
+def record_admin_audit(
+    conn: sqlite3.Connection,
+    session: dict[str, Any],
+    action: str,
+    *,
+    target_type: str | None = None,
+    target_id: str | None = None,
+    target_label: str | None = None,
+    detail: dict[str, Any] | None = None,
+    ip: str | None = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO admin_audit_log (
+            id, created_at, actor_admin_id, actor_username, actor_role,
+            action, target_type, target_id, target_label, detail, ip
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            secrets.token_hex(16),
+            utc_now_iso(),
+            session.get("admin_id"),
+            session.get("username", ""),
+            session.get("role", ""),
+            action,
+            target_type,
+            target_id,
+            target_label,
+            json.dumps(detail, separators=(",", ":")) if detail else None,
+            ip,
+        ),
+    )
+
+
 def handle_admin_action(
-    conn: sqlite3.Connection, form: dict[str, str], session: dict[str, Any]
+    conn: sqlite3.Connection,
+    form: dict[str, str],
+    session: dict[str, Any],
+    *,
+    ip: str | None = None,
 ) -> str:
     action = form.get("action", "")
     writable = can_write_admin(session)
@@ -2942,6 +3288,16 @@ def handle_admin_action(
                 email,
             ),
         )
+        record_admin_audit(
+            conn,
+            session,
+            "create_admin_user",
+            target_type="admin_user",
+            target_id=admin_id,
+            target_label=username,
+            detail={"role": role},
+            ip=ip,
+        )
         conn.commit()
         return json.dumps(
             {"k": "flash.adminAdded", "v": {"username": username, "roleKey": role}}
@@ -2959,7 +3315,7 @@ def handle_admin_action(
         if not role:
             return "flash.invalidRole"
         row = conn.execute(
-            "SELECT id, role FROM admin_users WHERE id = ?", (admin_id,)
+            "SELECT id, username, role FROM admin_users WHERE id = ?", (admin_id,)
         ).fetchone()
         if not row:
             return "flash.adminNotFound"
@@ -2978,6 +3334,16 @@ def handle_admin_action(
         conn.execute("UPDATE admin_users SET role = ? WHERE id = ?", (role, admin_id))
         if session.get("admin_id") == admin_id:
             session["role"] = role
+        record_admin_audit(
+            conn,
+            session,
+            "update_admin_role",
+            target_type="admin_user",
+            target_id=admin_id,
+            target_label=row["username"],
+            detail={"from_role": current_role, "to_role": role},
+            ip=ip,
+        )
         conn.commit()
         return json.dumps(
             {"k": "flash.roleUpdated", "v": {"roleKey": role}}
@@ -2990,7 +3356,7 @@ def handle_admin_action(
         if session.get("admin_id") == admin_id:
             return "flash.cannotDeleteSelf"
         row = conn.execute(
-            "SELECT role FROM admin_users WHERE id = ?", (admin_id,)
+            "SELECT username, role FROM admin_users WHERE id = ?", (admin_id,)
         ).fetchone()
         if not row:
             return "flash.adminNotFound"
@@ -3006,6 +3372,16 @@ def handle_admin_action(
         ):
             return "flash.cannotDeleteLastSuperadmin"
         conn.execute("DELETE FROM admin_users WHERE id = ?", (admin_id,))
+        record_admin_audit(
+            conn,
+            session,
+            "delete_admin_user",
+            target_type="admin_user",
+            target_id=admin_id,
+            target_label=row["username"],
+            detail={"role": current_role},
+            ip=ip,
+        )
         conn.commit()
         return "flash.adminDeleted"
 
@@ -3035,6 +3411,15 @@ def handle_admin_action(
             """,
             (salt, digest, admin_id),
         )
+        record_admin_audit(
+            conn,
+            session,
+            "require_admin_password_reset",
+            target_type="admin_user",
+            target_id=admin_id,
+            target_label=row["username"],
+            ip=ip,
+        )
         conn.commit()
         return json.dumps(
             {
@@ -3047,34 +3432,94 @@ def handle_admin_action(
         user_id = form.get("user_id", "")
         if not ID_RE.match(user_id):
             return "flash.invalidUserId"
+        user_row = conn.execute(
+            "SELECT username, email FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        if not user_row:
+            return "flash.userNotFound"
         admin_delete_user(conn, user_id)
+        record_admin_audit(
+            conn,
+            session,
+            "delete_user",
+            target_type="user",
+            target_id=user_id,
+            target_label=user_row["username"] or user_row["email"],
+            ip=ip,
+        )
         conn.commit()
         return "flash.userDeleted"
     if action == "toggle_block":
         user_id = form.get("user_id", "")
         if not ID_RE.match(user_id):
             return "flash.invalidUserId"
-        row = conn.execute("SELECT blocked FROM users WHERE id = ?", (user_id,)).fetchone()
+        row = conn.execute(
+            "SELECT blocked, username, email FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
         if not row:
             return "flash.userNotFound"
         new_val = 0 if row["blocked"] else 1
         conn.execute("UPDATE users SET blocked = ? WHERE id = ?", (new_val, user_id))
         if new_val:
             conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        record_admin_audit(
+            conn,
+            session,
+            "toggle_block",
+            target_type="user",
+            target_id=user_id,
+            target_label=row["username"] or row["email"],
+            detail={"blocked": bool(new_val)},
+            ip=ip,
+        )
         conn.commit()
         return "flash.userUnblocked" if not new_val else "flash.userBlocked"
     if action == "revoke_session":
         token = form.get("token", "")
         if not re_fullmatch_hex64(token):
             return "flash.invalidSession"
+        session_row = conn.execute(
+            """
+            SELECT u.username, u.email FROM sessions s
+            JOIN users u ON u.id = s.user_id
+            WHERE s.token = ?
+            """,
+            (token,),
+        ).fetchone()
         conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        record_admin_audit(
+            conn,
+            session,
+            "revoke_session",
+            target_type="session",
+            target_id=token[:16],
+            target_label=(session_row["username"] or session_row["email"]) if session_row else None,
+            ip=ip,
+        )
         conn.commit()
         return "flash.sessionRevoked"
     if action == "delete_plan":
         plan_id = form.get("plan_id", "")
         if not ID_RE.match(plan_id):
             return "flash.invalidPlanId"
+        plan_row = conn.execute(
+            """
+            SELECT u.username, u.email FROM plans p
+            LEFT JOIN users u ON u.id = p.user_id
+            WHERE p.id = ?
+            """,
+            (plan_id,),
+        ).fetchone()
         conn.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
+        record_admin_audit(
+            conn,
+            session,
+            "delete_plan",
+            target_type="plan",
+            target_id=plan_id,
+            target_label=(plan_row["username"] or plan_row["email"]) if plan_row else None,
+            ip=ip,
+        )
         conn.commit()
         return "flash.planDeleted"
     if action == "purge_oauth":
@@ -3083,8 +3528,40 @@ def handle_admin_action(
             "DELETE FROM email_verifications WHERE expires_at < ?", (utc_now_iso(),)
         )
         conn.execute("DELETE FROM password_resets WHERE expires_at < ?", (utc_now_iso(),))
+        record_admin_audit(conn, session, "purge_oauth", target_type="system", ip=ip)
         conn.commit()
         return "flash.purged"
+
+    if action == "update_license":
+        if not is_owner_session(session):
+            return "flash.noPermission"
+        raw_key = form.get("license_key", "").strip()
+        if not raw_key:
+            return "flash.licenseKeyRequired"
+        payload = license_module.verify_license_key_string(raw_key)
+        if payload is None:
+            return "flash.licenseInvalid"
+        license_module.set_stored_license_key(conn, raw_key)
+        record_admin_audit(
+            conn,
+            session,
+            "update_license",
+            target_type="license",
+            detail={"tier": payload["tier"], "customer": payload.get("customer")},
+            ip=ip,
+        )
+        conn.commit()
+        tier_label = adminT("nl", f"tiers.{payload['tier']}")
+        return json.dumps({"k": "flash.licenseUpdated", "v": {"tier": tier_label}})
+
+    if action == "clear_license":
+        if not is_owner_session(session):
+            return "flash.noPermission"
+        license_module.set_stored_license_key(conn, None)
+        record_admin_audit(conn, session, "clear_license", target_type="license", ip=ip)
+        conn.commit()
+        return "flash.licenseCleared"
+
     return "flash.unknownAction"
 
 
@@ -3340,6 +3817,28 @@ def handle_admin_get(handler: BaseHTTPRequestHandler, path: str, db_path: str) -
         send_html_response(handler, 200, page)
         return True
 
+    if path == ADMIN_AUDIT_PATH:
+        session = get_admin_session(handler)
+        if not session:
+            admin_redirect(handler, ADMIN_LOGIN_PATH)
+            return True
+        if require_admin_password_changed(handler, session, path):
+            return True
+        flash = admin_panel_flash(handler)
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            ensure_admin_schema(conn)
+            session = sync_env_admin_session(conn, session)
+            if not can_write_admin(session) or license_module.get_license_info(conn)["tier"] == "community":
+                token = get_admin_token(handler)
+                if token:
+                    store_admin_flash(token, "flash.noPermission")
+                admin_redirect(handler, ADMIN_PANEL_PATH)
+                return True
+            page = admin_audit_page(conn, flash=flash, session=session)
+        send_html_response(handler, 200, page)
+        return True
+
     if not admin_authenticated(handler):
         admin_redirect(handler, ADMIN_LOGIN_PATH)
         return True
@@ -3557,6 +4056,14 @@ def handle_admin_post(handler: BaseHTTPRequestHandler, path: str, db_path: str) 
         return True
 
     if path == "/admin/login":
+        client_ip = get_admin_client_ip(handler)
+        locked_seconds = admin_login_locked_seconds(client_ip)
+        if locked_seconds > 0:
+            locked_minutes = max(1, -(-locked_seconds // 60))
+            send_html_response(
+                handler, 429, login_page(locked_minutes=locked_minutes)
+            )
+            return True
         form = parse_form_body(handler)
         username = form.get("username", "").strip()
         password = form.get("password", "")
@@ -3569,10 +4076,12 @@ def handle_admin_post(handler: BaseHTTPRequestHandler, path: str, db_path: str) 
                 return True
             login = resolve_admin_login(conn, username, password)
         if not login:
+            record_admin_login_failure(client_ip)
             send_html_response(
                 handler, 401, login_page("Onjuist gebruikersnaam of wachtwoord", available=True)
             )
             return True
+        clear_admin_login_failures(client_ip)
         admin_id, display_name, role, must_change_password = login
         token = create_admin_session(
             admin_id=admin_id,
@@ -3669,7 +4178,9 @@ def handle_admin_post(handler: BaseHTTPRequestHandler, path: str, db_path: str) 
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
             ensure_admin_schema(conn)
-            msg = handle_admin_action(conn, form, session)
+            msg = handle_admin_action(
+                conn, form, session, ip=get_admin_client_ip(handler)
+            )
         token = get_admin_token(handler)
         if token:
             store_admin_flash(token, msg)

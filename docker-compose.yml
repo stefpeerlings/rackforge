@@ -1,0 +1,35 @@
+services:
+  api:
+    build: ./api
+    restart: unless-stopped
+    env_file:
+      - ./api/rackforge.env
+    volumes:
+      - rackforge-data:/data
+    networks:
+      - internal
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      SCHEME: ${SCHEME:-https}
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+    networks:
+      - internal
+
+volumes:
+  rackforge-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  internal:

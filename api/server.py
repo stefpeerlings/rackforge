@@ -24,6 +24,7 @@ from email_templates import (
     verification_email_content,
 )
 from admin_panel import handle_admin_get, handle_admin_post
+import license as license_module
 from google_oauth import (
     build_auth_url,
     exchange_code,
@@ -39,6 +40,9 @@ HOST = os.environ.get("RACKFORGE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("RACKFORGE_PORT", "8080"))
 MAX_BODY = 512_000
 PLAN_ID_RE = re.compile(r"^[a-f0-9]{32}$")
+CUSTOM_TYPE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
+SNAPSHOT_ID_RE = re.compile(r"^[a-f0-9]{32}$")
+COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 USERNAME_RE = re.compile(r"^[a-zA-Z0-9_]{3,20}$")
 SESSION_COOKIE = "rackforge_session"
@@ -192,9 +196,16 @@ def init_db() -> None:
             conn.execute(
                 "ALTER TABLE plans ADD COLUMN connections TEXT NOT NULL DEFAULT '[]'"
             )
-        conn.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id) WHERE user_id IS NOT NULL"
-        )
+        if "name" not in cols:
+            conn.execute("ALTER TABLE plans ADD COLUMN name TEXT")
+        if "power_budget_w" not in cols:
+            conn.execute(
+                "ALTER TABLE plans ADD COLUMN power_budget_w INTEGER NOT NULL DEFAULT 0"
+            )
+        # Accounts may now hold more than one plan (tier-limited, see license.py) —
+        # this index is for lookup performance only, no longer a uniqueness constraint.
+        conn.execute("DROP INDEX IF EXISTS idx_plans_user_id")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_plans_user_id ON plans(user_id)")
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS admin_users (
@@ -216,12 +227,70 @@ def init_db() -> None:
                 "ALTER TABLE admin_users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0"
             )
         conn.commit()
+        license_module.ensure_license_schema(conn)
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS custom_equipment_types (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                height INTEGER NOT NULL,
+                color TEXT NOT NULL,
+                power_w INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_custom_equipment_types_user_id ON custom_equipment_types(user_id)"
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS plan_snapshots (
+                id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL,
+                rack_height INTEGER NOT NULL,
+                devices TEXT NOT NULL,
+                next_id INTEGER NOT NULL,
+                name TEXT,
+                power_budget_w INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_plan_snapshots_plan_id ON plan_snapshots(plan_id, created_at DESC)"
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS plan_collaborators (
+                id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'viewer',
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(plan_id, user_id)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_plan_collaborators_plan_id ON plan_collaborators(plan_id)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_plan_collaborators_user_id ON plan_collaborators(user_id)"
+        )
+        conn.commit()
 
 
 def db_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -238,6 +307,14 @@ def verify_password(password: str, salt: str, digest: str) -> bool:
         "sha256", password.encode("utf-8"), salt.encode("utf-8"), PBKDF2_ROUNDS
     ).hex()
     return secrets.compare_digest(check, digest)
+
+
+def normalize_plan_name(raw: Any) -> str | None:
+    """Trim to <=60 chars; blank/invalid input means "use the default", not "clear it"."""
+    if not isinstance(raw, str):
+        return None
+    name = raw.strip()[:60]
+    return name or None
 
 
 def validate_plan(body: dict[str, Any]) -> dict[str, Any] | str:
@@ -263,6 +340,21 @@ def validate_plan(body: dict[str, Any]) -> dict[str, Any] | str:
                 return f"Device missing {key}"
         if not isinstance(d.get("label", ""), str):
             return "Invalid device label"
+        power_w = d.get("powerW")
+        if power_w is not None:
+            try:
+                if float(power_w) < 0:
+                    return "Invalid device power"
+            except (TypeError, ValueError):
+                return "Invalid device power"
+
+    power_budget_w = body.get("powerBudgetW", 0)
+    try:
+        power_budget_w = int(power_budget_w) if power_budget_w is not None else 0
+    except (TypeError, ValueError):
+        return "Invalid power budget"
+    if power_budget_w < 0:
+        return "Invalid power budget"
 
     connections = body.get("connections", [])
     if connections is None:
@@ -296,10 +388,12 @@ def validate_plan(body: dict[str, Any]) -> dict[str, Any] | str:
         "next_id": next_id,
         "devices": json.dumps(devices, separators=(",", ":")),
         "connections": json.dumps(connections, separators=(",", ":")),
+        "name": normalize_plan_name(body.get("name")),
+        "power_budget_w": power_budget_w,
     }
 
 
-def row_to_plan(row: sqlite3.Row) -> dict[str, Any]:
+def row_to_plan(row: sqlite3.Row, *, role: str | None = None) -> dict[str, Any]:
     raw_connections = row["connections"] if "connections" in row.keys() else "[]"
     try:
         connections = json.loads(raw_connections or "[]")
@@ -307,15 +401,101 @@ def row_to_plan(row: sqlite3.Row) -> dict[str, Any]:
         connections = []
     if not isinstance(connections, list):
         connections = []
-    return {
+    result = {
         "id": row["id"],
+        "name": (row["name"] if "name" in row.keys() else None) or "Rack",
         "rackHeight": row["rack_height"],
         "devices": json.loads(row["devices"]),
         "connections": connections,
         "nextId": row["next_id"],
+        "powerBudgetW": (row["power_budget_w"] if "power_budget_w" in row.keys() else 0) or 0,
         "createdAt": row["created_at"],
         "updatedAt": row["updated_at"],
     }
+    if role is not None:
+        result["role"] = role
+    return result
+
+
+def get_plan_access(
+    conn: sqlite3.Connection, plan_row: sqlite3.Row, user_id: str | None
+) -> str | None:
+    """Returns 'owner' | 'editor' | 'viewer' | None (no access).
+
+    plan_row['user_id'] is NULL for the pre-account anonymous/guest plans (created via
+    POST /api/plans, loaded via ?plan=<id> with zero auth) — that existing "anyone can
+    GET/PUT a NULL-owner plan" behavior must not regress, so this returns a synthetic
+    'editor' for NULL-owner rows regardless of caller, letting every call site use this
+    helper uniformly instead of special-casing NULL owners individually.
+
+    Deliberately collapses "plan doesn't exist" and "plan exists but no access" to the
+    same None — no frontend code branches on 403 vs 404 for plan loads, so callers can
+    just map None -> 404.
+    """
+    if plan_row["user_id"] is None:
+        return "editor"
+    if user_id and plan_row["user_id"] == user_id:
+        return "owner"
+    if not user_id:
+        return None
+    collab = conn.execute(
+        "SELECT role FROM plan_collaborators WHERE plan_id = ? AND user_id = ?",
+        (plan_row["id"], user_id),
+    ).fetchone()
+    return collab["role"] if collab else None
+
+
+def maybe_snapshot_plan(
+    conn: sqlite3.Connection, plan_id: str, row: sqlite3.Row, *, force: bool = False
+) -> None:
+    """Called just before a plan's live state is overwritten. Stores a
+    snapshot of the state being replaced, throttled so routine autosaves
+    (every ~1.5s while editing) don't create one row each — only the first
+    save past SNAPSHOT_MIN_INTERVAL_SECONDS since the last snapshot does.
+
+    force=True bypasses the throttle — used before a restore, since that's a
+    deliberate, infrequent action whose own "before" state should always be
+    recoverable, even if it happens to land inside another edit's throttle
+    window."""
+    now = utc_now()
+    if not force:
+        latest = conn.execute(
+            "SELECT created_at FROM plan_snapshots WHERE plan_id = ? ORDER BY created_at DESC LIMIT 1",
+            (plan_id,),
+        ).fetchone()
+        if latest:
+            elapsed = (datetime.fromisoformat(now) - datetime.fromisoformat(latest["created_at"])).total_seconds()
+            if elapsed < license_module.SNAPSHOT_MIN_INTERVAL_SECONDS:
+                return
+    snapshot_id = uuid.uuid4().hex
+    conn.execute(
+        """
+        INSERT INTO plan_snapshots (id, plan_id, rack_height, devices, next_id, name, power_budget_w, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            snapshot_id,
+            plan_id,
+            row["rack_height"],
+            row["devices"],
+            row["next_id"],
+            row["name"] if "name" in row.keys() else None,
+            (row["power_budget_w"] if "power_budget_w" in row.keys() else 0) or 0,
+            now,
+        ),
+    )
+    max_snapshots = license_module.get_max_snapshots(conn)
+    keep_rows = conn.execute(
+        "SELECT id FROM plan_snapshots WHERE plan_id = ? ORDER BY created_at DESC LIMIT ?",
+        (plan_id, max_snapshots),
+    ).fetchall()
+    keep_ids = {r["id"] for r in keep_rows}
+    all_rows = conn.execute(
+        "SELECT id FROM plan_snapshots WHERE plan_id = ?", (plan_id,)
+    ).fetchall()
+    for r in all_rows:
+        if r["id"] not in keep_ids:
+            conn.execute("DELETE FROM plan_snapshots WHERE id = ?", (r["id"],))
 
 
 def normalize_username(raw: str) -> str | None:
@@ -1240,6 +1420,10 @@ class Handler(BaseHTTPRequestHandler):
             conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM email_verifications WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM password_resets WHERE user_id = ?", (user_id,))
+            # Collaborator access this user has on *other* people's plans. Their own
+            # plans' collaborator rows are cleaned up via ON DELETE CASCADE when those
+            # plans are deleted below.
+            conn.execute("DELETE FROM plan_collaborators WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM plans WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
             conn.commit()
@@ -1322,18 +1506,28 @@ class Handler(BaseHTTPRequestHandler):
         self.send_json(200, {"user": payload})
 
     def handle_get_my_plan(self) -> None:
+        """Deprecated single-plan shim, kept for old cached clients. Read-only
+        convenience: returns the most recently updated plan. Current frontend
+        uses GET /api/me/plans + GET /api/plans/<id> instead."""
         with db_conn() as conn:
             user = get_current_user(conn, get_session_token(self))
             if not user:
                 self.send_error_json(401, "Not authenticated")
                 return
-            row = conn.execute("SELECT * FROM plans WHERE user_id = ?", (user["id"],)).fetchone()
+            row = conn.execute(
+                "SELECT * FROM plans WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1",
+                (user["id"],),
+            ).fetchone()
         if not row:
             self.send_error_json(404, "No plan saved yet")
             return
         self.send_json(200, row_to_plan(row))
 
     def handle_put_my_plan(self, body: dict[str, Any]) -> None:
+        """Deprecated single-plan shim. Refuses once an account has more than
+        one plan — guessing "the most recent one" here would risk a stale
+        cached client silently overwriting a *different* rack than the one
+        it has open. Current frontend never calls this endpoint."""
         validated = validate_plan(body)
         if isinstance(validated, str):
             self.send_error_json(400, validated)
@@ -1346,31 +1540,41 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_error_json(401, "Not authenticated")
                 return
             existing = conn.execute(
-                "SELECT id FROM plans WHERE user_id = ?", (user["id"],)
-            ).fetchone()
+                "SELECT id FROM plans WHERE user_id = ? ORDER BY updated_at DESC",
+                (user["id"],),
+            ).fetchall()
+            if len(existing) > 1:
+                self.send_error_json(
+                    409,
+                    "Account has multiple plans; use /api/plans/<id> instead of /api/me/plan",
+                )
+                return
             if existing:
-                plan_id = existing["id"]
+                plan_id = existing[0]["id"]
                 conn.execute(
                     """
                     UPDATE plans
-                    SET rack_height = ?, devices = ?, connections = ?, next_id = ?, updated_at = ?
-                    WHERE user_id = ?
+                    SET rack_height = ?, devices = ?, connections = ?, next_id = ?,
+                        name = COALESCE(?, name), power_budget_w = ?, updated_at = ?
+                    WHERE id = ?
                     """,
                     (
                         validated["rack_height"],
                         validated["devices"],
                         validated["connections"],
                         validated["next_id"],
+                        validated["name"],
+                        validated["power_budget_w"],
                         now,
-                        user["id"],
+                        plan_id,
                     ),
                 )
             else:
                 plan_id = uuid.uuid4().hex
                 conn.execute(
                     """
-                    INSERT INTO plans (id, rack_height, devices, connections, next_id, user_id, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO plans (id, rack_height, devices, connections, next_id, name, power_budget_w, user_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         plan_id,
@@ -1378,6 +1582,8 @@ class Handler(BaseHTTPRequestHandler):
                         validated["devices"],
                         validated["connections"],
                         validated["next_id"],
+                        validated["name"] or "Rack",
+                        validated["power_budget_w"],
                         user["id"],
                         now,
                         now,
@@ -1386,6 +1592,467 @@ class Handler(BaseHTTPRequestHandler):
             conn.commit()
 
         self.send_json(200, {"id": plan_id, "updatedAt": now})
+
+    def handle_list_my_plans(self) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            owned_rows = conn.execute(
+                """
+                SELECT id, name, rack_height, devices, updated_at
+                FROM plans WHERE user_id = ? ORDER BY updated_at DESC
+                """,
+                (user["id"],),
+            ).fetchall()
+            shared_rows = conn.execute(
+                """
+                SELECT p.id, p.name, p.rack_height, p.devices, p.updated_at, c.role,
+                       u.username AS owner_username, u.email AS owner_email
+                FROM plan_collaborators c
+                JOIN plans p ON p.id = c.plan_id
+                JOIN users u ON u.id = p.user_id
+                WHERE c.user_id = ?
+                ORDER BY p.updated_at DESC
+                """,
+                (user["id"],),
+            ).fetchall()
+
+        def to_entry(row: sqlite3.Row, *, role: str, owner_label: str | None) -> dict[str, Any]:
+            try:
+                device_count = len(json.loads(row["devices"]))
+            except (json.JSONDecodeError, TypeError):
+                device_count = 0
+            entry = {
+                "id": row["id"],
+                "name": row["name"] or "Rack",
+                "rackHeight": row["rack_height"],
+                "deviceCount": device_count,
+                "updatedAt": row["updated_at"],
+                "role": role,
+            }
+            if owner_label is not None:
+                entry["ownerLabel"] = owner_label
+            return entry
+
+        result = [to_entry(row, role="owner", owner_label=None) for row in owned_rows]
+        result += [
+            to_entry(
+                row,
+                role=row["role"],
+                owner_label=row["owner_username"] or row["owner_email"],
+            )
+            for row in shared_rows
+        ]
+        result.sort(key=lambda entry: entry["updatedAt"], reverse=True)
+        self.send_json(200, result)
+
+    def handle_create_my_plan(self, body: dict[str, Any]) -> None:
+        try:
+            rack_height = int(body.get("rackHeight", 25))
+        except (TypeError, ValueError):
+            self.send_error_json(400, "Invalid rack height")
+            return
+        if rack_height < 1 or rack_height > 48:
+            self.send_error_json(400, "Invalid rack height")
+            return
+        name = normalize_plan_name(body.get("name")) or "Rack"
+
+        now = utc_now()
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            # get_current_user() may have implicitly opened a transaction
+            # (it purges expired sessions via DELETE); close it out before
+            # starting our own explicit one.
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            count = conn.execute(
+                "SELECT COUNT(*) AS n FROM plans WHERE user_id = ?", (user["id"],)
+            ).fetchone()["n"]
+            max_racks = license_module.get_max_racks(conn)
+            if max_racks is not None and count >= max_racks:
+                conn.execute("ROLLBACK")
+                self.send_json(
+                    403,
+                    {
+                        "error": "rack_limit_reached",
+                        "limit": max_racks,
+                        "tier": license_module.get_license_info(conn)["tier"],
+                    },
+                )
+                return
+            plan_id = uuid.uuid4().hex
+            conn.execute(
+                """
+                INSERT INTO plans (id, rack_height, devices, connections, next_id, name, user_id, created_at, updated_at)
+                VALUES (?, ?, '[]', '[]', 1, ?, ?, ?, ?)
+                """,
+                (plan_id, rack_height, name, user["id"], now, now),
+            )
+            conn.commit()
+
+        self.send_json(201, {"id": plan_id, "name": name, "rackHeight": rack_height, "updatedAt": now})
+
+    def handle_delete_my_plan(self, plan_id: str) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            # See handle_create_my_plan: close out get_current_user()'s
+            # implicit transaction before starting our own explicit one.
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT * FROM plans WHERE id = ?", (plan_id,)
+            ).fetchone()
+            if not row:
+                conn.execute("ROLLBACK")
+                self.send_error_json(404, "Plan not found")
+                return
+            if get_plan_access(conn, row, user["id"]) != "owner":
+                conn.execute("ROLLBACK")
+                self.send_error_json(403, "Forbidden")
+                return
+            count = conn.execute(
+                "SELECT COUNT(*) AS n FROM plans WHERE user_id = ?", (user["id"],)
+            ).fetchone()["n"]
+            if count <= 1:
+                conn.execute("ROLLBACK")
+                self.send_error_json(409, "Cannot delete your last remaining rack")
+                return
+            conn.execute("DELETE FROM plans WHERE id = ?", (plan_id,))
+            conn.commit()
+
+        self.send_json(200, {"deleted": True})
+
+    def handle_list_my_equipment_types(self) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            rows = conn.execute(
+                """
+                SELECT id, name, height, color, power_w FROM custom_equipment_types
+                WHERE user_id = ? ORDER BY created_at ASC
+                """,
+                (user["id"],),
+            ).fetchall()
+        self.send_json(
+            200,
+            [
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "height": row["height"],
+                    "color": row["color"],
+                    "powerW": row["power_w"],
+                }
+                for row in rows
+            ],
+        )
+
+    def handle_create_my_equipment_type(self, body: dict[str, Any]) -> None:
+        name = normalize_plan_name(body.get("name"))
+        if not name:
+            self.send_error_json(400, "Name is required")
+            return
+        try:
+            height = int(body.get("height"))
+            power_w = int(body.get("powerW", 0))
+        except (TypeError, ValueError):
+            self.send_error_json(400, "Invalid height or power")
+            return
+        if height < 1 or height > 48:
+            self.send_error_json(400, "Invalid height")
+            return
+        if power_w < 0:
+            self.send_error_json(400, "Invalid power")
+            return
+        color = str(body.get("color", "")).strip()
+        if not COLOR_RE.match(color):
+            self.send_error_json(400, "Invalid color")
+            return
+
+        now = utc_now()
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            count = conn.execute(
+                "SELECT COUNT(*) AS n FROM custom_equipment_types WHERE user_id = ?",
+                (user["id"],),
+            ).fetchone()["n"]
+            max_types = license_module.get_max_custom_types(conn)
+            if max_types is not None and count >= max_types:
+                conn.execute("ROLLBACK")
+                self.send_json(
+                    403,
+                    {
+                        "error": "custom_type_limit_reached",
+                        "limit": max_types,
+                        "tier": license_module.get_license_info(conn)["tier"],
+                    },
+                )
+                return
+            type_id = uuid.uuid4().hex
+            conn.execute(
+                """
+                INSERT INTO custom_equipment_types (id, user_id, name, height, color, power_w, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (type_id, user["id"], name, height, color, power_w, now),
+            )
+            conn.commit()
+
+        self.send_json(
+            201,
+            {"id": type_id, "name": name, "height": height, "color": color, "powerW": power_w},
+        )
+
+    def handle_delete_my_equipment_type(self, type_id: str) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            row = conn.execute(
+                "SELECT user_id FROM custom_equipment_types WHERE id = ?", (type_id,)
+            ).fetchone()
+            if not row:
+                self.send_error_json(404, "Not found")
+                return
+            if row["user_id"] != user["id"]:
+                self.send_error_json(403, "Forbidden")
+                return
+            conn.execute("DELETE FROM custom_equipment_types WHERE id = ?", (type_id,))
+            conn.commit()
+
+        self.send_json(200, {"deleted": True})
+
+    def handle_list_plan_snapshots(self, plan_id: str) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            plan_row = conn.execute(
+                "SELECT * FROM plans WHERE id = ?", (plan_id,)
+            ).fetchone()
+            if not plan_row:
+                self.send_error_json(404, "Plan not found")
+                return
+            if get_plan_access(conn, plan_row, user["id"]) is None:
+                self.send_error_json(403, "Forbidden")
+                return
+            rows = conn.execute(
+                """
+                SELECT id, devices, created_at FROM plan_snapshots
+                WHERE plan_id = ? ORDER BY created_at DESC
+                """,
+                (plan_id,),
+            ).fetchall()
+        result = []
+        for row in rows:
+            try:
+                device_count = len(json.loads(row["devices"]))
+            except (json.JSONDecodeError, TypeError):
+                device_count = 0
+            result.append(
+                {"id": row["id"], "createdAt": row["created_at"], "deviceCount": device_count}
+            )
+        self.send_json(200, result)
+
+    def handle_restore_plan_snapshot(self, plan_id: str, snapshot_id: str) -> None:
+        now = utc_now()
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            plan_row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            if not plan_row:
+                conn.execute("ROLLBACK")
+                self.send_error_json(404, "Plan not found")
+                return
+            if get_plan_access(conn, plan_row, user["id"]) not in ("owner", "editor"):
+                conn.execute("ROLLBACK")
+                self.send_error_json(403, "Forbidden")
+                return
+            snapshot = conn.execute(
+                "SELECT * FROM plan_snapshots WHERE id = ? AND plan_id = ?",
+                (snapshot_id, plan_id),
+            ).fetchone()
+            if not snapshot:
+                conn.execute("ROLLBACK")
+                self.send_error_json(404, "Snapshot not found")
+                return
+            # Snapshot the current (pre-restore) state too, so the restore
+            # itself isn't a one-way trip. force=True: always keep this one,
+            # even if it lands inside another edit's throttle window.
+            maybe_snapshot_plan(conn, plan_id, plan_row, force=True)
+            conn.execute(
+                """
+                UPDATE plans
+                SET rack_height = ?, devices = ?, next_id = ?, name = ?,
+                    power_budget_w = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    snapshot["rack_height"],
+                    snapshot["devices"],
+                    snapshot["next_id"],
+                    snapshot["name"],
+                    snapshot["power_budget_w"],
+                    now,
+                    plan_id,
+                ),
+            )
+            conn.commit()
+            restored = row_to_plan(
+                conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            )
+
+        self.send_json(200, restored)
+
+    def handle_list_plan_collaborators(self, plan_id: str) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            plan_row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            if not plan_row:
+                self.send_error_json(404, "Plan not found")
+                return
+            if get_plan_access(conn, plan_row, user["id"]) != "owner":
+                self.send_error_json(403, "Forbidden")
+                return
+            rows = conn.execute(
+                """
+                SELECT c.id, c.role, u.username, u.email
+                FROM plan_collaborators c
+                JOIN users u ON u.id = c.user_id
+                WHERE c.plan_id = ?
+                ORDER BY c.created_at ASC
+                """,
+                (plan_id,),
+            ).fetchall()
+        self.send_json(
+            200,
+            [
+                {"id": r["id"], "role": r["role"], "label": r["username"] or r["email"]}
+                for r in rows
+            ],
+        )
+
+    def handle_create_plan_collaborator(self, plan_id: str, body: dict[str, Any]) -> None:
+        email = str(body.get("email", "")).strip().lower()
+        role = str(body.get("role", "")).strip()
+        if not email or not EMAIL_RE.match(email):
+            self.send_error_json(400, "Invalid email")
+            return
+        if role not in ("viewer", "editor"):
+            self.send_error_json(400, "Invalid role")
+            return
+
+        now = utc_now()
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            plan_row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            if not plan_row:
+                conn.execute("ROLLBACK")
+                self.send_error_json(404, "Plan not found")
+                return
+            if get_plan_access(conn, plan_row, user["id"]) != "owner":
+                conn.execute("ROLLBACK")
+                self.send_error_json(403, "Forbidden")
+                return
+            target = conn.execute(
+                "SELECT * FROM users WHERE email = ? COLLATE NOCASE", (email,)
+            ).fetchone()
+            if not target:
+                conn.execute("ROLLBACK")
+                self.send_error_json(404, "No account with that email")
+                return
+            if target["id"] == plan_row["user_id"]:
+                conn.execute("ROLLBACK")
+                self.send_error_json(400, "That account already owns this rack")
+                return
+            if target["blocked"]:
+                conn.execute("ROLLBACK")
+                self.send_error_json(400, "That account is blocked")
+                return
+            count = conn.execute(
+                "SELECT COUNT(*) AS n FROM plan_collaborators WHERE plan_id = ?", (plan_id,)
+            ).fetchone()["n"]
+            max_collaborators = license_module.get_max_collaborators(conn)
+            if max_collaborators is not None and count >= max_collaborators:
+                conn.execute("ROLLBACK")
+                self.send_json(
+                    403,
+                    {
+                        "error": "collaborator_limit_reached",
+                        "limit": max_collaborators,
+                        "tier": license_module.get_license_info(conn)["tier"],
+                    },
+                )
+                return
+            collab_id = uuid.uuid4().hex
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO plan_collaborators (id, plan_id, user_id, role, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (collab_id, plan_id, target["id"], role, now),
+                )
+            except sqlite3.IntegrityError:
+                conn.execute("ROLLBACK")
+                self.send_error_json(409, "That account already has access to this rack")
+                return
+            conn.commit()
+
+        self.send_json(
+            201,
+            {"id": collab_id, "role": role, "label": target["username"] or target["email"]},
+        )
+
+    def handle_delete_plan_collaborator(self, plan_id: str, collaborator_id: str) -> None:
+        with db_conn() as conn:
+            user = get_current_user(conn, get_session_token(self))
+            if not user:
+                self.send_error_json(401, "Not authenticated")
+                return
+            plan_row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            if not plan_row:
+                self.send_error_json(404, "Plan not found")
+                return
+            if get_plan_access(conn, plan_row, user["id"]) != "owner":
+                self.send_error_json(403, "Forbidden")
+                return
+            conn.execute(
+                "DELETE FROM plan_collaborators WHERE id = ? AND plan_id = ?",
+                (collaborator_id, plan_id),
+            )
+            conn.commit()
+
+        self.send_json(200, {"deleted": True})
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
@@ -1435,6 +2102,22 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/me/plan":
             self.handle_get_my_plan()
             return
+        if path == "/api/me/plans":
+            self.handle_list_my_plans()
+            return
+        if path == "/api/me/equipment-types":
+            self.handle_list_my_equipment_types()
+            return
+
+        snapshots_match = re.fullmatch(r"/api/plans/([a-f0-9]{32})/snapshots", path)
+        if snapshots_match:
+            self.handle_list_plan_snapshots(snapshots_match.group(1))
+            return
+
+        collaborators_match = re.fullmatch(r"/api/plans/([a-f0-9]{32})/collaborators", path)
+        if collaborators_match:
+            self.handle_list_plan_collaborators(collaborators_match.group(1))
+            return
 
         if path.startswith("/api/plans/"):
             plan_id = path.split("/api/plans/", 1)[1].strip("/")
@@ -1443,10 +2126,15 @@ class Handler(BaseHTTPRequestHandler):
                 return
             with db_conn() as conn:
                 row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
-            if not row:
-                self.send_error_json(404, "Plan not found")
-                return
-            self.send_json(200, row_to_plan(row))
+                if not row:
+                    self.send_error_json(404, "Plan not found")
+                    return
+                user = get_current_user(conn, get_session_token(self))
+                role = get_plan_access(conn, row, user["id"] if user else None)
+                if role is None:
+                    self.send_error_json(403, "Forbidden")
+                    return
+            self.send_json(200, row_to_plan(row, role=role))
             return
 
         self.send_error_json(404, "Not found")
@@ -1502,6 +2190,36 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_delete_account(body if isinstance(body, dict) else None)
             return
 
+        if path == "/api/me/plans":
+            if body is None:
+                self.send_error_json(400, "Invalid JSON body")
+                return
+            self.handle_create_my_plan(body if isinstance(body, dict) else {})
+            return
+        if path == "/api/me/equipment-types":
+            if body is None:
+                self.send_error_json(400, "Invalid JSON body")
+                return
+            self.handle_create_my_equipment_type(body if isinstance(body, dict) else {})
+            return
+
+        restore_match = re.fullmatch(
+            r"/api/plans/([a-f0-9]{32})/snapshots/([a-f0-9]{32})/restore", path
+        )
+        if restore_match:
+            self.handle_restore_plan_snapshot(restore_match.group(1), restore_match.group(2))
+            return
+
+        collaborators_match = re.fullmatch(r"/api/plans/([a-f0-9]{32})/collaborators", path)
+        if collaborators_match:
+            if body is None:
+                self.send_error_json(400, "Invalid JSON body")
+                return
+            self.handle_create_plan_collaborator(
+                collaborators_match.group(1), body if isinstance(body, dict) else {}
+            )
+            return
+
         if path != "/api/plans":
             self.send_error_json(404, "Not found")
             return
@@ -1519,8 +2237,8 @@ class Handler(BaseHTTPRequestHandler):
         with db_conn() as conn:
             conn.execute(
                 """
-                INSERT INTO plans (id, rack_height, devices, connections, next_id, user_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
+                INSERT INTO plans (id, rack_height, devices, connections, next_id, name, power_budget_w, user_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
                 """,
                 (
                     plan_id,
@@ -1528,6 +2246,8 @@ class Handler(BaseHTTPRequestHandler):
                     validated["devices"],
                     validated["connections"],
                     validated["next_id"],
+                    validated["name"],
+                    validated["power_budget_w"],
                     now,
                     now,
                 ),
@@ -1592,19 +2312,22 @@ class Handler(BaseHTTPRequestHandler):
 
         now = utc_now()
         with db_conn() as conn:
-            row = conn.execute("SELECT user_id FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            row = conn.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
             if not row:
                 self.send_error_json(404, "Plan not found")
                 return
+            user = get_current_user(conn, get_session_token(self))
+            access = get_plan_access(conn, row, user["id"] if user else None)
+            if access not in ("owner", "editor"):
+                self.send_error_json(403, "Forbidden")
+                return
             if row["user_id"] is not None:
-                user = get_current_user(conn, get_session_token(self))
-                if not user or user["id"] != row["user_id"]:
-                    self.send_error_json(403, "Forbidden")
-                    return
+                maybe_snapshot_plan(conn, plan_id, row)
             cur = conn.execute(
                 """
                 UPDATE plans
-                SET rack_height = ?, devices = ?, connections = ?, next_id = ?, updated_at = ?
+                SET rack_height = ?, devices = ?, connections = ?, next_id = ?,
+                    name = COALESCE(?, name), power_budget_w = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 (
@@ -1612,6 +2335,8 @@ class Handler(BaseHTTPRequestHandler):
                     validated["devices"],
                     validated["connections"],
                     validated["next_id"],
+                    validated["name"],
+                    validated["power_budget_w"],
                     now,
                     plan_id,
                 ),
@@ -1634,6 +2359,28 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/me/avatar":
             self.handle_delete_avatar()
+            return
+        collaborator_match = re.fullmatch(
+            r"/api/plans/([a-f0-9]{32})/collaborators/([a-f0-9]{32})", path
+        )
+        if collaborator_match:
+            self.handle_delete_plan_collaborator(
+                collaborator_match.group(1), collaborator_match.group(2)
+            )
+            return
+        if path.startswith("/api/plans/"):
+            plan_id = path.split("/api/plans/", 1)[1].strip("/")
+            if not PLAN_ID_RE.match(plan_id):
+                self.send_error_json(400, "Invalid plan id")
+                return
+            self.handle_delete_my_plan(plan_id)
+            return
+        if path.startswith("/api/me/equipment-types/"):
+            type_id = path.split("/api/me/equipment-types/", 1)[1].strip("/")
+            if not CUSTOM_TYPE_ID_RE.match(type_id):
+                self.send_error_json(400, "Invalid type id")
+                return
+            self.handle_delete_my_equipment_type(type_id)
             return
         self.send_error_json(404, "Not found")
 

@@ -17,10 +17,14 @@ RackForge is een rack-planning webapp met SQLite-API, admin-panel en Caddy rever
 ## Installatie in één commando (Ubuntu)
 
 ```bash
-git clone https://github.com/stefpeerlings/rackforge.git && cd rackforge && bash install.sh
+git clone https://github.com/stefpeerlings/rackforge.git rackforge-src && cd rackforge-src && bash install.sh
 ```
 
 Dat is alles: clone + volledige restore in één regel.
+
+**Let op:** clone naar een andere mapnaam dan `rackforge` (bv. `rackforge-src` zoals hierboven) —
+`API_DIR` valt standaard terug op `~/rackforge` (zie `rackforge-api.user.service`), dus een
+checkout in exact die map botst met de restore (`cp` kopieert dan naar zichzelf).
 
 Het script:
 
@@ -57,6 +61,39 @@ Backup op de server (git bundle):
 
 ```bash
 git clone ~/rackforge-backup.bundle rackforge-restore
+```
+
+## Docker (klant self-hosted)
+
+Voor klanten die RackForge zelf willen draaien (eigen server/LXC met Docker),
+in plaats van de handmatige Ubuntu-restore hierboven:
+
+```bash
+git clone https://github.com/stefpeerlings/rackforge.git
+cd rackforge
+cp .env.example .env                              # DOMAIN invullen
+cp api/rackforge.env.example api/rackforge.env     # RACKFORGE_ADMIN_PASSWORD invullen
+docker compose up -d --build
+```
+
+Dit start twee containers:
+
+- **`api`** — de Python-API (zero pip-dependencies, alleen `openssl` CLI erbij voor licentie-verificatie), met een named volume voor `plans.db` + avatars.
+- **`web`** — Caddy met de statische site erin gebakken, regelt automatisch een Let's Encrypt-certificaat voor `DOMAIN` (of gewoon platte HTTP als `DOMAIN=localhost` voor lokaal/LAN-testen — zet dan ook `RACKFORGE_SECURE_COOKIE=0` in `api/rackforge.env`, zie het voorbeeldbestand).
+
+Licentie koppelen: log in op `/admin` (gebruiker **`admin`**, wachtwoord uit `rackforge.env`) en plak de key onder **Licentie** — direct actief, geen herstart nodig. `api/issue_license.py` (het vendor-only tool om keys te genereren) zit expres niet in het image.
+
+Herbouwen na een `git pull`:
+
+```bash
+docker compose up -d --build
+```
+
+Logs / status:
+
+```bash
+docker compose ps
+docker compose logs -f api
 ```
 
 ## Deploy vanaf Windows

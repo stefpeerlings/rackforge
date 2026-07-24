@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.env
+*.pem
+*.db
+avatars/
+issue_license.py
+bootstrap-admin-user.py
+clear-users.py
+migrate-username.py
+setup-admin-env.sh
+setup-smtp.py
+test-smtp.py
+test-verify-mail.py
+gen-avatar.py
+check-mime.py

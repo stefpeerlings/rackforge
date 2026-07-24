@@ -1,0 +1,63 @@
+# RackForge — Docker Caddyfile
+# {$DOMAIN} en {$SCHEME} komen uit de compose-omgeving (.env in de repo-root).
+# Publiek domein, SCHEME=https (default) + poort 80/443 bereikbaar vanaf
+# internet -> automatisch Let's Encrypt-certificaat.
+# Lokaal/LAN-only testen zonder domein: zet SCHEME=http en DOMAIN op het IP
+# of de hostnaam waarmee je de host daadwerkelijk benadert (bv. het LXC-IP —
+# "localhost" werkt hier NIET, want dat matcht alleen requests met Host:
+# localhost, niet requests naar het IP van de container-host).
+
+{$SCHEME:https}://{$DOMAIN:localhost} {
+	root * /srv
+	encode gzip
+
+	handle /admin* {
+		reverse_proxy api:8080
+	}
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	redir /index.html /{?query} permanent
+	redir /login.html /login{?query} permanent
+	redir /main.html /main{?query} permanent
+	redir /settings.html /settings{?query} permanent
+	redir /privacy.html /privacy{?query} permanent
+	redir /terms.html /terms{?query} permanent
+	redir /verify-email.html /verify-email{?query} permanent
+	redir /reset-password.html /reset-password{?query} permanent
+
+	handle /login {
+		rewrite * /login.html
+		file_server
+	}
+	handle /main {
+		rewrite * /main.html
+		file_server
+	}
+	handle /settings {
+		rewrite * /settings.html
+		file_server
+	}
+	handle /privacy {
+		rewrite * /privacy.html
+		file_server
+	}
+	handle /terms {
+		rewrite * /terms.html
+		file_server
+	}
+	handle /verify-email {
+		rewrite * /verify-email.html
+		file_server
+	}
+	handle /reset-password {
+		rewrite * /reset-password.html
+		file_server
+	}
+
+	handle {
+		file_server
+	}
+}

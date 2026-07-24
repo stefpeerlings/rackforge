@@ -1,354 +1,112 @@
 const STORAGE_KEY = "rackforge-plan";
 const PLAN_ID_KEY = "rackforge-plan-id";
 const LEGACY_STORAGE_KEYS = ["openrack-plan", "home-lab-rack-plan", "stef-rack-plan"];
-const ICON_V = "55";
+const ICON_V = "57";
 
 let planId = null;
 let skipCloudSync = false;
 let cloudSaveTimer = null;
 
 const EQUIPMENT_TYPES = [
-  { type: "server-1u", name: "1U Server", icon: "icons/server-1u.svg", height: 1, color: "#0076ce" },
-  { type: "server-2u", name: "2U Server", icon: "icons/server-2u.svg", height: 2, color: "#14a85e" },
-  { type: "server-4u", name: "4U Server", icon: "icons/server-4u.svg", height: 4, color: "#0d8a4a" },
-  { type: "switch-16", name: "16p Switch", icon: "icons/switch-16.svg", height: 1, color: "#3b9eff" },
-  { type: "switch-24", name: "24p Switch", icon: "icons/switch-24.svg", height: 1, color: "#3b9eff" },
-  { type: "switch-48", name: "48p Switch", icon: "icons/switch-48.svg", height: 1, color: "#3b9eff" },
-  { type: "router", name: "1U Router", icon: "icons/router.svg", height: 1, color: "#2563eb" },
-  { type: "nas-2u", name: "2U NAS", icon: "icons/nas-2u.svg", height: 2, color: "#a78bfa" },
-  { type: "nas-4u", name: "4U NAS", icon: "icons/nas-4u.svg", height: 4, color: "#7c3aed" },
-  { type: "patch-16", name: "16p Patch Panel", icon: "icons/patch-16.svg", height: 1, color: "#94a3b8" },
-  { type: "patch-24", name: "24p Patch Panel", icon: "icons/patch-24.svg", height: 1, color: "#94a3b8" },
-  { type: "patch-48", name: "48p Patch Panel", icon: "icons/patch-48.svg", height: 1, color: "#94a3b8" },
-  { type: "pdu", name: "1U PDU", icon: "icons/pdu.svg", height: 1, color: "#f59e0b" },
-  { type: "ups-2u", name: "2U UPS", icon: "icons/ups.svg", height: 2, color: "#d97706" },
-  { type: "kvm", name: "1U KVM", icon: "icons/kvm.svg", height: 1, color: "#06b6d4" },
-  { type: "blank", name: "1U Blanking", icon: "icons/blank.svg", height: 1, color: "#334155" },
-  { type: "blank-2u", name: "2U Blanking", icon: "icons/blank-2u.svg", height: 2, color: "#334155" },
-  { type: "blank-3u", name: "3U Blanking", icon: "icons/blank-3u.svg", height: 3, color: "#334155" },
-  { type: "blank-4u", name: "4U Blanking", icon: "icons/blank-4u.svg", height: 4, color: "#334155" },
-  { type: "blank-6u", name: "6U Blanking", icon: "icons/blank-6u.svg", height: 6, color: "#334155" },
+  { type: "server-1u", name: "1U Server", icon: "icons/server-1u.svg", height: 1, color: "#0076ce", powerW: 150 },
+  { type: "server-2u", name: "2U Server", icon: "icons/server-2u.svg", height: 2, color: "#14a85e", powerW: 300 },
+  { type: "server-4u", name: "4U Server", icon: "icons/server-4u.svg", height: 4, color: "#0d8a4a", powerW: 500 },
+  { type: "switch-16", name: "16p Switch", icon: "icons/switch-16.svg", height: 1, color: "#3b9eff", powerW: 30 },
+  { type: "switch-24", name: "24p Switch", icon: "icons/switch-24.svg", height: 1, color: "#3b9eff", powerW: 45 },
+  { type: "switch-48", name: "48p Switch", icon: "icons/switch-48.svg", height: 1, color: "#3b9eff", powerW: 75 },
+  { type: "router", name: "1U Router", icon: "icons/router.svg", height: 1, color: "#2563eb", powerW: 25 },
+  { type: "nas-2u", name: "2U NAS", icon: "icons/nas-2u.svg", height: 2, color: "#a78bfa", powerW: 80 },
+  { type: "nas-4u", name: "4U NAS", icon: "icons/nas-4u.svg", height: 4, color: "#7c3aed", powerW: 150 },
+  { type: "patch-16", name: "16p Patch Panel", icon: "icons/patch-16.svg", height: 1, color: "#94a3b8", powerW: 0 },
+  { type: "patch-24", name: "24p Patch Panel", icon: "icons/patch-24.svg", height: 1, color: "#94a3b8", powerW: 0 },
+  { type: "patch-48", name: "48p Patch Panel", icon: "icons/patch-48.svg", height: 1, color: "#94a3b8", powerW: 0 },
+  { type: "pdu", name: "1U PDU", icon: "icons/pdu.svg", height: 1, color: "#f59e0b", powerW: 0 },
+  { type: "ups-2u", name: "2U UPS", icon: "icons/ups.svg", height: 2, color: "#d97706", powerW: 0 },
+  { type: "kvm", name: "1U KVM", icon: "icons/kvm.svg", height: 1, color: "#06b6d4", powerW: 10 },
+  { type: "blank", name: "1U Blanking", icon: "icons/blank.svg", height: 1, color: "#334155", powerW: 0 },
+  { type: "blank-2u", name: "2U Blanking", icon: "icons/blank-2u.svg", height: 2, color: "#334155", powerW: 0 },
+  { type: "blank-3u", name: "3U Blanking", icon: "icons/blank-3u.svg", height: 3, color: "#334155", powerW: 0 },
+  { type: "blank-4u", name: "4U Blanking", icon: "icons/blank-4u.svg", height: 4, color: "#334155", powerW: 0 },
+  { type: "blank-6u", name: "6U Blanking", icon: "icons/blank-6u.svg", height: 6, color: "#334155", powerW: 0 },
 ];
+
+function escapeHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[c]);
+}
 
 function iconImg(src, className, alt = "") {
   const url = `${src}?v=${ICON_V}`;
-  return `<img src="${url}" class="${className}" alt="${alt}" loading="lazy" draggable="false">`;
+  return `<img src="${url}" class="${className}" alt="${escapeHtml(alt)}" loading="lazy" draggable="false">`;
 }
 
-const PORT_COUNTS = {
-  "server-1u": 2,
-  "server-2u": 2,
-  "server-4u": 4,
-  "switch-16": 16,
-  "switch-24": 24,
-  "switch-48": 48,
-  switch: 24,
-  router: 4,
-  "nas-2u": 2,
-  "nas-4u": 4,
-  "patch-16": 16,
-  "patch-24": 24,
-  "patch-48": 48,
-  pdu: 0,
-  "ups-2u": 0,
-  kvm: 0,
-  blank: 0,
-  "blank-2u": 0,
-  "blank-3u": 0,
-  "blank-4u": 0,
-  "blank-6u": 0,
-};
-
-const CABLE_COLORS = [
-  { value: "#1bdb7a", key: "green" },
-  { value: "#3b9eff", key: "blue" },
-  { value: "#a78bfa", key: "purple" },
-  { value: "#f59e0b", key: "orange" },
-  { value: "#94a3b8", key: "gray" },
-  { value: "#ef4444", key: "red" },
-];
-
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-function parseHexColor(hex) {
-  const h = hex.replace("#", "");
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16),
-  };
-}
-
-function mixHex(hex, targetHex, amount) {
-  const a = parseHexColor(hex);
-  const t = parseHexColor(targetHex);
-  const mix = (c, tc) => Math.round(c + (tc - c) * amount);
-  const r = mix(a.r, t.r);
-  const g = mix(a.g, t.g);
-  const b = mix(a.b, t.b);
-  return `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
-}
-
-function cableColorSet(hex) {
-  return {
-    jacket: mixHex(hex, "#0a1018", 0.55),
-    body: hex,
-    sheen: mixHex(hex, "#ffffff", 0.35),
-    boot: mixHex(hex, "#000000", 0.22),
-  };
-}
-
-function ensureCableDefs(svg) {
-  if (svg.querySelector("#rack-cable-defs")) return;
-  const defs = document.createElementNS(SVG_NS, "defs");
-  defs.setAttribute("id", "rack-cable-defs");
-  defs.innerHTML = `<filter id="rack-cable-shadow" x="-15%" y="-15%" width="130%" height="130%">
-      <feDropShadow dx="0.5" dy="1.1" stdDeviation="1.1" flood-color="#020408" flood-opacity="0.62"/>
-    </filter>
-    <linearGradient id="rack-plug-face" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#4a5d70"/>
-      <stop offset="55%" stop-color="#2a3542"/>
-      <stop offset="100%" stop-color="#151c24"/>
-    </linearGradient>`;
-  svg.insertBefore(defs, svg.firstChild);
-}
-
-function cablePathLayer(d, stroke, width, opacity, className) {
-  const path = document.createElementNS(SVG_NS, "path");
-  path.setAttribute("d", d);
-  path.setAttribute("fill", "none");
-  path.setAttribute("stroke", stroke);
-  path.setAttribute("stroke-width", String(width));
-  path.setAttribute("stroke-opacity", String(opacity));
-  path.setAttribute("stroke-linecap", "round");
-  path.setAttribute("stroke-linejoin", "round");
-  path.setAttribute("class", className);
-  return path;
-}
-
-function appendRj45PlugHorizontal(group, x, y, colors, dir) {
-  const plugW = 3.2;
-  const bootLen = 4.5;
-  const plugH = 6.5;
-  const dirRight = dir > 0;
-  const bootX = dirRight ? x - bootLen : x;
-  const plugX = dirRight ? x - bootLen - plugW + 0.5 : x + bootLen - 0.5;
-
-  const boot = document.createElementNS(SVG_NS, "rect");
-  boot.setAttribute("x", String(bootX));
-  boot.setAttribute("y", String(y - plugH / 2));
-  boot.setAttribute("width", String(bootLen));
-  boot.setAttribute("height", String(plugH));
-  boot.setAttribute("rx", "1.2");
-  boot.setAttribute("fill", colors.boot);
-  boot.setAttribute("class", "rack-cable__boot");
-  group.appendChild(boot);
-
-  const plug = document.createElementNS(SVG_NS, "rect");
-  plug.setAttribute("x", String(plugX));
-  plug.setAttribute("y", String(y - plugH / 2 + 0.4));
-  plug.setAttribute("width", String(plugW));
-  plug.setAttribute("height", String(plugH - 0.8));
-  plug.setAttribute("rx", "0.6");
-  plug.setAttribute("fill", "url(#rack-plug-face)");
-  plug.setAttribute("class", "rack-cable__plug-body");
-  group.appendChild(plug);
-
-  const contactX = dirRight ? plugX + plugW - 0.85 : plugX + 0.85;
-  const contacts = document.createElementNS(SVG_NS, "line");
-  contacts.setAttribute("x1", String(contactX));
-  contacts.setAttribute("x2", String(contactX));
-  contacts.setAttribute("y1", String(y - 2.1));
-  contacts.setAttribute("y2", String(y + 2.1));
-  contacts.setAttribute("class", "rack-cable__contacts");
-  group.appendChild(contacts);
-
-  const latch = document.createElementNS(SVG_NS, "rect");
-  latch.setAttribute("x", String(plugX + plugW * 0.35));
-  latch.setAttribute("y", String(dirRight ? y + plugH / 2 - 1.1 : y - plugH / 2 + 0.2));
-  latch.setAttribute("width", String(plugH * 0.35));
-  latch.setAttribute("height", "0.9");
-  latch.setAttribute("rx", "0.2");
-  latch.setAttribute("class", "rack-cable__latch");
-  group.appendChild(latch);
-}
-
-function appendRj45PlugIntoPort(group, x, y, colors, tiltDeg = PORT_PLUG_TILT_DEG, plugW = 5, plugH = null) {
-  const bootLen = 3;
-  const bodyH = plugH ?? 2.8 + PORT_PLUG_LEAN_Y;
-  const plugY = y;
-  const bootY = y - bootLen;
-
-  const inner = document.createElementNS(SVG_NS, "g");
-  inner.setAttribute("transform", `rotate(${tiltDeg} ${x} ${y})`);
-
-  const boot = document.createElementNS(SVG_NS, "rect");
-  boot.setAttribute("x", String(x - plugW / 2));
-  boot.setAttribute("y", String(bootY));
-  boot.setAttribute("width", String(plugW));
-  boot.setAttribute("height", String(bootLen));
-  boot.setAttribute("rx", "1.2");
-  boot.setAttribute("fill", colors.boot);
-  boot.setAttribute("class", "rack-cable__boot");
-  inner.appendChild(boot);
-
-  const plug = document.createElementNS(SVG_NS, "rect");
-  plug.setAttribute("x", String(x - plugW / 2 + 0.4));
-  plug.setAttribute("y", String(plugY));
-  plug.setAttribute("width", String(plugW - 0.8));
-  plug.setAttribute("height", String(bodyH));
-  plug.setAttribute("rx", "0.6");
-  plug.setAttribute("fill", "url(#rack-plug-face)");
-  plug.setAttribute("class", "rack-cable__plug-body");
-  inner.appendChild(plug);
-
-  const contactY = plugY + bodyH - 0.85;
-  const contacts = document.createElementNS(SVG_NS, "line");
-  contacts.setAttribute("x1", String(x - 2.1));
-  contacts.setAttribute("x2", String(x + 2.1));
-  contacts.setAttribute("y1", String(contactY));
-  contacts.setAttribute("y2", String(contactY));
-  contacts.setAttribute("class", "rack-cable__contacts");
-  inner.appendChild(contacts);
-
-  const latch = document.createElementNS(SVG_NS, "rect");
-  latch.setAttribute("x", String(x + plugW / 2 - 1.1));
-  latch.setAttribute("y", String(plugY + 0.15));
-  latch.setAttribute("width", "0.9");
-  latch.setAttribute("height", String(bodyH * 0.35));
-  latch.setAttribute("rx", "0.2");
-  latch.setAttribute("class", "rack-cable__latch");
-  inner.appendChild(latch);
-
-  group.appendChild(inner);
-}
-
-function appendRj45Plug(group, x, y, colors, dir) {
-  const plugW = 5;
-  const bootLen = 3.5;
-  const plugH = 2.6;
-  const dirUp = dir < 0;
-  const bootY = dirUp ? y - bootLen : y;
-  const plugY = dirUp ? y - bootLen - plugH + 0.5 : y + bootLen - 0.5;
-
-  const boot = document.createElementNS(SVG_NS, "rect");
-  boot.setAttribute("x", String(x - plugW / 2));
-  boot.setAttribute("y", String(bootY));
-  boot.setAttribute("width", String(plugW));
-  boot.setAttribute("height", String(bootLen));
-  boot.setAttribute("rx", "1.2");
-  boot.setAttribute("fill", colors.boot);
-  boot.setAttribute("class", "rack-cable__boot");
-  group.appendChild(boot);
-
-  const plug = document.createElementNS(SVG_NS, "rect");
-  plug.setAttribute("x", String(x - plugW / 2 + 0.4));
-  plug.setAttribute("y", String(plugY));
-  plug.setAttribute("width", String(plugW - 0.8));
-  plug.setAttribute("height", String(plugH));
-  plug.setAttribute("rx", "0.6");
-  plug.setAttribute("fill", "url(#rack-plug-face)");
-  plug.setAttribute("class", "rack-cable__plug-body");
-  group.appendChild(plug);
-
-  const contactY = dirUp ? plugY + plugH - 0.85 : plugY + 0.85;
-  const contacts = document.createElementNS(SVG_NS, "line");
-  contacts.setAttribute("x1", String(x - 2.1));
-  contacts.setAttribute("x2", String(x + 2.1));
-  contacts.setAttribute("y1", String(contactY));
-  contacts.setAttribute("y2", String(contactY));
-  contacts.setAttribute("class", "rack-cable__contacts");
-  group.appendChild(contacts);
-
-  const latch = document.createElementNS(SVG_NS, "rect");
-  latch.setAttribute("x", String(x + plugW / 2 - 1.1));
-  latch.setAttribute("y", String(plugY + plugH * 0.35));
-  latch.setAttribute("width", "0.9");
-  latch.setAttribute("height", String(plugH * 0.35));
-  latch.setAttribute("rx", "0.2");
-  latch.setAttribute("class", "rack-cable__latch");
-  group.appendChild(latch);
-}
-
-function appendEthernetCable(svg, { d, color, fromPts, toPts, label }) {
-  const colors = cableColorSet(color);
-  const g = document.createElementNS(SVG_NS, "g");
-  g.setAttribute("class", "rack-cable");
-  g.setAttribute("filter", "url(#rack-cable-shadow)");
-  if (label) g.setAttribute("aria-label", label);
-
-  g.appendChild(cablePathLayer(d, colors.jacket, 4.5, 1, "rack-cable__jacket"));
-  g.appendChild(cablePathLayer(d, colors.body, 3, 1, "rack-cable__body"));
-
-  if (fromPts?.stub) {
-    if (fromPts.stub.intoPort) {
-      const plug = plugAnchorPoint(fromPts);
-      appendRj45PlugIntoPort(
-        g,
-        plug.x,
-        plug.y,
-        colors,
-        fromPts.stub.tilt,
-        fromPts.stub.plugW,
-        fromPts.stub.plugH
-      );
-    } else if (fromPts.stub.axis === "h") {
-      appendRj45PlugHorizontal(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
-    } else {
-      appendRj45Plug(g, fromPts.tip.x, fromPts.tip.y, colors, fromPts.stub.dir);
-    }
+function equipmentIcon(info, className) {
+  if (info.custom) {
+    return `<div class="${className} equip-icon--custom" style="--dev-color: ${info.color};" role="img" aria-label="${escapeHtml(info.name)}"></div>`;
   }
-  if (toPts?.stub) {
-    if (toPts.stub.intoPort) {
-      const plug = plugAnchorPoint(toPts);
-      appendRj45PlugIntoPort(
-        g,
-        plug.x,
-        plug.y,
-        colors,
-        toPts.stub.tilt,
-        toPts.stub.plugW,
-        toPts.stub.plugH
-      );
-    } else if (toPts.stub.axis === "h") {
-      appendRj45PlugHorizontal(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
-    } else {
-      appendRj45Plug(g, toPts.tip.x, toPts.tip.y, colors, toPts.stub.dir);
-    }
-  }
-
-  svg.appendChild(g);
-}
-
-function appendMapEthernetCable(svg, d, color) {
-  const colors = cableColorSet(color);
-  const g = document.createElementNS(SVG_NS, "g");
-  g.setAttribute("class", "map-cable");
-  g.appendChild(cablePathLayer(d, colors.jacket, 5.5, 0.92, "map-cable__jacket"));
-  g.appendChild(cablePathLayer(d, colors.body, 3.8, 1, "map-cable__body"));
-  g.appendChild(cablePathLayer(d, colors.sheen, 1.3, 0.55, "map-cable__sheen"));
-  svg.appendChild(g);
+  return iconImg(info.icon, className, info.name);
 }
 
 let rackHeight = 25;
 let devices = [];
-let connections = [];
 let selectedType = null;
 let selectedDeviceId = null;
-let detailsTab = "device";
 let nextId = 1;
-let cablingMapResizeTimer = null;
 let dragDeviceId = null;
-let cablingFocusDeviceId = null;
+let currentRackName = "";
+let powerBudgetW = 0;
+let customTypes = [];
+let currentPlanRole = "owner";
+
+function isCustomType(type) {
+  return typeof type === "string" && type.startsWith("custom:");
+}
 
 function parseDevices(raw) {
   return (raw || [])
     .map((d) => ({ ...d, type: normalizeDeviceType(d.type) }))
-    .filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type));
+    .filter((d) => EQUIPMENT_TYPES.some((t) => t.type === d.type) || isCustomType(d.type));
+}
+
+function devicePowerW(device) {
+  if (Number.isFinite(device.powerW) && device.powerW >= 0) return device.powerW;
+  return typeInfo(device.type).powerW || 0;
+}
+
+function totalPowerW() {
+  return devices.reduce((sum, d) => sum + devicePowerW(d), 0);
 }
 
 function typeInfo(type) {
   const normalized = normalizeDeviceType(type);
+  if (isCustomType(normalized)) {
+    const custom = customTypes.find((c) => `custom:${c.id}` === normalized);
+    if (custom) {
+      return {
+        type: normalized,
+        name: custom.name,
+        color: custom.color,
+        height: custom.height,
+        powerW: custom.powerW,
+        icon: null,
+        custom: true,
+      };
+    }
+    return {
+      type: normalized,
+      name: I18n.t("palette.unknownCustomType"),
+      color: "#555555",
+      height: 1,
+      powerW: 0,
+      icon: null,
+      custom: true,
+    };
+  }
   const base = EQUIPMENT_TYPES.find((t) => t.type === normalized) || EQUIPMENT_TYPES[0];
   return { ...base, name: I18n.t(`equipment.${base.type}`) };
 }
@@ -366,99 +124,10 @@ function blankNeighborBleed(device) {
   return { bleedAbove, bleedBelow };
 }
 
-function devicePortCount(device) {
-  return PORT_COUNTS[normalizeDeviceType(device.type)] ?? 0;
-}
-
-function devicesWithPorts() {
-  return devices.filter((d) => devicePortCount(d) > 0);
-}
-
-function deviceDisplayName(device) {
-  const info = typeInfo(device.type);
-  return device.label || info.name;
-}
-
-function sanitizeConnections() {
-  const deviceIds = new Set(devices.map((d) => d.id));
-  connections = connections.filter((c) => {
-    if (!deviceIds.has(c.fromDeviceId) || !deviceIds.has(c.toDeviceId)) return false;
-    const fromDev = devices.find((d) => d.id === c.fromDeviceId);
-    const toDev = devices.find((d) => d.id === c.toDeviceId);
-    if (!fromDev || !toDev) return false;
-    const fromMax = devicePortCount(fromDev);
-    const toMax = devicePortCount(toDev);
-    if (fromMax < 1 || toMax < 1) return false;
-    if (c.fromPort < 1 || c.fromPort > fromMax || c.toPort < 1 || c.toPort > toMax) return false;
-    return true;
-  });
-  const maxConnId = connections.reduce((m, c) => Math.max(m, c.id), 0);
-  nextId = Math.max(nextId, maxConnId + 1);
-}
-
-function isPatchType(type) {
-  return typeof type === "string" && type.startsWith("patch-");
-}
-
-function patchPortSideForPeer(peerType) {
-  if (peerType.startsWith("server-") || peerType.startsWith("nas-")) return "rear";
-  return "front";
-}
-
-function connectionPatchSide(deviceId, conn) {
-  const device = devices.find((d) => d.id === deviceId);
-  if (!device || !isPatchType(device.type)) return null;
-  const peerId = conn.fromDeviceId === deviceId ? conn.toDeviceId : conn.fromDeviceId;
-  const peer = devices.find((d) => d.id === peerId);
-  return patchPortSideForPeer(peer?.type || "");
-}
-
-function isPortUsedOnSide(deviceId, port, side, excludeId = null) {
-  const device = devices.find((d) => d.id === deviceId);
-  if (!device) return false;
-
-  if (isPatchType(device.type)) {
-    return connections.some((c) => {
-      if (c.id === excludeId) return false;
-      const onDevice =
-        (c.fromDeviceId === deviceId && c.fromPort === port) ||
-        (c.toDeviceId === deviceId && c.toPort === port);
-      if (!onDevice) return false;
-      return connectionPatchSide(deviceId, c) === side;
-    });
-  }
-
-  return connections.some(
-    (c) =>
-      c.id !== excludeId &&
-      ((c.fromDeviceId === deviceId && c.fromPort === port) ||
-        (c.toDeviceId === deviceId && c.toPort === port))
-  );
-}
-
-function isPortUsed(deviceId, port, excludeId = null, peerDeviceId = null) {
-  const device = devices.find((d) => d.id === deviceId);
-  if (!device) return false;
-
-  if (isPatchType(device.type) && peerDeviceId != null) {
-    const peer = devices.find((d) => d.id === Number(peerDeviceId));
-    const side = peer ? patchPortSideForPeer(peer.type) : "front";
-    return isPortUsedOnSide(deviceId, port, side, excludeId);
-  }
-
-  return isPortUsedOnSide(deviceId, port, "front", excludeId);
-}
-
-function pruneConnectionsForDevice(deviceId) {
-  connections = connections.filter(
-    (c) => c.fromDeviceId !== deviceId && c.toDeviceId !== deviceId
-  );
-}
-
 function save() {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ rackHeight, devices, connections, nextId })
+    JSON.stringify({ rackHeight, devices, nextId, powerBudgetW })
   );
   if (!skipCloudSync) scheduleCloudSave();
 }
@@ -492,25 +161,22 @@ function scheduleCloudSave() {
 }
 
 async function cloudSave() {
-  const payload = { rackHeight, devices, connections, nextId };
-
-  if (window.Auth?.isLoggedIn()) {
-    const res = await apiFetch("/api/me/plan", {
-      method: "PUT",
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error("save failed");
-    const data = await res.json();
-    planId = data.id;
-    localStorage.setItem(PLAN_ID_KEY, planId);
-    setPlanInUrl(planId);
-    return;
-  }
-
-  const url = planId ? `/api/plans/${planId}` : "/api/plans";
+  const payload = { rackHeight, devices, nextId, name: currentRackName, powerBudgetW };
+  const loggedIn = window.Auth?.isLoggedIn();
+  const url = planId ? `/api/plans/${planId}` : loggedIn ? "/api/me/plans" : "/api/plans";
   const method = planId ? "PUT" : "POST";
   const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
-  if (!res.ok) throw new Error("save failed");
+  if (!res.ok) {
+    if (res.status === 403) {
+      const err = await res.json().catch(() => null);
+      if (err?.error === "rack_limit_reached") {
+        const rackLimitError = new Error("rack limit reached");
+        rackLimitError.rackLimit = err;
+        throw rackLimitError;
+      }
+    }
+    throw new Error("save failed");
+  }
   const data = await res.json();
   if (!planId) {
     planId = data.id;
@@ -520,25 +186,22 @@ async function cloudSave() {
 }
 
 async function loadAccountPlan() {
-  const res = await apiFetch("/api/me/plan");
-  if (res.status === 404) {
-    await cloudSave();
+  const res = await apiFetch("/api/me/plans");
+  if (!res.ok) throw new Error("load failed");
+  const list = await res.json();
+  if (!list.length) {
+    const created = await apiFetch("/api/me/plans", {
+      method: "POST",
+      body: JSON.stringify({ rackHeight }),
+    });
+    if (!created.ok) throw new Error("create failed");
+    const data = await created.json();
+    await cloudLoad(data.id);
     return;
   }
-  if (!res.ok) throw new Error("load failed");
-  const data = await res.json();
-  skipCloudSync = true;
-  rackHeight = data.rackHeight || 25;
-  devices = parseDevices(data.devices);
-  connections = Array.isArray(data.connections) ? data.connections : [];
-  nextId = data.nextId || 1;
-  sanitizeConnections();
-  planId = data.id;
-  localStorage.setItem(PLAN_ID_KEY, planId);
-  document.getElementById("rack-height").value = String(rackHeight);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ rackHeight, devices, connections, nextId }));
-  skipCloudSync = false;
-  setPlanInUrl(planId);
+  const cachedId = localStorage.getItem(PLAN_ID_KEY);
+  const match = list.find((p) => p.id === cachedId) || list[0];
+  await cloudLoad(match.id);
 }
 
 async function cloudLoad(id) {
@@ -548,15 +211,527 @@ async function cloudLoad(id) {
   skipCloudSync = true;
   rackHeight = data.rackHeight || 25;
   devices = parseDevices(data.devices);
-  connections = Array.isArray(data.connections) ? data.connections : [];
   nextId = data.nextId || 1;
-  sanitizeConnections();
+  currentRackName = data.name || "Rack";
+  powerBudgetW = data.powerBudgetW || 0;
+  // Anonymous/guest mode never surfaces owner-only UI (the whole rack-switcher
+  // toolbar is hidden unless logged in), so default to unrestricted there
+  // regardless of what the server computed for this request.
+  currentPlanRole = window.Auth?.isLoggedIn() ? data.role || "owner" : "owner";
   planId = id;
   localStorage.setItem(PLAN_ID_KEY, planId);
   document.getElementById("rack-height").value = String(rackHeight);
   save();
   skipCloudSync = false;
   setPlanInUrl(id);
+  renderReadOnlyState();
+}
+
+async function loadMyRackList() {
+  const select = document.getElementById("rack-switcher");
+  const wrap = document.getElementById("rack-switcher-wrap");
+  if (!select || !wrap || !window.Auth?.isLoggedIn()) return;
+  const res = await apiFetch("/api/me/plans");
+  if (!res.ok) return;
+  const list = await res.json();
+  select.innerHTML = "";
+  for (const plan of list) {
+    const opt = document.createElement("option");
+    opt.value = plan.id;
+    let label = plan.name || `Rack (${plan.rackHeight}U)`;
+    if (plan.role && plan.role !== "owner") {
+      label += ` · ${I18n.t("rackSwitcher.sharedBy", { owner: plan.ownerLabel || "?" })}`;
+    }
+    opt.textContent = label;
+    if (plan.id === planId) opt.selected = true;
+    select.appendChild(opt);
+  }
+  const newOpt = document.createElement("option");
+  newOpt.value = "__new__";
+  newOpt.textContent = I18n.t("rackSwitcher.new");
+  select.appendChild(newOpt);
+  wrap.hidden = false;
+}
+
+async function switchRack(value) {
+  if (value === "__new__") {
+    await createNewRack();
+    return;
+  }
+  if (value === planId) return;
+  try {
+    await cloudLoad(value);
+  } catch {
+    /* ignore, list refresh below will restore correct selection */
+  }
+  renderPalette();
+  renderRack();
+  renderDetails();
+  renderStats();
+  renderInventory();
+  updateHint();
+  await loadMyRackList();
+}
+
+async function createNewRack() {
+  const res = await apiFetch("/api/me/plans", {
+    method: "POST",
+    body: JSON.stringify({ rackHeight: Number(document.getElementById("rack-height").value) || 25 }),
+  });
+  if (res.status === 403) {
+    const err = await res.json().catch(() => ({}));
+    flashHint(I18n.t("rackSwitcher.limitReached", { limit: err.limit, tier: err.tier }));
+    await loadMyRackList();
+    return;
+  }
+  if (!res.ok) return;
+  const data = await res.json();
+  await cloudLoad(data.id);
+  renderPalette();
+  renderRack();
+  renderDetails();
+  renderStats();
+  renderInventory();
+  updateHint();
+  await loadMyRackList();
+}
+
+async function renameRack() {
+  if (!planId || currentPlanRole === "viewer") return;
+  const name = prompt(I18n.t("rackSwitcher.renamePrompt"), currentRackName);
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === currentRackName) return;
+  currentRackName = trimmed;
+  save();
+  await loadMyRackList();
+}
+
+let historyPanelOpen = false;
+
+function setHistoryPanelOpen(open) {
+  historyPanelOpen = open;
+  const panel = document.getElementById("history-panel");
+  const trigger = document.getElementById("btn-history-toggle");
+  if (!panel || !trigger) return;
+  panel.hidden = !open;
+  if (open) {
+    loadSnapshots();
+    document.addEventListener("click", onHistoryOutsideClick);
+    document.addEventListener("keydown", onHistoryEscape);
+  } else {
+    document.removeEventListener("click", onHistoryOutsideClick);
+    document.removeEventListener("keydown", onHistoryEscape);
+  }
+}
+
+function onHistoryOutsideClick(e) {
+  const menu = document.getElementById("history-menu");
+  if (menu && !menu.contains(e.target)) setHistoryPanelOpen(false);
+}
+
+function onHistoryEscape(e) {
+  if (e.key === "Escape") setHistoryPanelOpen(false);
+}
+
+function formatSnapshotTime(iso) {
+  try {
+    const locale = I18n.getLang() === "nl" ? "nl-NL" : "en-US";
+    return new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return iso;
+  }
+}
+
+async function loadSnapshots() {
+  const list = document.getElementById("history-list");
+  if (!planId) {
+    list.innerHTML = "";
+    return;
+  }
+  const res = await apiFetch(`/api/plans/${planId}/snapshots`);
+  if (!res.ok) {
+    list.innerHTML = `<p class="history-panel__empty">${escapeHtml(I18n.t("history.loadError"))}</p>`;
+    return;
+  }
+  const snapshots = await res.json();
+  if (!snapshots.length) {
+    list.innerHTML = `<p class="history-panel__empty">${escapeHtml(I18n.t("history.empty"))}</p>`;
+    return;
+  }
+  list.innerHTML = snapshots
+    .map(
+      (s) => `
+    <li class="history-item">
+      <span class="history-item__meta">
+        <span class="history-item__time">${escapeHtml(formatSnapshotTime(s.createdAt))}</span>
+        <span class="history-item__count">${escapeHtml(I18n.t("history.deviceCount", { count: s.deviceCount }))}</span>
+      </span>
+      <button type="button" class="btn btn--ghost btn--sm" data-restore-snapshot="${s.id}">${escapeHtml(I18n.t("history.restore"))}</button>
+    </li>`
+    )
+    .join("");
+  list.querySelectorAll("[data-restore-snapshot]").forEach((btn) => {
+    btn.addEventListener("click", () => restoreSnapshot(btn.dataset.restoreSnapshot));
+  });
+}
+
+async function restoreSnapshot(snapshotId) {
+  if (!planId || currentPlanRole === "viewer") return;
+  if (!confirm(I18n.t("history.restoreConfirm"))) return;
+  const res = await apiFetch(`/api/plans/${planId}/snapshots/${snapshotId}/restore`, {
+    method: "POST",
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  skipCloudSync = true;
+  rackHeight = data.rackHeight || 25;
+  devices = parseDevices(data.devices);
+  nextId = data.nextId || 1;
+  currentRackName = data.name || "Rack";
+  powerBudgetW = data.powerBudgetW || 0;
+  document.getElementById("rack-height").value = String(rackHeight);
+  save();
+  skipCloudSync = false;
+  renderPalette();
+  renderRack();
+  renderDetails();
+  renderStats();
+  renderInventory();
+  updateHint();
+  setHistoryPanelOpen(false);
+  await loadMyRackList();
+}
+
+let sharePanelOpen = false;
+
+function setSharePanelOpen(open) {
+  if (currentPlanRole !== "owner") open = false;
+  sharePanelOpen = open;
+  const panel = document.getElementById("share-panel");
+  const trigger = document.getElementById("btn-share-toggle");
+  if (!panel || !trigger) return;
+  panel.hidden = !open;
+  if (open) {
+    loadCollaborators();
+    document.addEventListener("click", onShareOutsideClick);
+    document.addEventListener("keydown", onShareEscape);
+  } else {
+    document.removeEventListener("click", onShareOutsideClick);
+    document.removeEventListener("keydown", onShareEscape);
+  }
+}
+
+function onShareOutsideClick(e) {
+  const menu = document.getElementById("share-menu");
+  if (menu && !menu.contains(e.target)) setSharePanelOpen(false);
+}
+
+function onShareEscape(e) {
+  if (e.key === "Escape") setSharePanelOpen(false);
+}
+
+const ROLE_LABEL_KEYS = { viewer: "share.roleViewer", editor: "share.roleEditor" };
+
+async function loadCollaborators() {
+  const list = document.getElementById("share-list");
+  if (!planId || currentPlanRole !== "owner") {
+    list.innerHTML = "";
+    return;
+  }
+  const res = await apiFetch(`/api/plans/${planId}/collaborators`);
+  if (!res.ok) {
+    list.innerHTML = `<p class="history-panel__empty">${escapeHtml(I18n.t("share.loadError"))}</p>`;
+    return;
+  }
+  const collaborators = await res.json();
+  if (!collaborators.length) {
+    list.innerHTML = `<p class="history-panel__empty">${escapeHtml(I18n.t("share.empty"))}</p>`;
+    return;
+  }
+  list.innerHTML = collaborators
+    .map(
+      (c) => `
+    <li class="history-item">
+      <span class="history-item__meta">
+        <span class="history-item__time">${escapeHtml(c.label)}</span>
+        <span class="history-item__count">${escapeHtml(I18n.t(ROLE_LABEL_KEYS[c.role] || "share.roleViewer"))}</span>
+      </span>
+      <button type="button" class="btn btn--ghost btn--sm" data-remove-collaborator="${c.id}">${escapeHtml(I18n.t("share.remove"))}</button>
+    </li>`
+    )
+    .join("");
+  list.querySelectorAll("[data-remove-collaborator]").forEach((btn) => {
+    btn.addEventListener("click", () => removeCollaborator(btn.dataset.removeCollaborator));
+  });
+}
+
+async function addCollaborator() {
+  if (!planId || currentPlanRole !== "owner") return;
+  const emailInput = document.getElementById("share-email");
+  const roleSelect = document.getElementById("share-role");
+  const email = emailInput.value.trim();
+  const role = roleSelect.value;
+  if (!email) {
+    flashHint(I18n.t("share.emailRequired"));
+    return;
+  }
+  const res = await apiFetch(`/api/plans/${planId}/collaborators`, {
+    method: "POST",
+    body: JSON.stringify({ email, role }),
+  });
+  if (res.status === 403) {
+    const err = await res.json().catch(() => ({}));
+    flashHint(I18n.t("share.limitReached", { limit: err.limit, tier: err.tier }));
+    return;
+  }
+  if (res.status === 404) {
+    flashHint(I18n.t("share.notFound"));
+    return;
+  }
+  if (res.status === 409) {
+    flashHint(I18n.t("share.alreadyShared"));
+    return;
+  }
+  if (!res.ok) {
+    flashHint(I18n.t("share.addError"));
+    return;
+  }
+  emailInput.value = "";
+  await loadCollaborators();
+}
+
+async function removeCollaborator(collaboratorId) {
+  if (!planId || currentPlanRole !== "owner") return;
+  const res = await apiFetch(`/api/plans/${planId}/collaborators/${collaboratorId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) return;
+  await loadCollaborators();
+}
+
+function renderReadOnlyState() {
+  const isOwner = currentPlanRole === "owner";
+  const canEdit = currentPlanRole === "owner" || currentPlanRole === "editor";
+
+  document.getElementById("share-menu").hidden = !isOwner;
+  document.getElementById("btn-rack-delete").hidden = !isOwner;
+  document.getElementById("btn-rack-rename").disabled = !canEdit;
+  document.getElementById("btn-reset").disabled = !canEdit;
+  document.getElementById("rack-height").disabled = !canEdit;
+  document.getElementById("stat-power-wrap").disabled = !canEdit;
+  document.getElementById("detail-label").disabled = !canEdit;
+  document.getElementById("detail-power").disabled = !canEdit;
+  document.getElementById("btn-remove").disabled = !canEdit;
+
+  if (!isOwner) setSharePanelOpen(false);
+}
+
+function setPowerBudget() {
+  if (currentPlanRole === "viewer") return;
+  const raw = prompt(I18n.t("stats.powerBudgetPrompt"), powerBudgetW > 0 ? String(powerBudgetW) : "");
+  if (raw === null) return;
+  const trimmed = raw.trim();
+  const parsed = trimmed === "" ? 0 : Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0) return;
+  powerBudgetW = Math.round(parsed);
+  save();
+  renderStats();
+}
+
+async function loadCustomTypes() {
+  if (!window.Auth?.isLoggedIn()) return;
+  const res = await apiFetch("/api/me/equipment-types");
+  if (!res.ok) return;
+  customTypes = await res.json();
+  document.getElementById("palette-custom").hidden = false;
+  renderPalette();
+  renderRack();
+  renderInventory();
+  renderDetails();
+}
+
+async function createCustomType() {
+  const name = document.getElementById("custom-type-name").value.trim();
+  const height = Number(document.getElementById("custom-type-height").value);
+  const color = document.getElementById("custom-type-color").value;
+  const powerRaw = document.getElementById("custom-type-power").value.trim();
+  const powerW = powerRaw === "" ? 0 : Number(powerRaw);
+
+  if (!name) {
+    flashHint(I18n.t("palette.customTypeNameRequired"));
+    return;
+  }
+  if (!Number.isFinite(powerW) || powerW < 0) {
+    flashHint(I18n.t("palette.customTypeInvalidPower"));
+    return;
+  }
+
+  const res = await apiFetch("/api/me/equipment-types", {
+    method: "POST",
+    body: JSON.stringify({ name, height, color, powerW }),
+  });
+  if (res.status === 403) {
+    const err = await res.json().catch(() => ({}));
+    flashHint(I18n.t("palette.customTypeLimitReached", { limit: err.limit, tier: err.tier }));
+    return;
+  }
+  if (!res.ok) {
+    flashHint(I18n.t("palette.customTypeInvalid"));
+    return;
+  }
+  document.getElementById("custom-type-name").value = "";
+  document.getElementById("custom-type-power").value = "";
+  document.getElementById("custom-type-form").hidden = true;
+  await loadCustomTypes();
+}
+
+async function deleteCustomType(id) {
+  if (!confirm(I18n.t("palette.deleteCustomTypeConfirm"))) return;
+  const res = await apiFetch(`/api/me/equipment-types/${id}`, { method: "DELETE" });
+  if (!res.ok) return;
+  if (selectedType === `custom:${id}`) selectedType = null;
+  await loadCustomTypes();
+}
+
+function textColorFor(bgColor) {
+  const hex = (bgColor || "#334155").replace("#", "");
+  if (hex.length !== 6) return "#ffffff";
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#0a0a0a" : "#ffffff";
+}
+
+function triggerDownload(url, filename) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function exportRackPNG() {
+  const uHeight = 26;
+  const marginTop = 50;
+  const marginBottom = 20;
+  const marginLeft = 46;
+  const marginRight = 16;
+  const width = 640;
+  const height = marginTop + rackHeight * uHeight + marginBottom;
+
+  const canvas = document.createElement("canvas");
+  const scale = 2;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = "#0b1017";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = "#e8edf2";
+  ctx.font = "bold 16px system-ui, sans-serif";
+  ctx.fillText(`${currentRackName || "Rack"} · ${rackHeight}U`, marginLeft, 28);
+
+  const rackLeft = marginLeft;
+  const rackWidth = width - marginLeft - marginRight;
+
+  for (let u = 1; u <= rackHeight; u++) {
+    const y = marginTop + (rackHeight - u) * uHeight;
+    ctx.strokeStyle = "#22303c";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(rackLeft, y, rackWidth, uHeight);
+    ctx.fillStyle = "#5b6b78";
+    ctx.font = "9px monospace";
+    ctx.fillText(String(u), rackLeft - 24, y + uHeight / 2 + 3);
+  }
+
+  const drawn = new Set();
+  for (const device of devices) {
+    if (drawn.has(device.id)) continue;
+    drawn.add(device.id);
+    const info = typeInfo(device.type);
+    const topU = device.startU + device.height - 1;
+    const y = marginTop + (rackHeight - topU) * uHeight;
+    const h = device.height * uHeight;
+    ctx.fillStyle = info.color || "#334155";
+    ctx.fillRect(rackLeft + 1, y + 1, rackWidth - 2, h - 2);
+    ctx.fillStyle = textColorFor(info.color);
+    ctx.font = "bold 11px system-ui, sans-serif";
+    const label = device.label || info.name;
+    ctx.fillText(label, rackLeft + 8, y + h / 2 + 4, rackWidth - 90);
+    ctx.font = "9px monospace";
+    ctx.textAlign = "right";
+    ctx.fillText(`U${device.startU}-U${topU}`, rackLeft + rackWidth - 8, y + h / 2 + 3);
+    ctx.textAlign = "left";
+  }
+
+  const filename = `${(currentRackName || "rack").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`;
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, filename);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  });
+}
+
+function exportRackPDF() {
+  const view = document.getElementById("print-view");
+  const uPct = 100 / rackHeight;
+  const drawn = new Set();
+  const deviceBlocks = [];
+  for (const device of devices) {
+    if (drawn.has(device.id)) continue;
+    drawn.add(device.id);
+    const info = typeInfo(device.type);
+    const topU = device.startU + device.height - 1;
+    const top = (rackHeight - topU) * uPct;
+    const heightPct = device.height * uPct;
+    const label = device.label || info.name;
+    deviceBlocks.push(`
+      <div class="print-device" style="top:${top}%; height:${heightPct}%; background:${info.color || "#334155"}; color:${textColorFor(info.color)};">
+        <span>${escapeHtml(label)}</span>
+        <span class="print-device__pos">U${device.startU}-U${topU}</span>
+      </div>`);
+  }
+
+  const numbers = [];
+  for (let u = 1; u <= rackHeight; u++) {
+    numbers.push(`<div class="print-num" style="height:${uPct}%;">${u}</div>`);
+  }
+
+  const frameHeight = rackHeight * 18;
+  view.innerHTML = `
+    <h1>${escapeHtml(currentRackName || "Rack")} · ${rackHeight}U</h1>
+    <div class="print-rack">
+      <div class="print-nums" style="height:${frameHeight}px;">${numbers.reverse().join("")}</div>
+      <div class="print-frame" style="height:${frameHeight}px;">${deviceBlocks.join("")}</div>
+    </div>`;
+
+  window.print();
+}
+
+async function deleteRack() {
+  if (!planId || currentPlanRole !== "owner") return;
+  if (!confirm(I18n.t("rackSwitcher.deletePrompt"))) return;
+  const res = await apiFetch(`/api/plans/${planId}`, { method: "DELETE" });
+  if (res.status === 409) {
+    flashHint(I18n.t("rackSwitcher.cannotDeleteLast"));
+    return;
+  }
+  if (!res.ok) return;
+  planId = null;
+  localStorage.removeItem(PLAN_ID_KEY);
+  await loadAccountPlan();
+  renderPalette();
+  renderRack();
+  renderDetails();
+  renderStats();
+  renderInventory();
+  updateHint();
+  await loadMyRackList();
 }
 
 function load() {
@@ -572,9 +747,8 @@ function load() {
     const data = JSON.parse(raw);
     rackHeight = data.rackHeight || 25;
     devices = parseDevices(data.devices);
-    connections = Array.isArray(data.connections) ? data.connections : [];
     nextId = data.nextId || 1;
-    sanitizeConnections();
+    powerBudgetW = data.powerBudgetW || 0;
     document.getElementById("rack-height").value = String(rackHeight);
     save();
   } catch {
@@ -614,6 +788,7 @@ function findPlacementStart(clickedU, height, excludeId = null) {
 }
 
 function moveDevice(deviceId, clickedU) {
+  if (currentPlanRole === "viewer") return false;
   const device = devices.find((d) => d.id === deviceId);
   if (!device) return false;
 
@@ -629,8 +804,6 @@ function moveDevice(deviceId, clickedU) {
   renderRack();
   renderStats();
   renderInventory();
-  renderCablingForm();
-  renderCablingMap();
   updateHint();
   return true;
 }
@@ -638,38 +811,11 @@ function moveDevice(deviceId, clickedU) {
 function selectDevice(deviceId) {
   selectedDeviceId = deviceId;
   selectedType = null;
-  const device = devices.find((d) => d.id === deviceId);
-  if (device && devicePortCount(device) > 0) {
-    cablingFocusDeviceId = deviceId;
-    detailsTab = "cabling";
-  }
   renderPalette();
   renderRack();
   renderDetails();
-  switchDetailsTab(detailsTab);
-  if (cablingFocusDeviceId) renderCablingForm();
-  renderCablingList();
-  renderCablingMap();
   renderInventory();
   updateHint();
-}
-
-function switchDetailsTab(tab) {
-  detailsTab = tab;
-  const tabDevice = document.getElementById("tab-device");
-  const tabCabling = document.getElementById("tab-cabling");
-  const panelDevice = document.getElementById("panel-device");
-  const panelCabling = document.getElementById("panel-cabling");
-
-  const isDevice = tab === "device";
-  tabDevice.classList.toggle("details-tab--active", isDevice);
-  tabCabling.classList.toggle("details-tab--active", !isDevice);
-  tabDevice.setAttribute("aria-selected", String(isDevice));
-  tabCabling.setAttribute("aria-selected", String(!isDevice));
-  panelDevice.hidden = !isDevice;
-  panelCabling.hidden = isDevice;
-
-  if (!isDevice && !cablingFocusDeviceId) renderCablingForm();
 }
 
 function clearPlacementPreview() {
@@ -751,26 +897,48 @@ function highlightPlacementPreview(clickedU) {
 
 function renderPalette() {
   const list = document.getElementById("palette-list");
-  list.innerHTML = EQUIPMENT_TYPES.map(
+  const builtIn = EQUIPMENT_TYPES.map(
     (eq) => `
     <button type="button" class="palette-item${selectedType === eq.type ? " palette-item--active" : ""}"
       data-type="${eq.type}" style="--eq-color: ${eq.color}">
-      <span class="palette-item__icon">${iconImg(eq.icon, "eq-icon eq-icon--palette", eq.name)}</span>
+      <span class="palette-item__icon">${equipmentIcon(eq, "eq-icon eq-icon--palette")}</span>
       <span class="palette-item__info">
         <span class="palette-item__name">${eq.name}</span>
         <span class="palette-item__meta">${eq.height}U</span>
       </span>
     </button>`
-  ).join("");
+  );
+  const custom = customTypes.map((eq) => {
+    const type = `custom:${eq.id}`;
+    return `
+    <button type="button" class="palette-item palette-item--custom${selectedType === type ? " palette-item--active" : ""}"
+      data-type="${type}" style="--eq-color: ${eq.color}">
+      <span class="palette-item__icon">${equipmentIcon({ ...eq, custom: true }, "eq-icon eq-icon--palette")}</span>
+      <span class="palette-item__info">
+        <span class="palette-item__name">${escapeHtml(eq.name)}</span>
+        <span class="palette-item__meta">${eq.height}U</span>
+      </span>
+      <button type="button" class="palette-item__remove" data-remove-custom="${eq.id}" data-i18n-attr="aria-label" data-i18n="palette.deleteCustomType" aria-label="Verwijderen">×</button>
+    </button>`;
+  });
+  list.innerHTML = builtIn.join("") + custom.join("");
 
   list.querySelectorAll(".palette-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      if (e.target.closest("[data-remove-custom]")) return;
       selectedType = btn.dataset.type;
       selectedDeviceId = null;
       renderPalette();
       renderRack();
       renderDetails();
       updateHint();
+    });
+  });
+
+  list.querySelectorAll("[data-remove-custom]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deleteCustomType(btn.dataset.removeCustom);
     });
   });
 }
@@ -787,618 +955,10 @@ function earHoles(span) {
   return slots.join("");
 }
 
-const FACE_VIEW = { w: 440, h: 44 };
-
-function svgPortPercent(cx, cy) {
-  return { left: (cx / FACE_VIEW.w) * 100, top: (cy / FACE_VIEW.h) * 100 };
-}
-
-function gridPortPercent(port, originX, originY, cols, colStep, portW, rowStep, plugY) {
-  const col = (port - 1) % cols;
-  const row = Math.floor((port - 1) / cols);
-  const cx = originX + col * colStep + portW / 2;
-  const cy = originY + row * rowStep + plugY;
-  return svgPortPercent(cx, cy);
-}
-
-function rowPortPercent(port, firstCx, stepCx, cy) {
-  return svgPortPercent(firstCx + (port - 1) * stepCx, cy);
-}
-
 const LEGACY_TYPE_ALIASES = { switch: "switch-24" };
 
 function normalizeDeviceType(type) {
   return LEGACY_TYPE_ALIASES[type] || type;
-}
-
-const FRONT_PORT_LAYOUTS = {
-  "switch-16": (port) => gridPortPercent(port, 228, 12, 8, 13, 11, 20, 6),
-  "switch-24": (port) => gridPortPercent(port, 168, 12, 12, 13, 11, 20, 6),
-  "switch-48": (port) => gridPortPercent(port, 68, 11, 24, 14.5, 10, 20, 5.5),
-  switch: (port) => gridPortPercent(port, 168, 12, 12, 13, 11, 20, 6),
-  router: (port) => gridPortPercent(port, 178, 13, 8, 14, 12, 14, 7),
-  "patch-16": (port) => rowPortPercent(port, 18.45, 26.9, 21),
-  "patch-24": (port) => rowPortPercent(port, 13.95, 17.4, 14.5),
-  "patch-48": (port) => {
-    const col = (port - 1) % 24;
-    const row = Math.floor((port - 1) / 24);
-    const cx = 6 + col * 17.5 + 16.3 / 2;
-    const cy = row === 0 ? 12 : 25.5;
-    return svgPortPercent(cx, cy);
-  },
-};
-
-function devicePortPlacement(type) {
-  if (type.startsWith("server-") || type.startsWith("nas-")) return "rear";
-  return "front";
-}
-
-function frontPortPosition(device, port, total) {
-  const layout = FRONT_PORT_LAYOUTS[normalizeDeviceType(device.type)];
-  if (layout) return layout(port, total);
-  return { left: ((port - 0.5) / total) * 100, top: 72 };
-}
-
-function portAnchorOnFaceplate(device, port, wrapperRect, rowEl) {
-  const face = rowEl.querySelector(".rack-device__faceplate");
-  if (!face) return null;
-  const faceRect = face.getBoundingClientRect();
-  const { left, top } = frontPortPosition(device, port, devicePortCount(device));
-  return {
-    x: faceRect.left - wrapperRect.left + (left / 100) * faceRect.width,
-    y: faceRect.top - wrapperRect.top + (top / 100) * faceRect.height,
-  };
-}
-
-const PORT_CABLE_STUB_LEN = 5;
-const PORT_PLUG_LEAN_Y = 1.5;
-const PORT_PLUG_TILT_DEG = 6;
-const PORT_PLUG_LEAN_X = 0.8;
-const PATCH_CORD_RISE = 14;
-const PATCH_PLUG_DEPTH = 3;
-
-function patchPortRow(type, port) {
-  if (type === "patch-48") return Math.floor((port - 1) / 24);
-  return 0;
-}
-
-function portCableStub(device, deviceId, port) {
-  if (!device || devicePortPlacement(device.type) !== "front") return null;
-  const norm = normalizeDeviceType(device.type);
-
-  if (norm.startsWith("switch-")) {
-    return { len: PORT_CABLE_STUB_LEN, dir: -1, intoPort: true };
-  }
-
-  return null;
-}
-
-function verticalDownCableStub(bend) {
-  return {
-    bend: { x: bend.x, y: bend.y + PORT_PLUG_LEAN_Y * 0.35 },
-    plugAt: { x: bend.x, y: bend.y },
-    tip: {
-      x: bend.x - PORT_PLUG_LEAN_X,
-      y: bend.y - PORT_CABLE_STUB_LEN,
-    },
-    stub: { len: PORT_CABLE_STUB_LEN, dir: -1, intoPort: true, tilt: PORT_PLUG_TILT_DEG },
-  };
-}
-
-function patchJackPlugTopCy(device, port) {
-  const norm = normalizeDeviceType(device.type);
-  if (norm === "patch-48") return patchPortRow(norm, port) === 0 ? 12 : 25.5;
-  if (norm === "patch-16") return 15.5;
-  if (norm === "patch-24") return 14.5;
-  return 15;
-}
-
-function patchCordSpec(device) {
-  const norm = normalizeDeviceType(device.type);
-  const specs = {
-    "patch-16": { depth: 7, rise: 8, plugW: 10, plugH: 7, tilt: 3 },
-    "patch-24": { depth: 5, rise: 11, plugW: 7, plugH: 4, tilt: 5 },
-    "patch-48": { depth: 4, rise: 10, plugW: 6.5, plugH: 3.2, tilt: 5 },
-  };
-  return (
-    specs[norm] || {
-      depth: PATCH_PLUG_DEPTH,
-      rise: PATCH_CORD_RISE,
-      plugW: 5,
-      plugH: 4,
-      tilt: PORT_PLUG_TILT_DEG,
-    }
-  );
-}
-
-function patchJackPlugAnchor(device, port, wrapperRect, deviceEl) {
-  const face = deviceEl?.querySelector(".rack-device__faceplate");
-  if (!face) return null;
-  const faceRect = face.getBoundingClientRect();
-  const { left } = frontPortPosition(device, port, devicePortCount(device));
-  const topPct = (patchJackPlugTopCy(device, port) / FACE_VIEW.h) * 100;
-  return {
-    x: faceRect.left - wrapperRect.left + (left / 100) * faceRect.width,
-    y: faceRect.top - wrapperRect.top + (topPct / 100) * faceRect.height,
-  };
-}
-
-function patchFrontCableStub(plugTop, device) {
-  const spec = patchCordSpec(device);
-  return {
-    bend: { x: plugTop.x, y: plugTop.y + spec.depth },
-    plugAt: { x: plugTop.x, y: plugTop.y },
-    tip: { x: plugTop.x, y: plugTop.y - spec.rise },
-    stub: {
-      intoPort: true,
-      tilt: spec.tilt,
-      patchCord: true,
-      plugW: spec.plugW,
-      plugH: spec.plugH,
-    },
-  };
-}
-
-function plugAnchorPoint(pts) {
-  return pts.plugAt || pts.bend;
-}
-
-function cableRoutingPoint(pts) {
-  if (pts.stub?.patchCord) return pts.tip;
-  if (pts.stub?.intoPort) return pts.tip;
-  return pts.bend;
-}
-
-function patchCordCurvePath(from, to) {
-  const cpx = from.x + (to.x - from.x) * 0.35 + 1;
-  const cpy = (from.y + to.y) / 2 - 1.5;
-  return `M ${from.x} ${from.y} Q ${cpx} ${cpy} ${to.x} ${to.y}`;
-}
-
-function rackDeviceElement(deviceId) {
-  return document.querySelector(`.rack-device[data-device-id="${deviceId}"]`);
-}
-
-function portDotAnchor(deviceId, port, placement, wrapperRect) {
-  const deviceEl = rackDeviceElement(deviceId);
-  if (!deviceEl) return null;
-  const dot = deviceEl.querySelector(
-    `.rack-port[data-port="${port}"][data-placement="${placement}"]`
-  );
-  if (!dot) return null;
-  const r = dot.getBoundingClientRect();
-  if (r.width < 0.5 && r.height < 0.5) return null;
-  return {
-    x: r.left - wrapperRect.left + r.width / 2,
-    y: r.top - wrapperRect.top + r.height / 2,
-  };
-}
-
-function computedFrontPortAnchor(device, port, wrapperRect, deviceEl) {
-  const face = deviceEl?.querySelector(".rack-device__faceplate");
-  if (!face) return null;
-  const faceRect = face.getBoundingClientRect();
-  const { left, top } = frontPortPosition(device, port, devicePortCount(device));
-  return {
-    x: faceRect.left - wrapperRect.left + (left / 100) * faceRect.width,
-    y: faceRect.top - wrapperRect.top + (top / 100) * faceRect.height,
-  };
-}
-
-function patchRearPortAnchor(device, port, wrapperRect, deviceEl) {
-  const rear = deviceEl?.querySelector(".rack-device__rear");
-  if (!rear) return null;
-  const r = rear.getBoundingClientRect();
-  const total = devicePortCount(device);
-  let yPct;
-  if (isPatchType(device.type)) {
-    yPct = frontPortPosition(device, port, total).top;
-  } else {
-    yPct = ((port - 0.5) / total) * 100;
-  }
-  return {
-    x: r.left - wrapperRect.left + r.width,
-    y: r.top - wrapperRect.top + (yPct / 100) * r.height,
-  };
-}
-
-function frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl) {
-  const bend =
-    portDotAnchor(deviceId, port, "front", wrapperRect) ||
-    computedFrontPortAnchor(device, port, wrapperRect, deviceEl);
-  if (!bend) return null;
-
-  if (isPatchType(device.type)) {
-    const plugTop =
-      patchJackPlugAnchor(device, port, wrapperRect, deviceEl) ||
-      computedFrontPortAnchor(device, port, wrapperRect, deviceEl);
-    if (!plugTop) return null;
-    return patchFrontCableStub(plugTop, device);
-  }
-
-  const stub = portCableStub(device, deviceId, port);
-  if (!stub) return { bend, tip: bend, stub: null };
-
-  return {
-    bend,
-    tip: { x: bend.x, y: bend.y + stub.dir * PORT_CABLE_STUB_LEN },
-    stub,
-  };
-}
-
-function portCablePoints(deviceId, port, wrapperRect, conn = null) {
-  const deviceEl = rackDeviceElement(deviceId);
-  const row = document.querySelector(`[data-device="${deviceId}"]`);
-  const device = devices.find((d) => d.id === deviceId);
-  if (!deviceEl || !device) return null;
-
-  if (isPatchType(device.type)) {
-    const side = conn ? connectionPatchSide(deviceId, conn) : "front";
-    if (side === "rear") {
-      const bend =
-        portDotAnchor(deviceId, port, "rear", wrapperRect) ||
-        patchRearPortAnchor(device, port, wrapperRect, deviceEl);
-      if (!bend) return null;
-      return rearPortCableStub(bend);
-    }
-    return frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl);
-  }
-
-  if (devicePortPlacement(device.type) === "rear") {
-    const bend =
-      portDotAnchor(deviceId, port, "rear", wrapperRect) ||
-      patchRearPortAnchor(device, port, wrapperRect, deviceEl);
-    if (!bend) return null;
-    return rearPortCableStub(bend);
-  }
-
-  const frontPts = frontPortCablePoints(device, deviceId, port, wrapperRect, deviceEl);
-  if (frontPts) return frontPts;
-
-  const bend = portAnchorOnFaceplate(device, port, wrapperRect, row || deviceEl);
-  if (!bend) return null;
-  const stub = portCableStub(device, deviceId, port);
-  if (!stub) return { bend, tip: bend, stub: null };
-  return {
-    bend,
-    tip: { x: bend.x, y: bend.y + stub.dir * PORT_CABLE_STUB_LEN },
-    stub,
-  };
-}
-
-function deviceLinkedPortsForPlacement(deviceId, placement) {
-  const device = devices.find((d) => d.id === deviceId);
-  const entries = [];
-  connections.forEach((c) => {
-    let port;
-    if (c.fromDeviceId === deviceId) port = c.fromPort;
-    else if (c.toDeviceId === deviceId) port = c.toPort;
-    else return;
-
-    if (isPatchType(device?.type)) {
-      if (connectionPatchSide(deviceId, c) !== placement) return;
-    } else if (devicePortPlacement(device.type) !== placement) {
-      return;
-    }
-
-    entries.push({ port, color: c.color || CABLE_COLORS[0].value, connId: c.id });
-  });
-  const byPort = new Map();
-  entries.forEach((e) => byPort.set(e.port, e));
-  return [...byPort.values()].sort((a, b) => a.port - b.port);
-}
-
-function usesJackPortStyle(type) {
-  const norm = normalizeDeviceType(type);
-  return norm.startsWith("switch-") || norm.startsWith("patch-");
-}
-
-function patchPortMarkup(device, { port, color, connId, linked }, placement, total, title) {
-  const variant = normalizeDeviceType(device.type);
-  let pos;
-  if (placement === "rear") {
-    const { top } = frontPortPosition(device, port, total);
-    pos = `top: ${top}%; left: 50%`;
-  } else {
-    const { left, top } = frontPortPosition(device, port, total);
-    pos = `left: ${left}%; top: ${top}%`;
-  }
-  const state = linked ? "rack-port--linked" : "rack-port--idle";
-  const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
-  const rearMod = placement === "rear" ? " rack-port--patch-jack-rear" : "";
-  const connAttr = connId ? ` data-conn="${connId}"` : "";
-  const colorStyle = linked && color ? `--port-color: ${color};` : "";
-  const portLabel = linked && placement === "rear" ? ` data-port-label="${port}"` : "";
-  const cls = `rack-port ${side} rack-port--patch-jack rack-port--${variant}${rearMod} ${state}`;
-  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr}${portLabel} style="${colorStyle} ${pos}" title="${title}">
-    <span class="rack-port__bezel" aria-hidden="true">
-      <span class="rack-port__cavity"></span>
-      <span class="rack-port__contacts"></span>
-    </span>
-  </span>`;
-}
-
-function portDotMarkup(device, { port, color, connId, linked }, placement, total) {
-  const conn = connId ? connections.find((x) => x.id === connId) : null;
-  const title = conn?.label
-    ? I18n.t("cabling.rackPortLabel", { port, label: conn.label })
-    : I18n.t("cabling.rackPort", { port });
-
-  if (isPatchType(device.type) && (placement === "front" || placement === "rear")) {
-    return patchPortMarkup(device, { port, color, connId, linked }, placement, total, title);
-  }
-
-  let pos;
-  if (placement === "rear") {
-    const pct = ((port - 0.5) / total) * 100;
-    pos = `top: ${pct}%; left: 50%`;
-  } else {
-    const { left, top } = frontPortPosition(device, port, total);
-    pos = `left: ${left}%; top: ${top}%`;
-  }
-  const jack = placement === "front" && usesJackPortStyle(device.type);
-  const state = linked ? "rack-port--linked" : "rack-port--idle";
-  const shape = jack ? "rack-port--jack" : "";
-  const side = placement === "rear" ? "rack-port--rear" : "rack-port--front";
-  const cls = ["rack-port", side, shape, state].filter(Boolean).join(" ");
-  const connAttr = connId ? ` data-conn="${connId}"` : "";
-  const colorStyle = linked && color ? `--port-color: ${color};` : "";
-  return `<span class="${cls}" data-port="${port}" data-placement="${placement}"${connAttr} style="${colorStyle} ${pos}" title="${title}"></span>`;
-}
-
-function buildPatchSidePorts(device, placement, total) {
-  const linkedMap = new Map(
-    deviceLinkedPortsForPlacement(device.id, placement).map((e) => [e.port, e])
-  );
-  const ports = Array.from({ length: total }, (_, i) => {
-    const port = i + 1;
-    const entry = linkedMap.get(port);
-    return { port, color: entry?.color, connId: entry?.connId, linked: !!entry };
-  });
-  return ports.map((entry) => portDotMarkup(device, entry, placement, total)).join("");
-}
-
-function buildDevicePortParts(device) {
-  const total = devicePortCount(device);
-  if (total === 0) return { front: "", rear: "" };
-
-  if (isPatchType(device.type)) {
-    const frontDots = buildPatchSidePorts(device, "front", total);
-    const rearDots = buildPatchSidePorts(device, "rear", total);
-    const rearLinks = deviceLinkedPortsForPlacement(device.id, "rear");
-    const rearTag =
-      rearLinks.length > 0
-        ? `${I18n.t("cabling.rear")} · ${rearLinks.length}`
-        : I18n.t("cabling.rear");
-    const rearActive = rearLinks.length > 0 ? " rack-device__rear--active" : "";
-    return {
-      front: `<div class="rack-device__ports rack-device__ports--front" aria-hidden="true">${frontDots}</div>`,
-      rear: `<div class="rack-device__rear${rearActive}" aria-hidden="true" title="${I18n.t("cabling.patchRearIo")}">
-        <span class="rack-device__rear-tag">${rearTag}</span>
-        <div class="rack-device__ports rack-device__ports--rear">${rearDots}</div>
-      </div>`,
-    };
-  }
-
-  const placement = devicePortPlacement(device.type);
-  const linkedMap = new Map(
-    deviceLinkedPortsForPlacement(device.id, placement).map((e) => [e.port, e])
-  );
-  const showAllFront = placement === "front" && usesJackPortStyle(device.type);
-  const ports = showAllFront
-    ? Array.from({ length: total }, (_, i) => {
-        const port = i + 1;
-        const entry = linkedMap.get(port);
-        return { port, color: entry?.color, connId: entry?.connId, linked: !!entry };
-      })
-    : [...linkedMap.values()].map((entry) => ({ ...entry, linked: true }));
-
-  if (ports.length === 0) return { front: "", rear: "" };
-
-  const dots = ports
-    .map((entry) => portDotMarkup(device, entry, placement, total))
-    .join("");
-
-  if (placement === "rear") {
-    return {
-      front: "",
-      rear: `<div class="rack-device__rear" aria-hidden="true" title="${I18n.t("cabling.rearIo")}">
-        <span class="rack-device__rear-tag">${I18n.t("cabling.rear")}</span>
-        <div class="rack-device__ports rack-device__ports--rear">${dots}</div>
-      </div>`,
-    };
-  }
-
-  return {
-    front: `<div class="rack-device__ports rack-device__ports--front" aria-hidden="true">${dots}</div>`,
-    rear: "",
-  };
-}
-
-function portAnchorInWrapper(deviceId, port, wrapperRect) {
-  const row = document.querySelector(`[data-device="${deviceId}"]`);
-  if (!row) return null;
-  const device = devices.find((d) => d.id === deviceId);
-  if (!device) return null;
-
-  if (devicePortPlacement(device.type) === "front" && devicePortCount(device) > 0) {
-    return portAnchorOnFaceplate(device, port, wrapperRect, row);
-  }
-
-  const rear = row.querySelector(".rack-device__rear");
-  if (rear) {
-    const r = rear.getBoundingClientRect();
-    const total = devicePortCount(device);
-    const pct = (port - 0.5) / total;
-    return {
-      x: r.left - wrapperRect.left + r.width,
-      y: r.top - wrapperRect.top + pct * r.height,
-    };
-  }
-
-  const face = row.querySelector(".rack-device__faceplate");
-  if (!face) return null;
-  const r = face.getBoundingClientRect();
-  return {
-    x: r.left - wrapperRect.left + r.width / 2,
-    y: r.top - wrapperRect.top + r.height * 0.72,
-  };
-}
-
-const CABLE_BAY_MIN = 16;
-const CABLE_BAY_PER = 4;
-const CABLE_BAY_MAX = 64;
-
-function cableBayWidth(count) {
-  if (count < 1) return 0;
-  return Math.round(
-    Math.min(CABLE_BAY_MAX, CABLE_BAY_MIN + Math.max(0, count - 1) * CABLE_BAY_PER)
-  );
-}
-
-function rackCableBayMetrics(wrapperRect) {
-  const bay = document.getElementById("rack-cable-bay");
-  const rackEl = document.getElementById("rack");
-  const railRight = document.getElementById("rail-right");
-  if (!bay || !rackEl || !railRight) return null;
-
-  const bayRect = bay.getBoundingClientRect();
-  const rackRect = rackEl.getBoundingClientRect();
-  const railRect = railRight.getBoundingClientRect();
-  if (bayRect.width < 1) return null;
-
-  return {
-    left: bayRect.left - wrapperRect.left,
-    right: bayRect.right - wrapperRect.left,
-    center: bayRect.left - wrapperRect.left + bayRect.width / 2,
-    width: bayRect.width,
-    rackRight: rackRect.right - wrapperRect.left,
-    railRight: railRect.right - wrapperRect.left,
-    railLeft: railRect.left - wrapperRect.left,
-  };
-}
-
-function assignCableLaneXs(entries, bay) {
-  const pad = 3;
-  const count = entries.length;
-  if (count === 1) return [bay.center];
-
-  const innerW = Math.max(bay.width - pad * 2, 4);
-  const step = innerW / (count - 1);
-  const start = bay.left + pad;
-  return entries.map((_, idx) => start + idx * step);
-}
-
-function cablePathStart(pts) {
-  if (!pts.stub) return `M ${pts.bend.x} ${pts.bend.y}`;
-  if (pts.stub.axis === "h") {
-    return `M ${pts.tip.x} ${pts.tip.y} H ${pts.bend.x}`;
-  }
-  if (pts.stub.patchCord) {
-    return patchCordCurvePath(plugAnchorPoint(pts), pts.tip);
-  }
-  if (pts.stub.intoPort) {
-    return `M ${pts.tip.x} ${pts.tip.y} L ${pts.bend.x} ${pts.bend.y}`;
-  }
-  return `M ${pts.tip.x} ${pts.tip.y} V ${pts.bend.y}`;
-}
-
-function cableApproachY(pts) {
-  return cableRoutingPoint(pts).y;
-}
-
-function cablePathEnd(pts, d) {
-  if (!pts.stub) return d;
-  if (pts.stub.axis === "h") return `${d} H ${pts.tip.x}`;
-  if (pts.stub.patchCord) {
-    const plug = plugAnchorPoint(pts);
-    const cpx = plug.x - (pts.tip.x - plug.x) * 0.35 - 1;
-    const cpy = (plug.y + pts.tip.y) / 2 - 1.5;
-    return `${d} Q ${cpx} ${cpy} ${plug.x} ${plug.y}`;
-  }
-  if (pts.stub.intoPort) return `${d} L ${pts.bend.x} ${pts.bend.y}`;
-  if (pts.stub.dir < 0) return `${d} V ${pts.bend.y}`;
-  return `${d} V ${pts.tip.y}`;
-}
-
-function rearPortCableStub(bend) {
-  return {
-    bend,
-    tip: { x: bend.x + PORT_CABLE_STUB_LEN, y: bend.y },
-    stub: { len: PORT_CABLE_STUB_LEN, dir: 1, axis: "h" },
-  };
-}
-
-function rackCablePath(fromPts, toPts, laneX, bay) {
-  const rackExit = bay.rackRight + 1;
-  const railPass = bay.railRight + 1;
-  const from = cableRoutingPoint(fromPts);
-  const toY = cableApproachY(toPts);
-  const toX = toPts.plugAt?.x ?? toPts.bend.x;
-
-  let d = cablePathStart(fromPts);
-  if (from.x < rackExit - 1) d += ` H ${rackExit}`;
-  if (from.x < railPass - 1) d += ` H ${railPass}`;
-  d += ` H ${laneX} V ${toY} H ${railPass}`;
-  if (toX < rackExit - 1) d += ` H ${rackExit}`;
-  d += ` H ${toX}`;
-  return cablePathEnd(toPts, d);
-}
-
-function renderRackCabling() {
-  const wrapper = document.getElementById("rack-wrapper");
-  const svg = document.getElementById("rack-cabling-svg");
-  if (!wrapper || !svg) return;
-
-  if (connections.length === 0) {
-    wrapper.classList.remove("rack-wrapper--cabled");
-    wrapper.style.removeProperty("--cable-bay-w");
-    svg.innerHTML = "";
-    return;
-  }
-
-  const cableCount = connections.length;
-  wrapper.classList.add("rack-wrapper--cabled");
-  wrapper.style.setProperty("--cable-bay-w", `${cableBayWidth(cableCount)}px`);
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-    const wrapperRect = wrapper.getBoundingClientRect();
-    if (wrapperRect.width < 1 || wrapperRect.height < 1) return;
-
-    const bay = rackCableBayMetrics(wrapperRect);
-    if (!bay) return;
-
-    svg.setAttribute("viewBox", `0 0 ${wrapperRect.width} ${wrapperRect.height}`);
-    svg.innerHTML = "";
-
-    const entries = connections
-      .map((c) => {
-        const from = portCablePoints(c.fromDeviceId, c.fromPort, wrapperRect, c);
-        const to = portCablePoints(c.toDeviceId, c.toPort, wrapperRect, c);
-        if (!from || !to) return null;
-        return { c, from, to, midY: (from.bend.y + to.bend.y) / 2 };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.midY - b.midY || a.c.id - b.c.id);
-
-    const laneXs = assignCableLaneXs(entries, bay);
-    ensureCableDefs(svg);
-
-    entries.forEach((entry, idx) => {
-      const { c, from, to } = entry;
-      const laneX = laneXs[idx];
-      const color = c.color || CABLE_COLORS[0].value;
-      appendEthernetCable(svg, {
-        d: rackCablePath(from, to, laneX, bay),
-        color,
-        fromPts: from,
-        toPts: to,
-        label: c.label,
-      });
-    });
-    });
-  });
 }
 
 function renderRailHoles() {
@@ -1452,24 +1012,17 @@ function renderRack() {
           <div class="rack-device__face rack-device__face--blank" role="img" aria-label="${info.name}"></div>
         </div>`;
       } else {
-        const portParts = buildDevicePortParts(device);
-        const rearCabled =
-          isPatchType(device.type) && deviceLinkedPortsForPlacement(device.id, "rear").length > 0
-            ? " rack-device--rear-cabled"
-            : "";
         content = `
-        <div class="rack-device${rearCabled}" style="${deviceStyle}" draggable="true" data-device-id="${device.id}">
+        <div class="rack-device" style="${deviceStyle}" draggable="true" data-device-id="${device.id}">
           <div class="rack-device__ear rack-device__ear--left" aria-hidden="true">${earHoles(span)}</div>
           <div class="rack-device__side rack-device__side--left" aria-hidden="true"></div>
           <div class="rack-device__faceplate rack-device__faceplate--${normalizeDeviceType(device.type)}">
-            ${iconImg(info.icon, "rack-device__face", info.name)}
-            ${portParts.front}
+            ${equipmentIcon(info, "rack-device__face")}
             <div class="rack-device__nameplate">
-              <span class="rack-device__name">${label}</span>
+              <span class="rack-device__name">${escapeHtml(label)}</span>
               <span class="rack-device__meta">U${device.startU}–U${uEnd}</span>
             </div>
           </div>
-          ${portParts.rear}
           <div class="rack-device__side rack-device__side--right" aria-hidden="true"></div>
           <div class="rack-device__ear rack-device__ear--right" aria-hidden="true">${earHoles(span)}</div>
         </div>`;
@@ -1494,7 +1047,10 @@ function renderRack() {
 
   if (selectedType) {
     const preview = typeInfo(selectedType);
-    rack.style.setProperty("--preview-icon", `url("${preview.icon}?v=${ICON_V}")`);
+    const previewBg = preview.custom
+      ? `linear-gradient(135deg, ${preview.color}, transparent)`
+      : `url("${preview.icon}?v=${ICON_V}")`;
+    rack.style.setProperty("--preview-icon", previewBg);
     rack.style.setProperty("--preview-h", String(preview.height));
   } else {
     rack.style.removeProperty("--preview-icon");
@@ -1556,7 +1112,6 @@ function renderRack() {
   });
 
   renderRailHoles();
-  renderRackCabling();
 }
 
 function onRackClick(u) {
@@ -1565,6 +1120,7 @@ function onRackClick(u) {
     selectDevice(existing.id);
     return;
   }
+  if (currentPlanRole === "viewer") return;
 
   if (selectedDeviceId && !selectedType) {
     moveDevice(selectedDeviceId, u);
@@ -1595,568 +1151,7 @@ function onRackClick(u) {
   renderRack();
   renderStats();
   renderInventory();
-  renderCablingForm();
-  renderCablingMap();
   updateHint();
-}
-
-function fillPortSelect(selectEl, deviceId, peerDeviceId = null) {
-  const device = devices.find((d) => d.id === Number(deviceId));
-  selectEl.innerHTML = "";
-  if (!device) {
-    selectEl.disabled = true;
-    return;
-  }
-  const count = devicePortCount(device);
-  if (count < 1) {
-    selectEl.disabled = true;
-    return;
-  }
-  selectEl.disabled = false;
-  for (let p = 1; p <= count; p++) {
-    const opt = document.createElement("option");
-    opt.value = String(p);
-    opt.textContent = isPortUsed(device.id, p, null, peerDeviceId)
-      ? `${p} (${I18n.t("cabling.portUsed")})`
-      : String(p);
-    selectEl.appendChild(opt);
-  }
-}
-
-function renderCablingForm() {
-  const focusId = cablingFocusDeviceId;
-  cablingFocusDeviceId = null;
-
-  const cabled = devicesWithPorts().sort((a, b) => b.startU - a.startU);
-  const fromSel = document.getElementById("cable-from-device");
-  const toSel = document.getElementById("cable-to-device");
-  const fromPortSel = document.getElementById("cable-from-port");
-  const toPortSel = document.getElementById("cable-to-port");
-  const colorSel = document.getElementById("cable-color");
-
-  const prevFrom = fromSel.value;
-  const prevTo = toSel.value;
-
-  const optionHtml = (d) => {
-    const name = deviceDisplayName(d);
-    return `<option value="${d.id}">U${d.startU} · ${name}</option>`;
-  };
-
-  if (cabled.length < 2) {
-    fromSel.innerHTML = `<option value="">${I18n.t("cabling.needTwoDevices")}</option>`;
-    toSel.innerHTML = fromSel.innerHTML;
-    fromSel.disabled = true;
-    toSel.disabled = true;
-    fromPortSel.disabled = true;
-    toPortSel.disabled = true;
-  } else {
-    fromSel.disabled = false;
-    toSel.disabled = false;
-    fromSel.innerHTML = cabled.map(optionHtml).join("");
-    toSel.innerHTML = cabled.map(optionHtml).join("");
-
-    if (focusId && cabled.some((d) => d.id === focusId)) {
-      fromSel.value = String(focusId);
-    } else if (prevFrom && cabled.some((d) => d.id === Number(prevFrom))) {
-      fromSel.value = prevFrom;
-    } else if (selectedDeviceId && cabled.some((d) => d.id === selectedDeviceId)) {
-      fromSel.value = String(selectedDeviceId);
-    }
-
-    if (focusId && cabled.some((d) => d.id === focusId)) {
-      const alt = cabled.find((d) => d.id !== focusId);
-      if (alt) toSel.value = String(alt.id);
-    } else if (prevTo && cabled.some((d) => d.id === Number(prevTo))) {
-      toSel.value = prevTo;
-    } else {
-      const alt = cabled.find((d) => d.id !== Number(fromSel.value));
-      if (alt) toSel.value = String(alt.id);
-    }
-
-    if (fromSel.value === toSel.value) {
-      const alt = cabled.find((d) => d.id !== Number(fromSel.value));
-      if (alt) toSel.value = String(alt.id);
-    }
-  }
-
-  if (!colorSel.dataset.ready) {
-    colorSel.innerHTML = CABLE_COLORS.map(
-      (c) => `<option value="${c.value}">${I18n.t(`cabling.colors.${c.key}`)}</option>`
-    ).join("");
-    colorSel.dataset.ready = "1";
-  } else {
-    colorSel.querySelectorAll("option").forEach((opt, i) => {
-      const entry = CABLE_COLORS[i];
-      if (entry) opt.textContent = I18n.t(`cabling.colors.${entry.key}`);
-    });
-  }
-
-  fillPortSelect(fromPortSel, fromSel.value, toSel.value);
-  fillPortSelect(toPortSel, toSel.value, fromSel.value);
-  renderCablingBulk(focusId);
-}
-
-function isBulkSwitchType(type) {
-  return normalizeDeviceType(type).startsWith("switch-");
-}
-
-function isBulkPatchType(type) {
-  return typeof type === "string" && type.startsWith("patch-");
-}
-
-function switchPortTierRange(switchDev, tier) {
-  const count = devicePortCount(switchDev);
-  const norm = normalizeDeviceType(switchDev.type);
-  if (count < 2) return null;
-
-  if (norm === "switch-48" || count === 48) {
-    return tier === "top" ? { start: 1, end: 24 } : { start: 25, end: 48 };
-  }
-  if (norm === "switch-24" || count === 24) {
-    return tier === "top" ? { start: 1, end: 12 } : { start: 13, end: 24 };
-  }
-  if (norm === "switch-16" || count === 16) {
-    return tier === "top" ? { start: 1, end: 8 } : { start: 9, end: 16 };
-  }
-
-  const half = Math.floor(count / 2);
-  if (half < 1) return null;
-  return tier === "top" ? { start: 1, end: half } : { start: half + 1, end: count };
-}
-
-function switchHasPortTiers(switchDev) {
-  return isBulkSwitchType(switchDev?.type) && switchPortTierRange(switchDev, "bottom") !== null;
-}
-
-function getBulkConnectOptions(switchDev, patchDev) {
-  if (!switchDev || !patchDev) return [];
-  if (!isBulkSwitchType(switchDev.type) || !isBulkPatchType(patchDev.type)) return [];
-
-  const swCount = devicePortCount(switchDev);
-  const patchCount = devicePortCount(patchDev);
-  if (swCount <= 0 || patchCount <= 0) return [];
-
-  if (swCount === 48 && patchCount === 48) {
-    return [
-      { count: 24, switchOffset: 0, patchStart: 1, tier: "top" },
-      { count: 24, switchOffset: 24, patchStart: 25, tier: "bottom" },
-      { count: 48, switchOffset: 0, patchStart: 1, tier: "all" },
-    ];
-  }
-
-  if (swCount === patchCount) {
-    return [{ count: swCount, switchOffset: 0, patchStart: 1 }];
-  }
-
-  if (swCount === 48 && patchCount < 48) {
-    return [
-      { count: patchCount, switchOffset: 0, patchStart: 1, tier: "top" },
-      { count: patchCount, switchOffset: 24, patchStart: 1, tier: "bottom" },
-    ];
-  }
-
-  if (swCount > patchCount) {
-    return [{ count: patchCount, switchOffset: 0, patchStart: 1 }];
-  }
-
-  return [{ count: swCount, switchOffset: 0, patchStart: 1 }];
-}
-
-function bulkActionLabel(option) {
-  const swStart = option.switchOffset + 1;
-  const swEnd = option.switchOffset + option.count;
-  const patchStart = option.patchStart ?? 1;
-  const patchEnd = patchStart + option.count - 1;
-  if (option.tier === "top") {
-    return I18n.t("cabling.bulkConnectPatchTop", { swStart, swEnd, patchStart, patchEnd });
-  }
-  if (option.tier === "bottom") {
-    return I18n.t("cabling.bulkConnectPatchBottom", { swStart, swEnd, patchStart, patchEnd });
-  }
-  if (option.tier === "all") {
-    return I18n.t("cabling.bulkConnectAll", { count: option.count });
-  }
-  return I18n.t("cabling.bulkConnectRange", { start: swStart, end: swEnd });
-}
-
-function renderBulkActionButtons() {
-  const container = document.getElementById("bulk-actions");
-  const disconnectWrap = document.getElementById("bulk-disconnect");
-  const disconnectContainer = document.getElementById("bulk-disconnect-actions");
-  const switchSel = document.getElementById("bulk-switch");
-  const patchSel = document.getElementById("bulk-patch");
-  if (!container || !switchSel || !patchSel || !disconnectWrap || !disconnectContainer) return;
-
-  const switchDev = devices.find((d) => d.id === Number(switchSel.value));
-  const patchDev = devices.find((d) => d.id === Number(patchSel.value));
-  const options = patchDev ? getBulkConnectOptions(switchDev, patchDev) : [];
-
-  container.innerHTML = options
-    .map((opt, i) => {
-      const label = bulkActionLabel(opt);
-      return `<button type="button" class="btn btn--sm cabling-bulk__btn" data-bulk-idx="${i}">${label}</button>`;
-    })
-    .join("");
-  container.hidden = options.length === 0;
-
-  container.querySelectorAll("[data-bulk-idx]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = Number(btn.dataset.bulkIdx);
-      const sw = devices.find((d) => d.id === Number(switchSel.value));
-      const patch = devices.find((d) => d.id === Number(patchSel.value));
-      const opt = getBulkConnectOptions(sw, patch)[idx];
-      if (opt) bulkConnectPatchPanel(opt);
-    });
-  });
-
-  if (switchDev && switchHasPortTiers(switchDev)) {
-    const top = switchPortTierRange(switchDev, "top");
-    const bottom = switchPortTierRange(switchDev, "bottom");
-    disconnectContainer.innerHTML = [
-      `<button type="button" class="btn btn--sm cabling-bulk__btn cabling-bulk__btn--disconnect" data-disconnect-tier="top">${I18n.t("cabling.bulkDisconnectTop", { start: top.start, end: top.end })}</button>`,
-      `<button type="button" class="btn btn--sm cabling-bulk__btn cabling-bulk__btn--disconnect" data-disconnect-tier="bottom">${I18n.t("cabling.bulkDisconnectBottom", { start: bottom.start, end: bottom.end })}</button>`,
-    ].join("");
-    disconnectWrap.hidden = false;
-
-    disconnectContainer.querySelectorAll("[data-disconnect-tier]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        bulkDisconnectSwitchPorts(btn.dataset.disconnectTier);
-      });
-    });
-  } else {
-    disconnectContainer.innerHTML = "";
-    disconnectWrap.hidden = true;
-  }
-}
-
-function renderCablingBulk(focusId = null) {
-  const section = document.getElementById("cabling-bulk");
-  const switchSel = document.getElementById("bulk-switch");
-  const patchSel = document.getElementById("bulk-patch");
-  if (!section || !switchSel || !patchSel) return;
-
-  const switches = devices
-    .filter((d) => isBulkSwitchType(d.type))
-    .sort((a, b) => b.startU - a.startU);
-  const patches = devices
-    .filter((d) => isBulkPatchType(d.type))
-    .sort((a, b) => b.startU - a.startU);
-
-  if (switches.length === 0) {
-    section.hidden = true;
-    return;
-  }
-
-  section.hidden = false;
-  const patchField = document.getElementById("bulk-patch-field");
-  if (patchField) patchField.hidden = patches.length === 0;
-  const deviceOption = (d) => {
-    const name = deviceDisplayName(d);
-    return `<option value="${d.id}">U${d.startU} · ${name}</option>`;
-  };
-
-  const prevSwitch = switchSel.value;
-  const prevPatch = patchSel.value;
-  switchSel.innerHTML = switches.map(deviceOption).join("");
-  patchSel.innerHTML = patches.length
-    ? patches.map(deviceOption).join("")
-    : `<option value="">${I18n.t("cabling.bulkNoPatch")}</option>`;
-
-  if (focusId && switches.some((d) => d.id === focusId)) {
-    switchSel.value = String(focusId);
-  } else if (prevSwitch && switches.some((d) => d.id === Number(prevSwitch))) {
-    switchSel.value = prevSwitch;
-  } else if (selectedDeviceId && switches.some((d) => d.id === selectedDeviceId)) {
-    switchSel.value = String(selectedDeviceId);
-  }
-
-  if (patches.length > 0) {
-    if (focusId && patches.some((d) => d.id === focusId)) {
-      patchSel.value = String(focusId);
-    } else if (prevPatch && patches.some((d) => d.id === Number(prevPatch))) {
-      patchSel.value = prevPatch;
-    } else {
-      const alt = patches.find((d) => d.id !== Number(switchSel.value));
-      if (alt) patchSel.value = String(alt.id);
-    }
-  }
-
-  renderBulkActionButtons();
-}
-
-function refreshCablingUI() {
-  renderRack();
-  renderCablingForm();
-  renderCablingList();
-  renderCablingMap();
-}
-
-function bulkDisconnectSwitchPorts(tier) {
-  const switchId = Number(document.getElementById("bulk-switch").value);
-  const switchDev = devices.find((d) => d.id === switchId);
-  if (!switchDev || !isBulkSwitchType(switchDev.type)) return;
-
-  const range = switchPortTierRange(switchDev, tier);
-  if (!range) return;
-
-  const before = connections.length;
-  connections = connections.filter((c) => {
-    if (c.fromDeviceId === switchId && c.fromPort >= range.start && c.fromPort <= range.end) {
-      return false;
-    }
-    if (c.toDeviceId === switchId && c.toPort >= range.start && c.toPort <= range.end) {
-      return false;
-    }
-    return true;
-  });
-
-  const removed = before - connections.length;
-  if (removed === 0) {
-    flashHint(I18n.t("cabling.bulkDisconnectNone"));
-    return;
-  }
-
-  save();
-  refreshCablingUI();
-  flashHint(I18n.t("cabling.bulkDisconnectDone", { removed }));
-}
-
-function bulkConnectPatchPanel({ count, switchOffset, patchStart = 1 }) {
-  const switchId = Number(document.getElementById("bulk-switch").value);
-  const patchId = Number(document.getElementById("bulk-patch").value);
-  const switchDev = devices.find((d) => d.id === switchId);
-  const patchDev = devices.find((d) => d.id === patchId);
-
-  if (!switchDev || !patchDev) return;
-  if (!isBulkSwitchType(switchDev.type) || !isBulkPatchType(patchDev.type)) {
-    flashHint(I18n.t("cabling.bulkInvalid"));
-    return;
-  }
-  if (switchId === patchId) {
-    flashHint(I18n.t("cabling.sameDevice"));
-    return;
-  }
-
-  const color = document.getElementById("cable-color").value || CABLE_COLORS[0].value;
-  let added = 0;
-  let skipped = 0;
-
-  for (let i = 0; i < count; i++) {
-    const patchPort = patchStart + i;
-    const switchPort = switchOffset + 1 + i;
-    if (isPortUsed(switchId, switchPort) || isPortUsedOnSide(patchId, patchPort, "front")) {
-      skipped++;
-      continue;
-    }
-    connections.push({
-      id: nextId++,
-      fromDeviceId: switchId,
-      fromPort: switchPort,
-      toDeviceId: patchId,
-      toPort: patchPort,
-      label: "",
-      color,
-    });
-    added++;
-  }
-
-  if (added === 0) {
-    flashHint(I18n.t("cabling.bulkNone"));
-    return;
-  }
-
-  save();
-  refreshCablingUI();
-
-  if (skipped > 0) {
-    flashHint(I18n.t("cabling.bulkPartial", { added, skipped }));
-  } else {
-    flashHint(I18n.t("cabling.bulkDone", { added }));
-  }
-}
-
-function renderCablingList() {
-  const list = document.getElementById("cabling-list");
-  const empty = document.getElementById("cabling-list-empty");
-
-  if (connections.length === 0) {
-    list.innerHTML = "";
-    empty.hidden = false;
-    return;
-  }
-
-  empty.hidden = true;
-  const sorted = [...connections].sort((a, b) => a.id - b.id);
-  list.innerHTML = sorted
-    .map((c) => {
-      const fromDev = devices.find((d) => d.id === c.fromDeviceId);
-      const toDev = devices.find((d) => d.id === c.toDeviceId);
-      if (!fromDev || !toDev) return "";
-      const color = c.color || CABLE_COLORS[0].value;
-      const fromName = deviceDisplayName(fromDev);
-      const toName = deviceDisplayName(toDev);
-      const labelHtml = c.label
-        ? `<span class="cabling-item__label">${c.label}</span>`
-        : "";
-      return `<li class="cabling-item" style="--cable-color: ${color}">
-        <div class="cabling-item__body">
-          <span class="cabling-item__route">${fromName} :${c.fromPort} → ${toName} :${c.toPort}</span>
-          ${labelHtml}
-        </div>
-        <button type="button" class="cabling-item__remove" data-id="${c.id}" aria-label="${I18n.t("cabling.remove")}">×</button>
-      </li>`;
-    })
-    .join("");
-
-  list.querySelectorAll(".cabling-item__remove").forEach((btn) => {
-    btn.addEventListener("click", () => removeConnection(Number(btn.dataset.id)));
-  });
-}
-
-function drawCablingLines(conns, mapDevices) {
-  const canvas = document.getElementById("cabling-map-canvas");
-  const svg = document.getElementById("cabling-svg");
-  if (!canvas || !svg) return;
-
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width < 1 || rect.height < 1) return;
-
-  svg.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
-  svg.innerHTML = "";
-
-  const nodePos = {};
-  mapDevices.forEach((d) => {
-    const el = canvas.querySelector(`[data-id="${d.id}"]`);
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    nodePos[d.id] = {
-      x: r.left - rect.left + r.width / 2,
-      y: r.top - rect.top + r.height / 2,
-    };
-  });
-
-  conns.forEach((c) => {
-    const from = nodePos[c.fromDeviceId];
-    const to = nodePos[c.toDeviceId];
-    if (!from || !to) return;
-    const color = c.color || CABLE_COLORS[0].value;
-    const midY = (from.y + to.y) / 2;
-    appendMapEthernetCable(
-      svg,
-      `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`,
-      color
-    );
-  });
-}
-
-function renderCablingMap() {
-  const emptyEl = document.getElementById("cabling-map-empty");
-  const canvasEl = document.getElementById("cabling-map-canvas");
-  const countEl = document.getElementById("cabling-count");
-  const nodesEl = document.getElementById("cabling-nodes");
-
-  countEl.textContent = String(connections.length);
-
-  if (connections.length === 0) {
-    emptyEl.hidden = false;
-    canvasEl.hidden = true;
-    nodesEl.innerHTML = "";
-    document.getElementById("cabling-svg").innerHTML = "";
-    return;
-  }
-
-  emptyEl.hidden = true;
-  canvasEl.hidden = false;
-
-  const deviceIds = new Set();
-  connections.forEach((c) => {
-    deviceIds.add(c.fromDeviceId);
-    deviceIds.add(c.toDeviceId);
-  });
-
-  const mapDevices = devices
-    .filter((d) => deviceIds.has(d.id))
-    .sort((a, b) => b.startU - a.startU);
-
-  nodesEl.innerHTML = mapDevices
-    .map((d) => {
-      const info = typeInfo(d.type);
-      const label = deviceDisplayName(d);
-      const ports = devicePortCount(d);
-      const linkCount = connections.filter(
-        (c) => c.fromDeviceId === d.id || c.toDeviceId === d.id
-      ).length;
-      const active = d.id === selectedDeviceId ? " cabling-node--active" : "";
-      return `<button type="button" class="cabling-node${active}" data-id="${d.id}" style="--node-color: ${info.color}">
-        <span class="cabling-node__name">${label}</span>
-        <span class="cabling-node__meta">${ports}p · ${linkCount}</span>
-      </button>`;
-    })
-    .join("");
-
-  nodesEl.querySelectorAll(".cabling-node").forEach((btn) => {
-    btn.addEventListener("click", () => selectDevice(Number(btn.dataset.id)));
-  });
-
-  requestAnimationFrame(() => drawCablingLines(connections, mapDevices));
-}
-
-function addConnection(e) {
-  e.preventDefault();
-  const cabled = devicesWithPorts();
-  if (cabled.length < 2) {
-    flashHint(I18n.t("cabling.needTwoDevices"));
-    return;
-  }
-
-  const fromDeviceId = Number(document.getElementById("cable-from-device").value);
-  const toDeviceId = Number(document.getElementById("cable-to-device").value);
-  const fromPort = Number(document.getElementById("cable-from-port").value);
-  const toPort = Number(document.getElementById("cable-to-port").value);
-  const label = document.getElementById("cable-label").value.trim().slice(0, 32);
-  const color = document.getElementById("cable-color").value;
-
-  if (!fromDeviceId || !toDeviceId || fromDeviceId === toDeviceId) {
-    flashHint(I18n.t("cabling.sameDevice"));
-    return;
-  }
-
-  const fromDev = devices.find((d) => d.id === fromDeviceId);
-  const toDev = devices.find((d) => d.id === toDeviceId);
-  if (!fromDev || !toDev) return;
-
-  if (fromPort < 1 || fromPort > devicePortCount(fromDev) || toPort < 1 || toPort > devicePortCount(toDev)) {
-    flashHint(I18n.t("cabling.invalidPort"));
-    return;
-  }
-
-  if (
-    isPortUsed(fromDeviceId, fromPort, null, toDeviceId) ||
-    isPortUsed(toDeviceId, toPort, null, fromDeviceId)
-  ) {
-    flashHint(I18n.t("cabling.portBusy"));
-    return;
-  }
-
-  connections.push({
-    id: nextId++,
-    fromDeviceId,
-    fromPort,
-    toDeviceId,
-    toPort,
-    label,
-    color,
-  });
-
-  document.getElementById("cable-label").value = "";
-  save();
-  refreshCablingUI();
-}
-
-function removeConnection(id) {
-  connections = connections.filter((c) => c.id !== id);
-  save();
-  refreshCablingUI();
 }
 
 function renderDetails() {
@@ -2174,7 +1169,7 @@ function renderDetails() {
   empty.hidden = true;
   content.hidden = false;
 
-  document.getElementById("detail-icon").innerHTML = iconImg(info.icon, "eq-icon eq-icon--detail", info.name);
+  document.getElementById("detail-icon").innerHTML = equipmentIcon(info, "eq-icon eq-icon--detail");
   document.getElementById("detail-name").textContent = device.label || info.name;
   document.getElementById("detail-position").textContent =
     `U${device.startU} – U${device.startU + device.height - 1}`;
@@ -2183,6 +1178,10 @@ function renderDetails() {
 
   const labelInput = document.getElementById("detail-label");
   labelInput.value = device.label || "";
+
+  const powerInput = document.getElementById("detail-power");
+  powerInput.value = Number.isFinite(device.powerW) ? device.powerW : "";
+  powerInput.placeholder = String(info.powerW || 0);
 }
 
 function renderStats() {
@@ -2192,6 +1191,12 @@ function renderStats() {
   document.getElementById("stat-used").textContent = used.size;
   document.getElementById("stat-free").textContent = rackHeight - used.size;
   document.getElementById("stat-devices").textContent = devices.length;
+
+  const power = totalPowerW();
+  const powerEl = document.getElementById("stat-power");
+  const powerStat = document.getElementById("stat-power-wrap");
+  powerEl.textContent = powerBudgetW > 0 ? `${power} / ${powerBudgetW} W` : `${power} W`;
+  powerStat.classList.toggle("rack-stat--warn", powerBudgetW > 0 && power > powerBudgetW);
 }
 
 function renderInventory() {
@@ -2209,9 +1214,9 @@ function renderInventory() {
       const label = d.label || info.name;
       return `<li>
         <button type="button" class="inventory-item${d.id === selectedDeviceId ? " inventory-item--active" : ""}" data-id="${d.id}">
-          <span class="inventory-item__icon">${iconImg(info.icon, "eq-icon eq-icon--inventory", info.name)}</span>
+          <span class="inventory-item__icon">${equipmentIcon(info, "eq-icon eq-icon--inventory")}</span>
           <span class="inventory-item__text">
-            <span class="inventory-item__name">${label}</span>
+            <span class="inventory-item__name">${escapeHtml(label)}</span>
             <span class="inventory-item__meta">U${d.startU} · ${d.height}U</span>
           </span>
         </button>
@@ -2248,8 +1253,7 @@ function flashHint(msg) {
 }
 
 function removeSelected() {
-  if (!selectedDeviceId) return;
-  pruneConnectionsForDevice(selectedDeviceId);
+  if (!selectedDeviceId || currentPlanRole === "viewer") return;
   devices = devices.filter((d) => d.id !== selectedDeviceId);
   selectedDeviceId = null;
   save();
@@ -2257,16 +1261,13 @@ function removeSelected() {
   renderDetails();
   renderStats();
   renderInventory();
-  renderCablingForm();
-  renderCablingList();
-  renderCablingMap();
   updateHint();
 }
 
 function resetRack() {
-  if (devices.length && !confirm(I18n.t("reset.confirm"))) return;
+  if (currentPlanRole === "viewer") return;
+  if (devices.length && !confirm(I18n.t("rack.resetConfirm"))) return;
   devices = [];
-  connections = [];
   selectedDeviceId = null;
   selectedType = null;
   save();
@@ -2275,13 +1276,14 @@ function resetRack() {
   renderDetails();
   renderStats();
   renderInventory();
-  renderCablingForm();
-  renderCablingList();
-  renderCablingMap();
   updateHint();
 }
 
 function changeRackHeight(h) {
+  if (currentPlanRole === "viewer") {
+    document.getElementById("rack-height").value = String(rackHeight);
+    return;
+  }
   const newH = Number(h);
   const maxU = devices.reduce((m, d) => Math.max(m, d.startU + d.height - 1), 0);
   if (maxU > newH) {
@@ -2314,6 +1316,8 @@ async function init() {
     try {
       load();
       await loadAccountPlan();
+      await loadMyRackList();
+      await loadCustomTypes();
     } catch {
       load();
     }
@@ -2328,68 +1332,44 @@ async function init() {
   renderDetails();
   renderStats();
   renderInventory();
-  renderCablingForm();
-  renderCablingList();
-  renderCablingMap();
-  switchDetailsTab(detailsTab);
   updateHint();
-
-  document.getElementById("tab-device").addEventListener("click", () => switchDetailsTab("device"));
-  document.getElementById("tab-cabling").addEventListener("click", () => switchDetailsTab("cabling"));
-  document.getElementById("cabling-form").addEventListener("submit", addConnection);
-  document.getElementById("bulk-switch").addEventListener("change", renderBulkActionButtons);
-  document.getElementById("bulk-patch").addEventListener("change", renderBulkActionButtons);
-
-  const cableFromDevice = document.getElementById("cable-from-device");
-  const cableToDevice = document.getElementById("cable-to-device");
-  cableFromDevice.addEventListener("change", () => {
-    fillPortSelect(
-      document.getElementById("cable-from-port"),
-      cableFromDevice.value,
-      cableToDevice.value
-    );
-    if (cableFromDevice.value === cableToDevice.value) {
-      const alt = devicesWithPorts().find((d) => d.id !== Number(cableFromDevice.value));
-      if (alt) cableToDevice.value = String(alt.id);
-      fillPortSelect(
-        document.getElementById("cable-to-port"),
-        cableToDevice.value,
-        cableFromDevice.value
-      );
-    }
-  });
-  cableToDevice.addEventListener("change", () => {
-    fillPortSelect(
-      document.getElementById("cable-to-port"),
-      cableToDevice.value,
-      cableFromDevice.value
-    );
-    if (cableFromDevice.value === cableToDevice.value) {
-      const alt = devicesWithPorts().find((d) => d.id !== Number(cableToDevice.value));
-      if (alt) cableFromDevice.value = String(alt.id);
-      fillPortSelect(
-        document.getElementById("cable-from-port"),
-        cableFromDevice.value,
-        cableToDevice.value
-      );
-    }
-  });
-
-  window.addEventListener("resize", () => {
-    clearTimeout(cablingMapResizeTimer);
-    cablingMapResizeTimer = setTimeout(() => {
-      renderRackCabling();
-      renderCablingMap();
-    }, 150);
-  });
 
   document.getElementById("rack-height").addEventListener("change", (e) => {
     changeRackHeight(e.target.value);
   });
 
   document.getElementById("btn-reset").addEventListener("click", resetRack);
+  document.getElementById("rack-switcher").addEventListener("change", (e) => {
+    switchRack(e.target.value);
+  });
+  document.getElementById("btn-rack-rename").addEventListener("click", renameRack);
+  document.getElementById("btn-rack-delete").addEventListener("click", deleteRack);
+  document.getElementById("btn-history-toggle").addEventListener("click", (e) => {
+    e.stopPropagation();
+    setHistoryPanelOpen(!historyPanelOpen);
+  });
+  document.getElementById("btn-share-toggle").addEventListener("click", (e) => {
+    e.stopPropagation();
+    setSharePanelOpen(!sharePanelOpen);
+  });
+  document.getElementById("share-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    addCollaborator();
+  });
+  document.getElementById("stat-power-wrap").addEventListener("click", setPowerBudget);
+  document.getElementById("btn-custom-type-toggle").addEventListener("click", () => {
+    const form = document.getElementById("custom-type-form");
+    form.hidden = !form.hidden;
+  });
+  document.getElementById("custom-type-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    createCustomType();
+  });
+  document.getElementById("btn-export-png").addEventListener("click", exportRackPNG);
+  document.getElementById("btn-export-pdf").addEventListener("click", exportRackPDF);
   document.getElementById("btn-remove").addEventListener("click", removeSelected);
   document.getElementById("detail-label").addEventListener("input", (e) => {
+    if (currentPlanRole === "viewer") return;
     const device = devices.find((d) => d.id === selectedDeviceId);
     if (!device) return;
     device.label = e.target.value;
@@ -2399,6 +1379,20 @@ async function init() {
     document.getElementById("detail-name").textContent =
       device.label || typeInfo(device.type).name;
   });
+  document.getElementById("detail-power").addEventListener("input", (e) => {
+    if (currentPlanRole === "viewer") return;
+    const device = devices.find((d) => d.id === selectedDeviceId);
+    if (!device) return;
+    const raw = e.target.value.trim();
+    if (raw === "") {
+      delete device.powerW;
+    } else {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed) && parsed >= 0) device.powerW = Math.round(parsed);
+    }
+    save();
+    renderStats();
+  });
 
   document.addEventListener("langchange", () => {
     renderPalette();
@@ -2406,10 +1400,8 @@ async function init() {
     renderDetails();
     renderStats();
     renderInventory();
-    renderCablingForm();
-    renderCablingList();
-    renderCablingMap();
     updateHint();
+    loadMyRackList();
   });
 
   document.addEventListener("authchange", async () => {
@@ -2423,10 +1415,9 @@ async function init() {
     renderDetails();
     renderStats();
     renderInventory();
-    renderCablingForm();
-    renderCablingList();
-    renderCablingMap();
     updateHint();
+    await loadMyRackList();
+    await loadCustomTypes();
   });
 }
 

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=118">
+  <link rel="stylesheet" href="css/style.css?v=130">
 </head>
 <body data-page="main">
   <div class="bg-grid" aria-hidden="true"></div>
@@ -82,6 +82,40 @@
             </optgroup>
           </select>
         </label>
+        <div class="rack-switcher" id="rack-switcher-wrap" hidden>
+          <select
+            id="rack-switcher"
+            class="select"
+            data-i18n-attr="aria-label"
+            data-i18n="rackSwitcher.aria"
+            aria-label="Wissel van rack"
+          ></select>
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-rack-rename" data-i18n="rackSwitcher.rename">Naam wijzigen</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-rack-delete" data-i18n="rackSwitcher.delete">Verwijderen</button>
+          <div class="history-menu" id="history-menu">
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-history-toggle" data-i18n="history.button">Geschiedenis</button>
+            <div class="history-panel" id="history-panel" hidden>
+              <p class="history-panel__title" data-i18n="history.title">Eerdere versies</p>
+              <ul class="history-panel__list" id="history-list"></ul>
+            </div>
+          </div>
+          <div class="history-menu" id="share-menu" hidden>
+            <button type="button" class="btn btn--ghost btn--sm" id="btn-share-toggle" data-i18n="share.button">Delen</button>
+            <div class="history-panel" id="share-panel" hidden>
+              <p class="history-panel__title" data-i18n="share.title">Gedeeld met</p>
+              <ul class="history-panel__list" id="share-list"></ul>
+              <form class="custom-type-form" id="share-form">
+                <input type="email" class="input" id="share-email" maxlength="120"
+                  data-i18n-attr="placeholder" data-i18n="share.emailPlaceholder" placeholder="E-mailadres">
+                <select class="select" id="share-role">
+                  <option value="viewer" data-i18n="share.roleViewer">Bekijken</option>
+                  <option value="editor" data-i18n="share.roleEditor">Bewerken</option>
+                </select>
+                <button type="submit" class="btn btn--primary btn--sm" data-i18n="share.add">Toevoegen</button>
+              </form>
+            </div>
+          </div>
+        </div>
         <button type="button" class="btn btn--ghost btn--sm" id="btn-reset" data-i18n="nav.reset">Reset</button>
         <div class="account-menu" id="auth-user" hidden>
           <button
@@ -151,6 +185,28 @@
       <h2 class="panel-title" data-i18n="palette.title">Apparatuur</h2>
       <p class="panel-hint" data-i18n="palette.hint">Kies een item en klik in het rack om te plaatsen.</p>
       <div class="palette-list" id="palette-list"></div>
+      <div class="palette-custom" id="palette-custom" hidden>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-custom-type-toggle" data-i18n="palette.addCustomType">+ Nieuw apparatuur-type</button>
+        <form class="custom-type-form" id="custom-type-form" hidden>
+          <input type="text" class="input" id="custom-type-name" maxlength="40"
+            data-i18n-attr="placeholder" data-i18n="palette.customTypeNamePlaceholder" placeholder="Naam">
+          <div class="custom-type-form__row">
+            <label>
+              <span data-i18n="palette.customTypeHeight">Hoogte (U)</span>
+              <input type="number" class="input" id="custom-type-height" min="1" max="48" value="1">
+            </label>
+            <label>
+              <span data-i18n="palette.customTypeColor">Kleur</span>
+              <input type="color" class="input custom-type-form__color" id="custom-type-color" value="#0076ce">
+            </label>
+          </div>
+          <label>
+            <span data-i18n="palette.customTypePower">Vermogen (W)</span>
+            <input type="number" class="input" id="custom-type-power" min="0" step="1">
+          </label>
+          <button type="submit" class="btn btn--primary btn--sm" id="btn-custom-type-add" data-i18n="palette.customTypeAdd">Toevoegen</button>
+        </form>
+      </div>
     </aside>
 
     <section class="rack-section" data-i18n-attr="aria-label" data-i18n="rack.aria">
@@ -167,46 +223,31 @@
           <span class="rack-stat__value" id="stat-devices">0</span>
           <span class="rack-stat__label" data-i18n="stats.devices">Apparaten</span>
         </div>
+        <button type="button" class="rack-stat rack-stat--button" id="stat-power-wrap" data-i18n-attr="aria-label" data-i18n="stats.powerAria" aria-label="Vermogen instellen">
+          <span class="rack-stat__value" id="stat-power">0 W</span>
+          <span class="rack-stat__label" data-i18n="stats.power">Vermogen</span>
+        </button>
       </div>
 
       <div class="rack-toolbar">
         <p class="rack-toolbar__hint" id="placement-hint" data-i18n="hints.selectLeft">Selecteer apparatuur links.</p>
+        <div class="rack-toolbar__actions">
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-export-png" data-i18n="export.png">PNG</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-export-pdf" data-i18n="export.pdf">PDF</button>
+        </div>
       </div>
 
       <div class="rack-wrapper" id="rack-wrapper">
         <div class="rack-nums" id="rack-nums" aria-hidden="true"></div>
         <div class="rack-rail rack-rail--left" id="rail-left" aria-hidden="true"></div>
-        <div class="rack-cabling-layer" id="rack-cabling-layer">
+        <div class="rack-layer" id="rack-layer">
           <div class="rack" id="rack" role="grid" data-i18n-attr="aria-label" data-i18n="rack.unitsAria"></div>
         </div>
         <div class="rack-rail rack-rail--right" id="rail-right" aria-hidden="true"></div>
-        <div class="rack-cable-bay" id="rack-cable-bay" aria-hidden="true"></div>
-        <svg class="rack-cabling-svg" id="rack-cabling-svg" aria-hidden="true"></svg>
       </div>
-
-      <section class="cabling-map" id="cabling-map" hidden data-i18n-attr="aria-label" data-i18n="cabling.mapAria">
-        <div class="cabling-map__head">
-          <h3 class="cabling-map__title" data-i18n="cabling.mapTitle">Bekabeling</h3>
-          <span class="cabling-map__count" id="cabling-count">0</span>
-        </div>
-        <div class="cabling-map__empty" id="cabling-map-empty" data-i18n="cabling.mapEmpty">
-          Nog geen ethernet-verbindingen. Voeg kabels toe via het paneel rechts.
-        </div>
-        <div class="cabling-map__canvas" id="cabling-map-canvas" hidden>
-          <svg class="cabling-map__svg" id="cabling-svg" aria-hidden="true"></svg>
-          <div class="cabling-map__nodes" id="cabling-nodes"></div>
-        </div>
-      </section>
     </section>
 
     <aside class="details" data-i18n-attr="aria-label" data-i18n="details.aria">
-      <div class="details-tabs" role="tablist">
-        <button type="button" class="details-tab details-tab--active" role="tab" id="tab-device"
-          aria-selected="true" aria-controls="panel-device" data-tab="device" data-i18n="details.tabDevice">Apparaat</button>
-        <button type="button" class="details-tab" role="tab" id="tab-cabling"
-          aria-selected="false" aria-controls="panel-cabling" data-tab="cabling" data-i18n="details.tabCabling">Bekabeling</button>
-      </div>
-      <div id="panel-device" role="tabpanel" aria-labelledby="tab-device">
       <div class="details-empty" id="details-empty">
         <span class="details-empty__icon">👆</span>
         <p data-i18n="details.empty">Klik op geplaatste apparatuur om details te zien of te verwijderen.</p>
@@ -232,63 +273,11 @@
           <span data-i18n="details.label">Label</span>
           <input type="text" class="input" id="detail-label" maxlength="40" data-i18n-attr="placeholder" data-i18n="details.labelPlaceholder">
         </label>
+        <label class="label-field">
+          <span data-i18n="details.power">Vermogen (W)</span>
+          <input type="number" class="input" id="detail-power" min="0" step="1">
+        </label>
         <button type="button" class="btn btn--danger btn--sm" id="btn-remove" data-i18n="details.remove">Verwijderen</button>
-      </div>
-      </div>
-
-      <div id="panel-cabling" role="tabpanel" aria-labelledby="tab-cabling" hidden>
-        <p class="panel-hint" data-i18n="cabling.hint">Verbind ethernet-poorten tussen apparatuur in het rack.</p>
-        <form class="cabling-form" id="cabling-form">
-          <div class="cabling-form__row">
-            <label class="label-field">
-              <span data-i18n="cabling.from">Van</span>
-              <select class="select" id="cable-from-device" required></select>
-            </label>
-            <label class="label-field cabling-form__port">
-              <span data-i18n="cabling.port">Poort</span>
-              <select class="select" id="cable-from-port" required></select>
-            </label>
-          </div>
-          <div class="cabling-form__row">
-            <label class="label-field">
-              <span data-i18n="cabling.to">Naar</span>
-              <select class="select" id="cable-to-device" required></select>
-            </label>
-            <label class="label-field cabling-form__port">
-              <span data-i18n="cabling.port">Poort</span>
-              <select class="select" id="cable-to-port" required></select>
-            </label>
-          </div>
-          <label class="label-field">
-            <span data-i18n="cabling.label">Label</span>
-            <input type="text" class="input" id="cable-label" maxlength="32"
-              data-i18n-attr="placeholder" data-i18n="cabling.labelPlaceholder">
-          </label>
-          <label class="label-field">
-            <span data-i18n="cabling.color">Kleur</span>
-            <select class="select" id="cable-color"></select>
-          </label>
-          <button type="submit" class="btn btn--primary btn--sm cabling-form__submit" data-i18n="cabling.add">Kabel toevoegen</button>
-        </form>
-        <div class="cabling-bulk" id="cabling-bulk" hidden>
-          <h4 class="cabling-bulk__title" data-i18n="cabling.bulkTitle">Snelkoppeling patchpaneel</h4>
-          <p class="cabling-bulk__hint" data-i18n="cabling.bulkHint">Verbind switch-poorten met een patchpaneel in één keer.</p>
-          <label class="label-field">
-            <span data-i18n="cabling.bulkSwitch">Switch</span>
-            <select class="select" id="bulk-switch"></select>
-          </label>
-          <label class="label-field" id="bulk-patch-field">
-            <span data-i18n="cabling.bulkPatch">Patchpaneel</span>
-            <select class="select" id="bulk-patch"></select>
-          </label>
-          <div class="cabling-bulk__actions" id="bulk-actions" hidden></div>
-          <div class="cabling-bulk__disconnect" id="bulk-disconnect" hidden>
-            <p class="cabling-bulk__disconnect-title" data-i18n="cabling.bulkDisconnectTitle">Kabels verwijderen</p>
-            <div class="cabling-bulk__actions cabling-bulk__actions--disconnect" id="bulk-disconnect-actions"></div>
-          </div>
-        </div>
-        <ul class="cabling-list" id="cabling-list"></ul>
-        <p class="cabling-list-empty" id="cabling-list-empty" data-i18n="cabling.listEmpty">Nog geen kabels.</p>
       </div>
 
       <div class="inventory">
@@ -310,6 +299,8 @@
     </div>
   </footer>
   </div>
+
+  <div id="print-view" class="print-view"></div>
 
   <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" hidden>
 
@@ -336,11 +327,11 @@
     </div>
   </div>
 
-  <script src="js/i18n.js?v=39"></script>
+  <script src="js/i18n.js?v=47"></script>
   <script src="js/routes.js?v=2"></script>
   <script src="js/avatar-crop.js?v=2"></script>
   <script src="js/settings.js?v=10"></script>
   <script src="js/auth.js?v=32"></script>
-  <script src="js/main.js?v=108"></script>
+  <script src="js/main.js?v=130"></script>
 </body>
 </html>

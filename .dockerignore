@@ -1,0 +1,17 @@
+.git/
+.claude/
+api/__pycache__/
+**/__pycache__/
+*.pyc
+*.env
+*.pem
+*.db
+avatars/
+*.md
+scripts/
+deploy.ps1
+setup-server.sh
+setup-deploy.sh
+setup-api.sh
+rackforge-api.user.service
+Caddyfile

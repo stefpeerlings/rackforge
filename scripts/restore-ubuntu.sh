@@ -1,7 +1,8 @@
 #!/bin/bash
 # RackForge — herstel op een verse Ubuntu-server vanaf GitHub
 # Gebruik (één regel):
-#   git clone https://github.com/stefpeerlings/rackforge.git && cd rackforge && bash install.sh
+#   git clone https://github.com/stefpeerlings/rackforge.git rackforge-src && cd rackforge-src && bash install.sh
+# (niet clonen naar "rackforge" zelf — dat botst met de API_DIR-default $HOME/rackforge)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,7 +33,7 @@ else
 fi
 
 echo "-> API"
-for f in server.py admin_panel.py email_templates.py google_oauth.py; do
+for f in server.py admin_panel.py email_templates.py google_oauth.py license.py; do
   cp "$REPO_ROOT/api/$f" "$API_DIR/$f"
 done
 chmod 755 "$API_DIR/server.py"
