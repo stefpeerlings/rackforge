@@ -9,7 +9,8 @@ EnvironmentFile=-%h/.config/rackforge/smtp.env
 EnvironmentFile=-%h/.config/rackforge/google.env
 EnvironmentFile=-%h/.config/rackforge/admin.env
 Environment=RACKFORGE_DB=%h/rackforge/plans.db
-Environment=RACKFORGE_HOST=127.0.0.1
+Environment=RACKFORGE_STATIC_DIR=%h/rackforge/static
+Environment=RACKFORGE_HOST=0.0.0.0
 Environment=RACKFORGE_PORT=8080
 ExecStart=/usr/bin/python3 %h/rackforge/server.py
 Restart=on-failure

@@ -1,5 +1,6 @@
 .git/
 .claude/
+site/
 api/__pycache__/
 **/__pycache__/
 *.pyc
@@ -14,3 +15,9 @@ setup-server.sh
 setup-api.sh
 rackforge-api.user.service
 Caddyfile
+api/issue_license.py
+api/setup-admin-env.sh
+api/setup-smtp.py
+api/test-smtp.py
+api/test-verify-mail.py
+api/gen-avatar.py

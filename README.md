@@ -29,10 +29,11 @@ editor, and every change is automatically snapshotted so a bad edit is one click
 undone.
 
 The whole thing is one Python process (standard library only — no pip/npm dependency tree to
-audit or break) backed by SQLite, fronted by Caddy for TLS and static file serving, with an
-admin panel for managing users, sessions, and licensing built in. That means it runs on
-practically anything with Python 3 installed: a Docker container, a bare LXC, a spare laptop —
-no database server, no build step, no external services required to get it running.
+audit or break) backed by SQLite, with an admin panel for managing users, sessions, and licensing
+built in. It serves its own frontend and speaks HTTPS out of the box (a self-signed certificate,
+generated automatically via the `openssl` CLI — no separate reverse proxy to configure). That
+means it runs on practically anything with Python 3 installed: a Docker container, a bare LXC, a
+spare laptop — no database server, no build step, no external services required to get it running.
 
 ## Features
 
@@ -65,16 +66,15 @@ The Community tier requires no license key and runs fully self-hosted, free.
 Two supported paths, pick whichever fits your setup:
 
 - **[Docker](#quick-start-docker)** — the fastest way to get RackForge running on any Linux
-  host or LXC that has Docker installed. Everything (API + Caddy + TLS) is containerized;
-  updating means `git pull` + `docker compose up -d --build`. Recommended for most people.
-- **[Bare-metal on Ubuntu](#bare-metal-install-ubuntu--caddy)** — installs directly onto the
-  host as a systemd user service behind a system-installed Caddy. No Docker required, but you
-  manage Caddy, systemd, and TLS certificates yourself.
+  host or LXC that has Docker installed. Updating means `git pull` + `docker compose up -d --build`.
+  Recommended for most people.
+- **[Proxmox LXC / bare-metal on Debian or Ubuntu](#bare-metal-install-debianubuntu)** — installs
+  directly onto the host as a systemd user service. No Docker, no reverse proxy to configure.
 
-Both paths end up in the same place: a running API on port 8080, a Caddy reverse proxy handling
-`/api/*` and `/admin/*`, and a bootstrap `admin` account you log into to configure everything
-else (license key, SMTP, Google OAuth) from the admin panel — no config file editing needed
-after the initial setup.
+Both paths end up in the same place: `server.py` listening on port **8080**, serving both the
+frontend and the API/admin panel over HTTPS (self-signed by default), and a bootstrap `admin`
+account you log into to configure everything else (license key, SMTP, Google OAuth) from the
+admin panel — no config file editing needed after the initial setup.
 
 ## Quick start (Docker)
 
@@ -84,22 +84,23 @@ Requires Docker + the Compose plugin (`docker compose version`) on the target ho
 apt-get update && apt-get install -y git   # skip if git is already installed
 git clone https://github.com/stefpeerlings/rackforge.git
 cd rackforge
-cp .env.example .env                              # set DOMAIN
-cp api/rackforge.env.example api/rackforge.env     # set RACKFORGE_ADMIN_PASSWORD
+cp api/rackforge.env.example api/rackforge.env   # set RACKFORGE_ADMIN_PASSWORD
 docker compose up -d --build
 ```
 
-`.env` controls the public-facing domain Caddy serves on; `api/rackforge.env` holds the app's
-own secrets (admin password, and optionally SMTP/Google OAuth/license key — see the comments in
-the example file for each). Neither file is committed to git.
+`api/rackforge.env` holds the app's secrets (admin password, and optionally SMTP/Google
+OAuth/license key/TLS — see the comments in the example file). It's never committed to git.
 
-This starts two containers:
+This starts a single container: the Python API (zero pip dependencies; only the `openssl` CLI is
+added, for license-key verification and generating a self-signed TLS certificate), with a named
+volume for `plans.db`, avatars, and the generated certificate — so it doesn't regenerate on every
+restart.
 
-- **`api`** — the Python API (zero pip dependencies; only the `openssl` CLI is added, for
-  license-key verification), with a named volume for `plans.db` and avatars.
-- **`web`** — Caddy with the static site baked in. Automatically requests a Let's Encrypt
-  certificate for `DOMAIN` (or plain HTTP if `DOMAIN=localhost`, for local/LAN testing — also
-  set `RACKFORGE_SECURE_COOKIE=0` in `api/rackforge.env` in that case, see the example file).
+Open `https://<host>:8080/` — the browser will warn about the self-signed certificate once,
+that's expected; click through. Want a real, trusted certificate instead? Mount it into `/data`
+and point `RACKFORGE_TLS_CERT`/`RACKFORGE_TLS_KEY` at it (see `api/rackforge.env.example`).
+Already fronting this with your own reverse proxy/TLS terminator? Set `RACKFORGE_TLS=0` for
+plain HTTP.
 
 Log in at `/admin` (user **`admin`**, password from `rackforge.env`) to paste a license key
 under **License** — it takes effect immediately, no restart needed.
@@ -115,7 +116,9 @@ Rebuild after a `git pull`:
 docker compose up -d --build
 ```
 
-## Bare-metal install (Ubuntu + Caddy)
+## Bare-metal install (Debian/Ubuntu)
+
+Works on a plain Debian or Ubuntu server, a Proxmox LXC, or anything similar.
 
 ```bash
 apt-get update && apt-get install -y git \
@@ -132,16 +135,14 @@ That's it — clone and full restore in one line. (Not root? Prefix the `apt-get
 
 The script:
 
-1. Installs Caddy via its official apt repo, if not already present (set `INSTALL_CADDY=0` to
-   skip and manage it yourself)
-2. Copies the static site to `/var/www/html` (if writable)
-3. Places the API files in `~/rackforge`
-4. Creates config templates in `~/.config/rackforge/`
-5. Starts the `rackforge-api` user service
-6. Copies a ready-to-use `Caddyfile.new` into your home directory
+1. Copies the static site into `~/rackforge/static`
+2. Places the API files in `~/rackforge`
+3. Creates config templates in `~/.config/rackforge/`
+4. Starts the `rackforge-api` user service — `server.py` binds `0.0.0.0:8080` and serves
+   everything itself, generating a self-signed TLS certificate on first run
 
-Caddy is installed but not auto-configured — copy `Caddyfile.new` into `/etc/caddy/Caddyfile`
-(fill in your own domain/IP, see below) and reload it once you've filled that in.
+At the end it prints the URL to open, e.g. `https://10.0.10.35:8080/` — the browser will warn
+about the self-signed certificate once, that's expected.
 
 ### Configuration
 
@@ -153,7 +154,9 @@ Copy the `.example` files and fill in secrets:
 | `~/.config/rackforge/smtp.env` | Email (password reset, verification) |
 | `~/.config/rackforge/google.env` | Google OAuth (optional) |
 
-Templates live in `api/*.env.example`.
+Templates live in `api/*.env.example`. TLS behavior (self-signed by default, or your own
+cert/key, or disabled entirely if you're fronting it yourself) is controlled by
+`RACKFORGE_TLS`/`RACKFORGE_TLS_CERT`/`RACKFORGE_TLS_KEY` — set them in `admin.env`.
 
 Bootstrap admin: username **`admin`** with the password from `admin.env` (Owner role) — this logs
 into `/admin`, the operator panel (users, sessions, audit log, license), which is separate from
@@ -170,51 +173,9 @@ systemctl --user restart rackforge-api
 
 ### Requirements
 
-- A Debian or Ubuntu server/LXC (Caddy is installed automatically by `install.sh` if missing)
+- A Debian or Ubuntu server/LXC
 - Python 3
 - systemd (user service for the API)
-
-## Deploying to your own infrastructure
-
-The deploy/ops scripts in the repo root and `scripts/` (Caddy, DNS, Cloudflare Tunnel, Windows
-deploy) read your server details from a local, never-committed config file instead of having
-them hardcoded:
-
-```bash
-cp deploy.local.sh.example deploy.local.sh     # Linux/macOS — fill in, then: source deploy.local.sh
-cp deploy.local.ps1.example deploy.local.ps1   # Windows — fill in
-```
-
-See the `.example` files for available variables (`DEPLOY_HOST`, `DEPLOY_DOMAIN`, `LAN_CIDR`,
-`CF_TUNNEL_ID`, …).
-
-### Deploy from Windows
-
-```powershell
-cd C:\path\to\rackforge
-.\deploy.ps1
-```
-
-Deploys the site + API to the server from `deploy.local.ps1` (`DEPLOY_HOST`) and restarts the API.
-
-One-time server setup:
-
-```bash
-bash setup-server.sh    # /var/www/html permissions, passwordless Caddy sudo
-bash setup-api.sh       # alternative: system-wide API service
-```
-
-### Caddy
-
-`/api/*` and `/admin/*` are reverse-proxied to the API on port **8080**. Static pages are served
-from `/var/www/html`.
-
-After a config change:
-
-```bash
-sudo cp ~/Caddyfile.new /etc/caddy/Caddyfile
-sudo systemctl reload caddy
-```
 
 ### Useful commands
 
@@ -224,23 +185,31 @@ systemctl --user status rackforge-api
 journalctl --user -u rackforge-api -f
 
 # Health check
-curl http://127.0.0.1:8080/api/health
+curl -sk https://127.0.0.1:8080/api/health
 ```
+
+## Fronting it with your own reverse proxy (optional)
+
+If you want a real public domain with a trusted (non-self-signed) certificate — e.g. via Let's
+Encrypt — put any reverse proxy in front (Caddy, nginx, Cloudflare Tunnel, …) and set
+`RACKFORGE_TLS=0` so RackForge serves plain HTTP for the proxy to terminate TLS in front of.
+The repo includes a `Caddyfile` and a handful of personal deploy scripts (`setup-server.sh`,
+`deploy.ps1`, `scripts/setup-local-tls.sh`, …) used for exactly that on the maintainer's own
+production server — treat them as a worked example, not a required step.
 
 ## Project structure
 
 ```
-├── api/                  # Python API + admin panel
+├── api/                  # Python API + admin panel (serves the frontend too)
 │   ├── server.py
 │   ├── admin_panel.py
 │   ├── license.py        # Tier/license verification
 │   └── *.env.example
 ├── css/ js/ icons/       # Frontend assets
 ├── *.html                # Pages
-├── Caddyfile             # Reverse proxy (/api, /admin -> :8080), bare-metal
-├── docker/Caddyfile      # Reverse proxy, Docker
-├── docker-compose.yml    # Docker deploy
-├── deploy.ps1            # Windows deploy
+├── docker-compose.yml    # Docker deploy (single container)
+├── deploy.ps1            # Windows deploy (maintainer's own server)
+├── Caddyfile             # Optional reverse proxy, for a real public domain
 ├── rackforge-api.user.service
 ├── install.sh            # Entry point (calls the restore script)
 └── scripts/

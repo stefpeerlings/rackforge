@@ -7,11 +7,15 @@ import base64
 import binascii
 import hashlib
 import json
+import mimetypes
 import os
 import re
 import secrets
 import smtplib
+import socket
 import sqlite3
+import ssl
+import subprocess
 import uuid
 from datetime import datetime, timedelta, timezone
 from email_templates import (
@@ -32,12 +36,42 @@ from google_oauth import (
     google_configured,
 )
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 DB_PATH = os.environ.get("RACKFORGE_DB", "/home/stef/rackforge/plans.db")
 HOST = os.environ.get("RACKFORGE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("RACKFORGE_PORT", "8080"))
+STATIC_DIR = os.environ.get(
+    "RACKFORGE_STATIC_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+)
+TLS_ENABLED = os.environ.get("RACKFORGE_TLS", "1") == "1"
+_DATA_DIR = os.path.dirname(os.path.abspath(DB_PATH))
+TLS_CERT = os.environ.get("RACKFORGE_TLS_CERT", os.path.join(_DATA_DIR, "tls-cert.pem"))
+TLS_KEY = os.environ.get("RACKFORGE_TLS_KEY", os.path.join(_DATA_DIR, "tls-key.pem"))
+# Clean-URL page -> static file map, same routes the old Caddyfile handled.
+STATIC_ROUTES = {
+    "/": "index.html",
+    "/login": "login.html",
+    "/main": "main.html",
+    "/settings": "settings.html",
+    "/privacy": "privacy.html",
+    "/terms": "terms.html",
+    "/verify-email": "verify-email.html",
+    "/reset-password": "reset-password.html",
+}
+STATIC_CONTENT_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".ico": "image/x-icon",
+}
 MAX_BODY = 512_000
 PLAN_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 CUSTOM_TYPE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
@@ -567,6 +601,60 @@ def ensure_avatar_dir() -> None:
     os.makedirs(AVATAR_DIR, exist_ok=True)
 
 
+def detect_lan_ip() -> str | None:
+    """Best-effort local IP so the self-signed cert's SAN covers
+    https://<lan-ip>:port/ out of the box. Doesn't actually send traffic —
+    UDP "connect" just picks the outbound-facing interface/address."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except OSError:
+        return None
+
+
+def ensure_self_signed_cert(cert_path: str, key_path: str) -> bool:
+    """Generates a self-signed TLS cert via the openssl CLI (same
+    zero-pip-dependency approach as license.py) if one isn't already
+    present. Returns True if cert+key are ready to use."""
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        return True
+
+    lan_ip = detect_lan_ip()
+    san_entries = ["DNS:localhost", "IP:127.0.0.1"]
+    if lan_ip and lan_ip not in ("127.0.0.1",):
+        san_entries.append(f"IP:{lan_ip}")
+    san = ",".join(san_entries)
+
+    os.makedirs(os.path.dirname(cert_path) or ".", exist_ok=True)
+    try:
+        result = subprocess.run(
+            [
+                "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+                "-keyout", key_path,
+                "-out", cert_path,
+                "-days", "3650",
+                "-subj", "/CN=rackforge",
+                "-addext", f"subjectAltName={san}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        print("[tls] 'openssl' binary not found on PATH — cannot generate a self-signed certificate")
+        return False
+
+    if result.returncode != 0:
+        print(f"[tls] openssl failed to generate a certificate: {result.stderr.strip()}")
+        return False
+    try:
+        os.chmod(key_path, 0o600)
+    except OSError:
+        pass
+    print(f"[tls] generated self-signed certificate (SAN: {san})")
+    return True
+
+
 def avatar_file_path(user_id: str, ext: str) -> str:
     return os.path.join(AVATAR_DIR, f"{user_id}.{ext}")
 
@@ -836,6 +924,34 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "private, max-age=3600")
         self.end_headers()
         self.wfile.write(body)
+
+    def serve_static(self, path: str) -> bool:
+        """Serves the frontend directly (Caddy used to do this). Returns
+        True if a response was sent, False to fall through to a 404."""
+        rel = STATIC_ROUTES.get(path, path.lstrip("/"))
+        if not rel:
+            rel = "index.html"
+
+        static_root = Path(STATIC_DIR).resolve()
+        try:
+            resolved = (static_root / rel).resolve()
+        except (OSError, ValueError):
+            return False
+        # Reject path traversal (../..) and symlinks that escape STATIC_DIR.
+        if not (resolved == static_root or resolved.is_relative_to(static_root)):
+            return False
+        if not resolved.is_file():
+            return False
+
+        content_type = STATIC_CONTENT_TYPES.get(
+            resolved.suffix.lower(), mimetypes.guess_type(resolved.name)[0] or "application/octet-stream"
+        )
+        try:
+            body = resolved.read_bytes()
+        except OSError:
+            return False
+        self.send_bytes(200, body, content_type)
+        return True
 
     def send_redirect(self, url: str, *, cookies: list[str] | None = None) -> None:
         self.send_response(302)
@@ -2137,6 +2253,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, row_to_plan(row, role=role))
             return
 
+        if not path.startswith("/api/") and not path.startswith("/admin"):
+            if self.serve_static(path):
+                return
+
         self.send_error_json(404, "Not found")
 
     def do_POST(self) -> None:
@@ -2389,7 +2509,18 @@ def main() -> None:
     init_db()
     ensure_avatar_dir()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
-    print(f"RackForge API listening on http://{HOST}:{PORT} (db={DB_PATH})")
+
+    scheme = "http"
+    if TLS_ENABLED:
+        if ensure_self_signed_cert(TLS_CERT, TLS_KEY):
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ctx.load_cert_chain(certfile=TLS_CERT, keyfile=TLS_KEY)
+            server.socket = ctx.wrap_socket(server.socket, server_side=True)
+            scheme = "https"
+        else:
+            print("[tls] falling back to plain HTTP — set RACKFORGE_TLS=0 to silence this")
+
+    print(f"RackForge listening on {scheme}://{HOST}:{PORT} (db={DB_PATH}, static={STATIC_DIR})")
     server.serve_forever()
 
 
