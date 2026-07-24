@@ -1,0 +1,21 @@
+# Promo site (this directory) — clean URLs, no .html in the address bar.
+# Adjust the site address, then copy into /etc/caddy/Caddyfile (or merge into
+# an existing one) and reload Caddy.
+
+http://jouwdomein.nl {
+	root * /var/www/rackforge
+	encode gzip
+
+	redir /index.html / permanent
+	redir /features.html /features permanent
+	redir /tiers.html /tiers permanent
+	redir /get-started.html /get-started permanent
+	redir /docs/index.html /docs permanent
+	redir /docs/docker.html /docs/docker permanent
+	redir /docs/proxmox-lxc.html /docs/proxmox-lxc permanent
+	redir /docs/deploying.html /docs/deploying permanent
+	redir /docs/project-structure.html /docs/project-structure permanent
+
+	try_files {path} {path}.html {path}/index.html
+	file_server
+}
