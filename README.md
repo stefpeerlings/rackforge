@@ -188,6 +188,9 @@ journalctl --user -u rackforge-api -f
 curl -sk https://127.0.0.1:8080/api/health
 ```
 
+This is a **user** service, not a system service — `systemctl restart rackforge-api` (without `--user`)
+won't find it; you need `systemctl --user restart rackforge-api`.
+
 ## Fronting it with your own reverse proxy (optional)
 
 If you want a real public domain with a trusted (non-self-signed) certificate — e.g. via Let's
