@@ -175,6 +175,7 @@ footer nav a:hover { color: var(--text); }
 .docs-content p code, .docs-content li code, .docs-content td code {
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px;
   padding: 0.1rem 0.4rem; font-family: var(--mono); font-size: 0.85em; color: var(--accent);
+  white-space: nowrap;
 }
 .docs-content pre {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -185,7 +186,8 @@ footer nav a:hover { color: var(--text); }
 .docs-content ul, .docs-content ol { color: var(--text-muted); margin: 0 0 1.25rem; padding-left: 1.3rem; }
 .docs-content li { margin-bottom: 0.4rem; }
 .docs-content table { width: 100%; border-collapse: collapse; margin: 0 0 1.5rem; font-size: 0.9rem; }
-.docs-content th, .docs-content td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); }
+.docs-content th, .docs-content td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.docs-content th:first-child, .docs-content td:first-child { white-space: nowrap; }
 .docs-content th { color: var(--text); }
 .docs-content td { color: var(--text-muted); }
 .docs-note {
