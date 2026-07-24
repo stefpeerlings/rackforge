@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import base64
 import json
+import os
+import sys
 import urllib.request
 
-TUNNEL_ID = "468025c7-e709-4846-8cbc-a919aaf05deb"
+TUNNEL_ID = os.environ.get("CF_TUNNEL_ID") or sys.exit(
+    "Zet CF_TUNNEL_ID (bv. via 'source deploy.local.sh')"
+)
 
 pem = open("/home/stef/.cloudflared/cert.pem").read()
 b64 = pem.split("-----BEGIN ARGO TUNNEL TOKEN-----")[1].split("-----END")[0].replace("\n", "")

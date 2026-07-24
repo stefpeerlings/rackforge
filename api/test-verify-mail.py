@@ -11,7 +11,7 @@ from pathlib import Path
 from email_templates import build_verification_message, verification_email_content
 
 ENV_FILE = Path.home() / ".config" / "rackforge" / "smtp.env"
-TO = os.environ.get("TEST_EMAIL_TO", "stef.peerlings@netwerkengineer.com")
+TO = os.environ.get("TEST_EMAIL_TO", "test@example.com")
 
 
 def load_env(path: Path) -> None:
@@ -57,7 +57,7 @@ def main() -> int:
     user = os.environ.get("RACKFORGE_SMTP_USER", "")
     password = os.environ.get("RACKFORGE_SMTP_PASS", "")
     from_addr = os.environ.get("RACKFORGE_SMTP_FROM", user)
-    app_url = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rstrip("/")
+    app_url = os.environ.get("RACKFORGE_APP_URL", "https://example.com").rstrip("/")
 
     if not host or not user or not password:
         print("SMTP_INCOMPLETE")

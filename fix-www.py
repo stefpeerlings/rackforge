@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 import base64
 import json
+import os
+import sys
 import urllib.error
 import urllib.request
 
 CERT_PATH = "/home/stef/.cloudflared/cert.pem"
-TUNNEL_ID = "468025c7-e709-4846-8cbc-a919aaf05deb"
+TUNNEL_ID = os.environ.get("CF_TUNNEL_ID") or sys.exit(
+    "Zet CF_TUNNEL_ID (bv. via 'source deploy.local.sh')"
+)
+DOMAIN = os.environ.get("CF_TUNNEL_DOMAIN") or sys.exit(
+    "Zet CF_TUNNEL_DOMAIN (bv. via 'source deploy.local.sh')"
+)
+WWW_DOMAIN = f"www.{DOMAIN}"
 
 
 def load_creds():
@@ -38,8 +46,8 @@ def main():
     config = {
         "config": {
             "ingress": [
-                {"hostname": "www.home-labe.com", "service": "http://localhost:80"},
-                {"hostname": "home-labe.com", "service": "http://localhost:80"},
+                {"hostname": WWW_DOMAIN, "service": "http://localhost:80"},
+                {"hostname": DOMAIN, "service": "http://localhost:80"},
                 {"service": "http_status:404"},
             ]
         }
@@ -56,7 +64,7 @@ def main():
     data = api(token, "GET", path)
     if not data or not data.get("success"):
         print("Cannot read redirect rules (token lacks permission).")
-        print("Open: https://dash.cloudflare.com/{}/home-labe.com/rules/redirect-rules".format(account_id))
+        print(f"Open: https://dash.cloudflare.com/{account_id}/{DOMAIN}/rules/redirect-rules")
         return
 
     result = data["result"]
@@ -71,27 +79,27 @@ def main():
     for rule in rules:
         expr = rule.get("expression", "")
         params = json.dumps(rule.get("action_parameters", {}))
-        if "www.home-labe.com" in expr and "home-labe.com" in expr and "www" in expr:
+        if WWW_DOMAIN in expr and DOMAIN in expr and "www" in expr:
             print("SKIP www->apex:", rule.get("description", expr))
             continue
-        if "www.home-labe.com" in params and expr.count("www") == 0:
+        if WWW_DOMAIN in params and expr.count("www") == 0:
             print("SKIP redirect stripping www:", rule.get("description", ""))
             continue
         new_rules.append(rule)
 
     has_apex_to_www = any(
-        "home-labe.com" in r.get("expression", "") and "www.home-labe.com" in json.dumps(r.get("action_parameters", {}))
+        DOMAIN in r.get("expression", "") and WWW_DOMAIN in json.dumps(r.get("action_parameters", {}))
         for r in new_rules
     )
     if not has_apex_to_www:
         new_rules.insert(0, {
             "description": "Apex naar www",
-            "expression": '(http.host eq "home-labe.com")',
+            "expression": f'(http.host eq "{DOMAIN}")',
             "action": "redirect",
             "action_parameters": {
                 "from_value": {"status_code": 301, "preserve_query_string": True},
                 "to_value": {
-                    "target_url": {"expression": 'concat("https://www.home-labe.com", http.request.uri.path)'},
+                    "target_url": {"expression": f'concat("https://{WWW_DOMAIN}", http.request.uri.path)'},
                     "status_code": 301,
                     "preserve_query_string": True,
                 },

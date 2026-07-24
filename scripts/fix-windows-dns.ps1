@@ -1,9 +1,17 @@
 # Eenmalig als Administrator uitvoeren (rechtermuisknop → Run with PowerShell / Als administrator)
-# Zorgt dat netwerkengineer.com lokaal naar 10.0.40.12 wijst.
+# Zorgt dat je domein lokaal naar je RackForge-server wijst.
 
 $ErrorActionPreference = "Stop"
-$ip = "10.0.40.12"
-$domain = "netwerkengineer.com"
+
+$localConfig = Join-Path $PSScriptRoot "..\deploy.local.ps1"
+if (Test-Path $localConfig) { . $localConfig }
+
+if (-not $env:DEPLOY_HOST -or -not $env:DEPLOY_DOMAIN) {
+    Write-Host "Zet DEPLOY_HOST en DEPLOY_DOMAIN in deploy.local.ps1 (zie deploy.local.ps1.example)." -ForegroundColor Red
+    exit 1
+}
+$ip = $env:DEPLOY_HOST
+$domain = $env:DEPLOY_DOMAIN
 $wifi = "WiFi"
 
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(

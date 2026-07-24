@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-import base64, json, urllib.request, urllib.error
+import base64, json, os, sys, urllib.request, urllib.error
+
+DOMAIN = os.environ.get("CF_TUNNEL_DOMAIN") or sys.exit(
+    "Zet CF_TUNNEL_DOMAIN (bv. via 'source deploy.local.sh')"
+)
 
 pem = open("/home/stef/.cloudflared/cert.pem").read()
 b64 = pem.split("-----BEGIN ARGO TUNNEL TOKEN-----")[1].split("-----END")[0].replace("\n", "")
@@ -20,8 +24,8 @@ def get(path):
 # zone details
 for path in [
     f"/zones/{z}",
-    f"/zones/{z}/dns_records?name=www.home-labe.com",
-    f"/zones/{z}/dns_records?name=home-labe.com",
+    f"/zones/{z}/dns_records?name=www.{DOMAIN}",
+    f"/zones/{z}/dns_records?name={DOMAIN}",
 ]:
     r = get(path)
     print(path)

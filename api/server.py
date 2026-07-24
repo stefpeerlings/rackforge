@@ -49,13 +49,13 @@ SESSION_COOKIE = "rackforge_session"
 SESSION_DAYS = 30
 PBKDF2_ROUNDS = 260_000
 SECURE_COOKIE = os.environ.get("RACKFORGE_SECURE_COOKIE", "1") == "1"
-APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rstrip("/")
+APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://example.com").rstrip("/")
 SMTP_HOST = os.environ.get("RACKFORGE_SMTP_HOST", "")
 SMTP_PORT = int(os.environ.get("RACKFORGE_SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("RACKFORGE_SMTP_USER", "")
 SMTP_PASS = os.environ.get("RACKFORGE_SMTP_PASS", "")
 SMTP_FROM = os.environ.get(
-    "RACKFORGE_SMTP_FROM", "noreply RackForge <noreply@netwerkengineer.com>"
+    "RACKFORGE_SMTP_FROM", "noreply RackForge <noreply@example.com>"
 )
 VERIFY_TOKEN_RE = re.compile(r"^[a-f0-9]{64}$")
 RESET_CODE_RE = re.compile(r"^\d{6}$")

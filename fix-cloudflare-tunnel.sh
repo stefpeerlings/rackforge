@@ -1,8 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-TUNNEL_ID="468025c7-e709-4846-8cbc-a919aaf05deb"
-DOMAIN="home-labe.com"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -f "$SCRIPT_DIR/deploy.local.sh" ] && source "$SCRIPT_DIR/deploy.local.sh"
+
+TUNNEL_ID="${CF_TUNNEL_ID:?Zet CF_TUNNEL_ID in deploy.local.sh (zie deploy.local.sh.example)}"
+DOMAIN="${CF_TUNNEL_DOMAIN:?Zet CF_TUNNEL_DOMAIN in deploy.local.sh (zie deploy.local.sh.example)}"
 CNAME_TARGET="${TUNNEL_ID}.cfargotunnel.com"
 
 echo "=== Cloudflare Tunnel DNS fix ==="

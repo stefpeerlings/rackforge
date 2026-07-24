@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-import base64, json, urllib.request, urllib.error
+import base64, json, os, sys, urllib.request, urllib.error
+
+DOMAIN = os.environ.get("CF_TUNNEL_DOMAIN") or sys.exit(
+    "Zet CF_TUNNEL_DOMAIN (bv. via 'source deploy.local.sh')"
+)
+tid = os.environ.get("CF_TUNNEL_ID") or sys.exit(
+    "Zet CF_TUNNEL_ID (bv. via 'source deploy.local.sh')"
+)
 
 pem = open("/home/stef/.cloudflared/cert.pem").read()
 b64 = pem.split("-----BEGIN ARGO TUNNEL TOKEN-----")[1].split("-----END")[0].replace("\n", "")
 d = json.loads(base64.b64decode(b64))
 t, acc = d["apiToken"], d["accountID"]
-tid = "468025c7-e709-4846-8cbc-a919aaf05deb"
 
 def api(path, method="GET", body=None):
     req = urllib.request.Request(
@@ -25,8 +31,8 @@ def api(path, method="GET", body=None):
 config = {
     "config": {
         "ingress": [
-            {"hostname": "www.home-labe.com", "service": "http://localhost:80"},
-            {"hostname": "home-labe.com", "service": "http://localhost:80"},
+            {"hostname": f"www.{DOMAIN}", "service": "http://localhost:80"},
+            {"hostname": DOMAIN, "service": "http://localhost:80"},
             {"service": "http_status:404"},
         ]
     }

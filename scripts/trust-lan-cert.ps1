@@ -1,6 +1,9 @@
 # Eenmalig als Administrator — vertrouw het lokale RackForge-certificaat in Chrome/Edge.
 $ErrorActionPreference = "Stop"
 
+$localConfig = Join-Path $PSScriptRoot "..\deploy.local.ps1"
+if (Test-Path $localConfig) { . $localConfig }
+
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Host "Start dit script als Administrator." -ForegroundColor Red
@@ -10,7 +13,8 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 $caPath = Join-Path $PSScriptRoot "lan-rootCA.pem"
 if (-not (Test-Path $caPath)) {
     Write-Host "CA-bestand niet gevonden: $caPath" -ForegroundColor Red
-    Write-Host "Download eerst van de server: scp stef@10.0.40.12:~/.mkcert/rootCA.pem scripts/lan-rootCA.pem"
+    $hostHint = if ($env:DEPLOY_HOST) { $env:DEPLOY_HOST } else { "<DEPLOY_HOST>" }
+    Write-Host "Download eerst van de server: scp stef@${hostHint}:~/.mkcert/rootCA.pem scripts/lan-rootCA.pem"
     exit 1
 }
 
@@ -20,6 +24,7 @@ Write-Host "Lokaal CA-certificaat geinstalleerd in Vertrouwde basiscertificering
 ipconfig /flushdns | Out-Null
 Clear-DnsClientCache -ErrorAction SilentlyContinue
 
+$domainHint = if ($env:DEPLOY_DOMAIN) { $env:DEPLOY_DOMAIN } else { "<DEPLOY_DOMAIN>" }
 Write-Host ""
-Write-Host "Sluit Chrome volledig af en open opnieuw: https://netwerkengineer.com/" -ForegroundColor Cyan
-Write-Host "Werkt het nog niet? Ga naar chrome://net-internals/#hsts en verwijder netwerkengineer.com" -ForegroundColor DarkGray
+Write-Host "Sluit Chrome volledig af en open opnieuw: https://$domainHint/" -ForegroundColor Cyan
+Write-Host "Werkt het nog niet? Ga naar chrome://net-internals/#hsts en verwijder $domainHint" -ForegroundColor DarkGray

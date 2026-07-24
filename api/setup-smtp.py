@@ -5,13 +5,13 @@ from pathlib import Path
 CONFIG_DIR = Path.home() / ".config" / "rackforge"
 CONFIG_FILE = CONFIG_DIR / "smtp.env"
 
-CONTENT = """# RackForge SMTP — Zoho Mail EU (netwerkengineer.com)
+CONTENT = """# RackForge SMTP — Zoho Mail EU (jouwdomein.nl)
 RACKFORGE_SMTP_HOST=smtp.zoho.eu
 RACKFORGE_SMTP_PORT=587
-RACKFORGE_SMTP_USER=noreply@netwerkengineer.com
+RACKFORGE_SMTP_USER=noreply@jouwdomein.nl
 RACKFORGE_SMTP_PASS=VERVANG_MET_ZOHO_APP_WACHTWOORD
-RACKFORGE_SMTP_FROM=noreply RackForge <noreply@netwerkengineer.com>
-RACKFORGE_APP_URL=https://netwerkengineer.com
+RACKFORGE_SMTP_FROM=noreply RackForge <noreply@jouwdomein.nl>
+RACKFORGE_APP_URL=https://jouwdomein.nl
 """
 
 def main() -> None:

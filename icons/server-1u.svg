@@ -56,7 +56,7 @@
     <rect width="86" height="26" rx="1" fill="#0a0a0c" stroke="#2a2a30" stroke-width="0.75"/>
     <rect x="2" y="2" width="82" height="14" rx="0.5" fill="url(#lcdBg)" stroke="#1a3060" stroke-width="0.5"/>
     <text x="6" y="12" fill="#1bdb7a" font-family="JetBrains Mono, monospace" font-size="6" font-weight="600">READY</text>
-    <text x="6" y="22" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="4.5">iDRAC · 10.0.40.10</text>
+    <text x="6" y="22" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="4.5">iDRAC · 192.0.2.10</text>
   </g>
 
   <!-- Brand -->

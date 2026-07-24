@@ -1,12 +1,15 @@
-# RackForge — alleen lokaal netwerk (10.0.40.0/24)
-# DNS: netwerkengineer.com → 10.0.40.12 via lokale DNS (dnsmasq / router)
+# RackForge — alleen lokaal netwerk.
+# DNS: {$DEPLOY_DOMAIN} → {$DEPLOY_HOST} via lokale DNS (dnsmasq / router).
+# {$DEPLOY_HOST}/{$DEPLOY_DOMAIN} komen uit de omgeving — zet ze via een
+# systemd EnvironmentFile voor de caddy.service, of vul ze hier direct in.
+# Certificaten: zie scripts/setup-local-tls.sh (mkcert, LAN-only).
 
-http://10.0.40.12, http://ubuntu-sever-laptop, http://netwerkengineer.com, http://www.netwerkengineer.com {
+http://{$DEPLOY_HOST}, http://{$DEPLOY_DOMAIN}, http://www.{$DEPLOY_DOMAIN} {
 	redir https://{host}{uri} permanent
 }
 
-https://10.0.40.12, https://ubuntu-sever-laptop, https://netwerkengineer.com, https://www.netwerkengineer.com {
-	tls /var/www/html/private-certs/netwerkengineer.pem /var/www/html/private-certs/netwerkengineer-key.pem
+https://{$DEPLOY_HOST}, https://{$DEPLOY_DOMAIN}, https://www.{$DEPLOY_DOMAIN} {
+	tls /var/www/html/private-certs/lan.pem /var/www/html/private-certs/lan-key.pem
 	root * /var/www/html
 
 	handle /private-certs/* {

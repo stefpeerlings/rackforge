@@ -3,7 +3,10 @@
 # Gebruik: bash setup-server.sh
 set -euo pipefail
 
-echo "=== Stef's Lab — server setup ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -f "$SCRIPT_DIR/deploy.local.sh" ] && source "$SCRIPT_DIR/deploy.local.sh"
+
+echo "=== Server setup ==="
 
 # 1) Website deploy zonder sudo
 if ! getent group caddy >/dev/null; then
@@ -26,12 +29,12 @@ sudo chmod 440 /etc/sudoers.d/stef-caddy
 sudo visudo -cf /etc/sudoers.d/stef-caddy
 echo "OK: passwordless sudo voor Caddy deploy"
 
-# 3) Pas Caddyfile aan als die nog 10.0.40.11 heeft
-if [ -f /home/stef/Caddyfile.new ]; then
-  if grep -q '10.0.40.11' /etc/caddy/Caddyfile 2>/dev/null; then
+# 3) Pas Caddyfile aan als die nog het oude IP heeft (eenmalige migratie)
+if [ -n "${DEPLOY_HOST_OLD:-}" ] && [ -f /home/stef/Caddyfile.new ]; then
+  if grep -q "$DEPLOY_HOST_OLD" /etc/caddy/Caddyfile 2>/dev/null; then
     sudo cp /home/stef/Caddyfile.new /etc/caddy/Caddyfile
     sudo systemctl reload caddy
-    echo "OK: Caddyfile bijgewerkt naar 10.0.40.12"
+    echo "OK: Caddyfile bijgewerkt naar ${DEPLOY_HOST:-nieuw IP}"
   fi
 fi
 

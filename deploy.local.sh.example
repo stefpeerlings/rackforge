@@ -1,0 +1,12 @@
+# Lokale deploy-config (Linux/macOS) — kopieer naar deploy.local.sh en vul in.
+# Wordt gesourcet door de bash-scripts in de repo-root en scripts/.
+# deploy.local.sh zelf staat in .gitignore — nooit committen.
+
+export DEPLOY_HOST="10.0.0.12"          # LAN-IP van je Caddy/RackForge-server
+export DEPLOY_HOST_OLD=""               # optioneel: vorig IP, voor eenmalige migratie-checks
+export DEPLOY_DOMAIN="jouwdomein.nl"    # domein dat naar DEPLOY_HOST wijst
+export LAN_CIDR="10.0.0.0/24"           # subnet waarbinnen de server alleen bereikbaar is
+export LAN_DNS_SERVER="10.0.0.254"      # lokale DNS-server (dnsmasq/router) voor de LAN-only setup
+export LAN_INTERFACE="ens33"            # netwerkinterface van de server
+export CF_TUNNEL_ID=""                  # Cloudflare Tunnel ID (indien je cloudflared gebruikt)
+export CF_TUNNEL_DOMAIN=""              # domein achter de Cloudflare Tunnel

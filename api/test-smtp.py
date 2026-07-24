@@ -9,7 +9,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 ENV_FILE = Path.home() / ".config" / "rackforge" / "smtp.env"
-TO = os.environ.get("TEST_EMAIL_TO", "stef.peerlings@netwerkengineer.com")
+TO = os.environ.get("TEST_EMAIL_TO", "test@example.com")
 
 
 def load_env(path: Path) -> dict[str, str]:

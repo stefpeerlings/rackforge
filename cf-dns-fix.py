@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Delete conflicting DNS records and route apex via cloudflared."""
 import json
+import os
 import subprocess
 import sys
 
-TUNNEL_ID = "468025c7-e709-4846-8cbc-a919aaf05deb"
-DOMAIN = "home-labe.com"
+TUNNEL_ID = os.environ.get("CF_TUNNEL_ID") or sys.exit(
+    "Zet CF_TUNNEL_ID (bv. via 'source deploy.local.sh')"
+)
+DOMAIN = os.environ.get("CF_TUNNEL_DOMAIN") or sys.exit(
+    "Zet CF_TUNNEL_DOMAIN (bv. via 'source deploy.local.sh')"
+)
 HOSTNAMES = [f"www.{DOMAIN}", DOMAIN]
 
 
@@ -34,7 +39,7 @@ def main():
         if code != 0:
             print(f"WARN: route dns failed for {host} (code {code})")
 
-    print("\nDone. Test with: curl -sI https://www.home-labe.com/")
+    print(f"\nDone. Test with: curl -sI https://www.{DOMAIN}/")
 
 
 if __name__ == "__main__":

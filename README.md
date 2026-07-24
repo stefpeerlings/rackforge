@@ -6,13 +6,26 @@ RackForge is een rack-planning webapp met SQLite-API, admin-panel en Caddy rever
 - **API:** Python (`server.py`) op `127.0.0.1:8080`
 - **Admin:** `/admin` — databasebeheer, gebruikers, exports
 
-**Repo:** https://github.com/stefpeerlings/rackforge (private)
+**Repo:** https://github.com/stefpeerlings/rackforge
 
 ## Vereisten
 
 - Ubuntu-server met Caddy
 - Python 3
 - systemd (user service voor de API)
+
+## Deploy-config (eigen server)
+
+De deploy-/beheerscripts in de repo-root en `scripts/` (Caddy, DNS, Cloudflare Tunnel, Windows-deploy)
+hebben geen server-adres hardcoded — die lezen dat uit een lokaal, nooit-gecommit config-bestand:
+
+```bash
+cp deploy.local.sh.example deploy.local.sh   # Linux/macOS — invullen, dan: source deploy.local.sh
+cp deploy.local.ps1.example deploy.local.ps1 # Windows — invullen
+```
+
+Zie de `.example`-bestanden voor de beschikbare variabelen (`DEPLOY_HOST`, `DEPLOY_DOMAIN`,
+`LAN_CIDR`, `CF_TUNNEL_ID`, …).
 
 ## Installatie in één commando (Ubuntu)
 
@@ -99,11 +112,11 @@ docker compose logs -f api
 ## Deploy vanaf Windows
 
 ```powershell
-cd C:\Users\stef\caddy-site
+cd C:\pad\naar\rackforge
 .\deploy.ps1
 ```
 
-Deployt site + API naar `caddy-server` (`10.0.40.12`) en herstart de API.
+Deployt site + API naar de server uit `deploy.local.ps1` (`DEPLOY_HOST`) en herstart de API.
 
 Eenmalige server-setup:
 
@@ -155,10 +168,11 @@ curl http://127.0.0.1:8080/api/health
 
 ## Git
 
-Private repo: https://github.com/stefpeerlings/rackforge
+Repo: https://github.com/stefpeerlings/rackforge
 
 ```bash
 git add -A && git commit -m "Beschrijving" && git push
 ```
 
-**Niet committen:** `.env`, `plans.db`, avatars, wachtwoorden (zie `.gitignore`).
+**Niet committen:** `.env`, `plans.db`, avatars, wachtwoorden, `deploy.local.sh`/`deploy.local.ps1`
+(zie `.gitignore`).

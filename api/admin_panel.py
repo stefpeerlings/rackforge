@@ -29,7 +29,7 @@ from urllib.parse import parse_qs, quote, unquote_plus, urlparse
 ADMIN_COOKIE = "rackforge_admin"
 ADMIN_SESSION_HOURS = 8
 ADMIN_PASSWORD = os.environ.get("RACKFORGE_ADMIN_PASSWORD", "").strip()
-APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://netwerkengineer.com").rstrip("/")
+APP_URL = os.environ.get("RACKFORGE_APP_URL", "https://example.com").rstrip("/")
 AVATAR_DIR = os.environ.get("RACKFORGE_AVATAR_DIR", "/home/stef/rackforge/avatars")
 ADMIN_SESSIONS: dict[str, dict[str, Any]] = {}
 ADMIN_FLASH: dict[str, str] = {}
@@ -50,7 +50,7 @@ SMTP_PORT = int(os.environ.get("RACKFORGE_SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("RACKFORGE_SMTP_USER", "")
 SMTP_PASS = os.environ.get("RACKFORGE_SMTP_PASS", "")
 SMTP_FROM = os.environ.get(
-    "RACKFORGE_SMTP_FROM", "noreply RackForge <noreply@netwerkengineer.com>"
+    "RACKFORGE_SMTP_FROM", "noreply RackForge <noreply@example.com>"
 )
 ADMIN_RESET_TOKEN_RE = re.compile(r"^[a-f0-9]{64}$")
 ADMIN_RESET_CODE_RE = re.compile(r"^\d{6}$")

@@ -3,7 +3,9 @@ import sys
 
 import paramiko
 
-HOST = "10.0.40.12"
+HOST = os.environ.get("DEPLOY_HOST") or sys.exit(
+    "Zet DEPLOY_HOST (bv. via 'source deploy.local.sh')"
+)
 USER = "stef"
 PASSWORD = os.environ["SSH_PASSWORD"]
 REMOTE_TMP = "/home/stef/caddy-site-upload"

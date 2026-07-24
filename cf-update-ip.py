@@ -2,15 +2,28 @@
 """Update Cloudflare DNS/tunnel references from old server IP to new."""
 import base64
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
 
 CERT_PATH = "/home/stef/.cloudflared/cert.pem"
-OLD_IP = "10.0.40.11"
-NEW_IP = "10.0.40.12"
-TUNNEL_ID = "468025c7-e709-4846-8cbc-a919aaf05deb"
-DOMAIN = "home-labe.com"
+OLD_IP = os.environ.get("DEPLOY_HOST_OLD") or sys.exit(
+    "Zet DEPLOY_HOST_OLD (bv. via 'source deploy.local.sh')"
+)
+NEW_IP = os.environ.get("DEPLOY_HOST") or sys.exit(
+    "Zet DEPLOY_HOST (bv. via 'source deploy.local.sh')"
+)
+TUNNEL_ID = os.environ.get("CF_TUNNEL_ID") or sys.exit(
+    "Zet CF_TUNNEL_ID (bv. via 'source deploy.local.sh')"
+)
+DOMAIN = os.environ.get("CF_TUNNEL_DOMAIN") or sys.exit(
+    "Zet CF_TUNNEL_DOMAIN (bv. via 'source deploy.local.sh')"
+)
+LAN_CIDR = os.environ.get("LAN_CIDR") or sys.exit(
+    "Zet LAN_CIDR (bv. via 'source deploy.local.sh')"
+)
+LAN_PREFIX = LAN_CIDR.rsplit(".", 1)[0] + "."
 
 
 def load_creds():
@@ -58,7 +71,7 @@ def main():
     updated = 0
     for rec in records:
         content = rec.get("content", "")
-        if OLD_IP in content or (rec.get("type") in ("A", "AAAA") and content.startswith("10.0.40.")):
+        if OLD_IP in content or (rec.get("type") in ("A", "AAAA") and content.startswith(LAN_PREFIX)):
             print(f"FOUND {rec['type']} {rec['name']} -> {content} (id={rec['id']})")
             if OLD_IP in content:
                 new_content = content.replace(OLD_IP, NEW_IP)

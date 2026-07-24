@@ -43,7 +43,7 @@
     <rect width="88" height="28" rx="1" fill="#0a0a0c" stroke="#2a2a30" stroke-width="0.5"/>
     <rect x="3" y="3" width="82" height="14" rx="0.5" fill="url(#lcdBg)" stroke="#1a4a2a" stroke-width="0.5"/>
     <text x="7" y="12" fill="#1bdb7a" font-family="JetBrains Mono, monospace" font-size="6" font-weight="600">READY</text>
-    <text x="7" y="24" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="4.5">iDRAC · 10.0.40.11</text>
+    <text x="7" y="24" fill="#64748b" font-family="JetBrains Mono, monospace" font-size="4.5">iDRAC · 192.0.2.11</text>
   </g>
 
   <g transform="translate(346, 8)">

@@ -8,14 +8,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from email_templates import build_verification_message, find_logo_bytes, verification_email_content
 
-content = verification_email_content("register", "en", "https://netwerkengineer.com/?verify-email=test", test=True)
-link = "https://netwerkengineer.com/?verify-email=test"
+content = verification_email_content("register", "en", "https://example.com/?verify-email=test", test=True)
+link = "https://example.com/?verify-email=test"
 msg = build_verification_message(
     to_email="test@example.com",
-    from_addr="noreply RackForge <noreply@netwerkengineer.com>",
+    from_addr="noreply RackForge <noreply@example.com>",
     content=content,
     link=link,
-    app_url="https://netwerkengineer.com",
+    app_url="https://example.com",
 )
 
 print("LOGO_BYTES:", len(find_logo_bytes() or b""))

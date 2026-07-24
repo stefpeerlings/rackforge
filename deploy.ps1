@@ -1,8 +1,14 @@
-# Volledige deploy caddy-site -> stef@10.0.40.12:/var/www/html
+# Volledige deploy van deze site naar je eigen server.
 # Gebruik: .\deploy.ps1
+# Zet DEPLOY_HOST (en evt. DEPLOY_DOMAIN) in deploy.local.ps1 (zie deploy.local.ps1.example),
+# of geef -ServerHost expliciet mee.
 
 param(
-    [string]$ServerHost = "10.0.40.12",
+    [string]$ServerHost = $(
+        $cfg = Join-Path $PSScriptRoot "deploy.local.ps1"
+        if (Test-Path $cfg) { . $cfg }
+        $env:DEPLOY_HOST
+    ),
     [string]$User = "stef",
     [string]$RemotePath = "/var/www/html",
     [string]$IdentityFile = "$env:USERPROFILE\.ssh\caddy-server",
@@ -10,6 +16,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if (-not $ServerHost) {
+    Write-Host "Geen server-host bekend. Zet DEPLOY_HOST in deploy.local.ps1 of geef -ServerHost mee." -ForegroundColor Red
+    exit 1
+}
 $LocalPath = $PSScriptRoot
 
 $sshArgs = @("-o", "BatchMode=yes", "-o", "ConnectTimeout=15")
@@ -111,4 +121,5 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "Klaar! https://netwerkengineer.com/ (alleen LAN)" -ForegroundColor Green
+$doneDomain = if ($env:DEPLOY_DOMAIN) { $env:DEPLOY_DOMAIN } else { $ServerHost }
+Write-Host "Klaar! https://$doneDomain/ (alleen LAN)" -ForegroundColor Green

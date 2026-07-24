@@ -1,0 +1,6 @@
+# Lokale deploy-config (Windows) — kopieer naar deploy.local.ps1 en vul in.
+# Wordt dot-gesourcet door deploy.ps1 en scripts/*.ps1.
+# deploy.local.ps1 zelf staat in .gitignore — nooit committen.
+
+$env:DEPLOY_HOST = "10.0.0.12"
+$env:DEPLOY_DOMAIN = "jouwdomein.nl"

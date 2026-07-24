@@ -3,10 +3,14 @@
 # Gebruik: bash ~/setup-lan-only.sh
 set -euo pipefail
 
-LAN_CIDR="10.0.40.0/24"
-LAN_IP="10.0.40.12"
-LAN_IF="${LAN_IF:-ens33}"
-DOMAIN="netwerkengineer.com"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -f "$SCRIPT_DIR/../deploy.local.sh" ] && source "$SCRIPT_DIR/../deploy.local.sh"
+
+LAN_CIDR="${LAN_CIDR:?Zet LAN_CIDR in deploy.local.sh (zie deploy.local.sh.example)}"
+LAN_IP="${DEPLOY_HOST:?Zet DEPLOY_HOST in deploy.local.sh (zie deploy.local.sh.example)}"
+LAN_IF="${LAN_INTERFACE:-ens33}"
+DOMAIN="${DEPLOY_DOMAIN:?Zet DEPLOY_DOMAIN in deploy.local.sh (zie deploy.local.sh.example)}"
+LAN_DNS_SERVER="${LAN_DNS_SERVER:?Zet LAN_DNS_SERVER in deploy.local.sh (zie deploy.local.sh.example)}"
 
 echo "=== RackForge LAN-only setup ==="
 
@@ -31,7 +35,7 @@ address=/${DOMAIN}/${LAN_IP}
 address=/www.${DOMAIN}/${LAN_IP}
 
 # Overige queries doorsturen naar router
-server=10.0.40.254
+server=${LAN_DNS_SERVER}
 no-resolv
 cache-size=1000
 EOF
@@ -53,7 +57,7 @@ fi
 echo ""
 echo "Klaar!"
 echo ""
-echo "Laatste stap op je router (${LAN_CIDR%/*}.254):"
+echo "Laatste stap op je router (${LAN_DNS_SERVER}):"
 echo "  DHCP DNS-server = ${LAN_IP}"
 echo "  (of voeg handmatig een DNS-rewrite toe: ${DOMAIN} → ${LAN_IP})"
 echo ""

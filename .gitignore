@@ -17,6 +17,8 @@ google.env
 **/admin.env
 **/smtp.env
 **/google.env
+deploy.local.sh
+deploy.local.ps1
 
 # Database & uploads (restore from backup separately)
 *.db

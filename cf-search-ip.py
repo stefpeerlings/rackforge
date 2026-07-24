@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 import base64
 import json
+import os
+import sys
 import urllib.request
 
-SEARCH = "10.0.40.11"
+SEARCH = os.environ.get("DEPLOY_HOST_OLD") or os.environ.get("DEPLOY_HOST") or sys.exit(
+    "Zet DEPLOY_HOST (of DEPLOY_HOST_OLD) via 'source deploy.local.sh'"
+)
+ALSO_MATCH = os.environ.get("DEPLOY_HOST", SEARCH)
 pem = open("/home/stef/.cloudflared/cert.pem").read()
 b64 = pem.split("-----BEGIN ARGO TUNNEL TOKEN-----")[1].split("-----END")[0].replace("\n", "")
 d = json.loads(base64.b64decode(b64))
@@ -24,7 +29,7 @@ def get(path):
 
 def dump_if_match(label, data):
     text = json.dumps(data)
-    if SEARCH in text or "10.0.40.12" in text:
+    if SEARCH in text or ALSO_MATCH in text:
         print(f"=== {label} ===")
         print(text[:3000])
 
@@ -33,7 +38,7 @@ page = 1
 while True:
     r = get(f"/zones/{z}/dns_records?per_page=100&page={page}")
     for item in r.get("result", []):
-        if SEARCH in item.get("content", "") or "10.0.40.12" in item.get("content", ""):
+        if SEARCH in item.get("content", "") or ALSO_MATCH in item.get("content", ""):
             print("DNS", item["type"], item["name"], "->", item["content"])
     if page >= r.get("result_info", {}).get("total_pages", 1):
         break
