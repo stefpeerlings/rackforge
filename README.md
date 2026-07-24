@@ -14,10 +14,25 @@
 
 ---
 
-RackForge is a rack-planning web app: drag-and-drop equipment into virtual racks, track power
-and U-space, and manage everything through a self-hosted API with a built-in admin panel. No
-database server, no build step, no npm/pip dependency tree — a single Python process backed by
-SQLite, fronted by Caddy.
+## About
+
+Planning where physical equipment goes in a rack is normally done in a spreadsheet, a diagram
+tool, or in someone's head. RackForge replaces that with a purpose-built planner: drag equipment
+onto a virtual rack, and it tracks U-space and power draw for you as you go, so you know before
+you touch a screwdriver whether a device actually fits and whether the rack's power budget still
+holds up.
+
+It's built for anyone who manages physical racks and wants a shared, always-up-to-date source of
+truth instead of a stale diagram — homelab owners, small IT teams, and MSPs managing racks for
+multiple clients. Accounts can own several racks, share a rack with a colleague as a viewer or
+editor, and every change is automatically snapshotted so a bad edit is one click away from being
+undone.
+
+The whole thing is one Python process (standard library only — no pip/npm dependency tree to
+audit or break) backed by SQLite, fronted by Caddy for TLS and static file serving, with an
+admin panel for managing users, sessions, and licensing built in. That means it runs on
+practically anything with Python 3 installed: a Docker container, a bare LXC, a spare laptop —
+no database server, no build step, no external services required to get it running.
 
 ## Features
 
@@ -45,7 +60,25 @@ RackForge ships as one codebase with tier-gated limits, unlocked by a signed lic
 
 The Community tier requires no license key and runs fully self-hosted, free.
 
+## Installation
+
+Two supported paths, pick whichever fits your setup:
+
+- **[Docker](#quick-start-docker)** — the fastest way to get RackForge running on any Linux
+  host or LXC that has Docker installed. Everything (API + Caddy + TLS) is containerized;
+  updating means `git pull` + `docker compose up -d --build`. Recommended for most people.
+- **[Bare-metal on Ubuntu](#bare-metal-install-ubuntu--caddy)** — installs directly onto the
+  host as a systemd user service behind a system-installed Caddy. No Docker required, but you
+  manage Caddy, systemd, and TLS certificates yourself.
+
+Both paths end up in the same place: a running API on port 8080, a Caddy reverse proxy handling
+`/api/*` and `/admin/*`, and a bootstrap `admin` account you log into to configure everything
+else (license key, SMTP, Google OAuth) from the admin panel — no config file editing needed
+after the initial setup.
+
 ## Quick start (Docker)
+
+Requires Docker + the Compose plugin (`docker compose version`) on the target host.
 
 ```bash
 git clone https://github.com/stefpeerlings/rackforge.git
@@ -54,6 +87,10 @@ cp .env.example .env                              # set DOMAIN
 cp api/rackforge.env.example api/rackforge.env     # set RACKFORGE_ADMIN_PASSWORD
 docker compose up -d --build
 ```
+
+`.env` controls the public-facing domain Caddy serves on; `api/rackforge.env` holds the app's
+own secrets (admin password, and optionally SMTP/Google OAuth/license key — see the comments in
+the example file for each). Neither file is committed to git.
 
 This starts two containers:
 
@@ -66,6 +103,10 @@ This starts two containers:
 Log in at `/admin` (user **`admin`**, password from `rackforge.env`) to paste a license key
 under **License** — it takes effect immediately, no restart needed.
 `api/issue_license.py` (the vendor-only key-signing tool) is deliberately excluded from the image.
+
+Note that `/admin` (the operator panel) and the planner itself are separate account systems:
+visit `/main` and sign up for a regular account to actually start planning racks — the `admin`
+login is only for managing the instance (users, sessions, audit log, license).
 
 Rebuild after a `git pull`:
 
@@ -92,6 +133,11 @@ The script:
 3. Creates config templates in `~/.config/rackforge/`
 4. Starts the `rackforge-api` user service
 
+Caddy itself isn't installed by this script — install it separately (see the
+[official instructions](https://caddyserver.com/docs/install)), then copy `Caddyfile` into
+`/etc/caddy/Caddyfile` (fill in your own domain/IP, see below) and reload it. `install.sh` also
+copies a ready-to-use `Caddyfile.new` into your home directory as a starting point.
+
 ### Configuration
 
 Copy the `.example` files and fill in secrets:
@@ -104,7 +150,9 @@ Copy the `.example` files and fill in secrets:
 
 Templates live in `api/*.env.example`.
 
-Bootstrap admin: username **`admin`** with the password from `admin.env` (Owner role).
+Bootstrap admin: username **`admin`** with the password from `admin.env` (Owner role) — this logs
+into `/admin`, the operator panel (users, sessions, audit log, license), which is separate from
+regular planner accounts. Visit `/main` and sign up normally to start planning racks.
 
 ### Database
 
@@ -148,7 +196,6 @@ One-time server setup:
 
 ```bash
 bash setup-server.sh    # /var/www/html permissions, passwordless Caddy sudo
-bash setup-deploy.sh    # deploy permissions
 bash setup-api.sh       # alternative: system-wide API service
 ```
 
