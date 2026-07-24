@@ -78,6 +78,28 @@
       SQLite, fronted by Caddy &mdash; no database server, no build step, no dependency tree to audit.
     </p>
 
+    <h2>URLs on your instance</h2>
+    <p>
+      Once running, a RackForge instance exposes a handful of paths on whichever domain/IP you
+      pointed it at. All of these live on the <strong>same host</strong> &mdash; there's no
+      separate admin subdomain to set up.
+    </p>
+    <table>
+      <tr><th>Path</th><th>What it is</th></tr>
+      <tr><td><code>/</code></td><td>Redirects to <code>/main</code> or <code>/login</code> depending on whether you're signed in.</td></tr>
+      <tr><td><code>/login</code></td><td>Sign up / log in for a regular planner account.</td></tr>
+      <tr><td><code>/main</code></td><td>The rack planner itself &mdash; where you place equipment and manage racks.</td></tr>
+      <tr><td><code>/admin</code></td><td>The operator panel: manage users, sessions, the audit log, and the license key. Separate login from regular accounts &mdash; see below.</td></tr>
+      <tr><td><code>/api/*</code></td><td>The backend API. Not meant to be visited directly; the frontend and admin panel call it for you.</td></tr>
+    </table>
+    <div class="docs-note">
+      <code>/admin</code> is for whoever runs the instance (you), not for end users planning
+      racks. It has its own separate login (bootstrap user <strong>admin</strong>, password set
+      via <code>RACKFORGE_ADMIN_PASSWORD</code> &mdash; see the install guides) and is where you
+      paste a license key to unlock the Pro/Enterprise tiers. Regular users never need to visit
+      it; they just sign up at <code>/login</code> and use <code>/main</code>.
+    </div>
+
     <h2>Two ways to run it</h2>
     <ul>
       <li><a href="docker.html">Docker</a> &mdash; the fastest way to get RackForge running on any Linux host or LXC that has Docker installed. Recommended for most people.</li>
