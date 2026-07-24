@@ -81,6 +81,7 @@ after the initial setup.
 Requires Docker + the Compose plugin (`docker compose version`) on the target host.
 
 ```bash
+apt-get update && apt-get install -y git   # skip if git is already installed
 git clone https://github.com/stefpeerlings/rackforge.git
 cd rackforge
 cp .env.example .env                              # set DOMAIN
@@ -117,10 +118,13 @@ docker compose up -d --build
 ## Bare-metal install (Ubuntu + Caddy)
 
 ```bash
-git clone https://github.com/stefpeerlings/rackforge.git rackforge-src && cd rackforge-src && bash install.sh
+apt-get update && apt-get install -y git \
+  && git clone https://github.com/stefpeerlings/rackforge.git rackforge-src \
+  && cd rackforge-src && bash install.sh
 ```
 
-That's it — clone and full restore in one line.
+That's it — clone and full restore in one line. (Not root? Prefix the `apt-get` commands with
+`sudo`.)
 
 > **Note:** clone into a directory name other than `rackforge` (e.g. `rackforge-src` as above).
 > `API_DIR` defaults to `~/rackforge` (see `rackforge-api.user.service`), so a checkout in that
