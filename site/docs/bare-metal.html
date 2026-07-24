@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bare-metal install — RackForge Docs</title>
+<meta name="description" content="Install RackForge directly on Ubuntu with a systemd user service.">
+<link rel="icon" href="../icons/rackforge-avatar.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <span class="logo__mark" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="logo-forge" x1="7" y1="9" x2="17" y2="12.5" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fde68a"/>
+              <stop offset="0.45" stop-color="#f59e0b"/>
+              <stop offset="1" stop-color="#ea580c"/>
+            </linearGradient>
+            <radialGradient id="logo-ember" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(13.5 10.5) scale(4)">
+              <stop stop-color="#fbbf24" stop-opacity="0.55"/>
+              <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect x="4" y="2.5" width="16" height="18" rx="1.75" stroke="currentColor" stroke-width="1.25"/>
+          <rect x="5.25" y="4" width="1.25" height="15" rx="0.35" fill="currentColor" opacity="0.18"/>
+          <rect x="17.5" y="4" width="1.25" height="15" rx="0.35" fill="currentColor" opacity="0.18"/>
+          <circle cx="5.9" cy="6" r="0.45" fill="currentColor" opacity="0.35"/>
+          <circle cx="5.9" cy="10" r="0.45" fill="currentColor" opacity="0.35"/>
+          <circle cx="5.9" cy="14" r="0.45" fill="currentColor" opacity="0.35"/>
+          <circle cx="5.9" cy="18" r="0.45" fill="currentColor" opacity="0.35"/>
+          <rect x="7.5" y="4.5" width="9.5" height="3" rx="0.45" fill="currentColor" opacity="0.22"/>
+          <rect x="7.5" y="9" width="9.5" height="3.25" rx="0.45" fill="url(#logo-forge)"/>
+          <ellipse cx="12.25" cy="10.6" rx="3.2" ry="1.6" fill="url(#logo-ember)"/>
+          <rect x="7.5" y="13.75" width="9.5" height="3" rx="0.45" fill="currentColor" opacity="0.28"/>
+          <path d="M16.8 8.1l1.1-1.2M17.1 10.4l1.4-.5" stroke="#fcd34d" stroke-width="0.7" stroke-linecap="round"/>
+          <path d="M8.5 20.2 12 18.6l3.5 1.6" stroke="#f59e0b" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+          <circle cx="17.2" cy="5.6" r="0.65" fill="#1bdb7a"/>
+          <circle cx="17.2" cy="15.1" r="0.65" fill="#3b9eff"/>
+        </svg>
+      </span>
+      <span>Rack<span class="logo__forge">Forge</span></span>
+    </a>
+    <nav class="links">
+      <a href="../features.html">Features</a>
+      <a href="../tiers.html">Tiers</a>
+      <a href="../get-started.html">Get started</a>
+      <a href="index.html" class="active">Docs</a>
+    </nav>
+    <a class="btn btn--ghost" href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</header>
+
+<div class="docs-header">
+  <div class="wrap">
+    <h1>Bare-metal install (Ubuntu)</h1>
+    <p>Runs directly on the host, no Docker required.</p>
+  </div>
+</div>
+
+<div class="docs-body">
+  <nav class="docs-sidebar">
+    <a href="index.html" >Welcome</a>
+    <div class="group-label">Installation</div>
+    <a href="docker.html" class="sub">Docker</a>
+    <a href="bare-metal.html" class="active sub">Bare-metal (Ubuntu)</a>
+    <a href="deploying.html" >Deploying to your infra</a>
+    <a href="project-structure.html" >Project structure</a>
+  </nav>
+  <main class="docs-content">
+    <pre>git clone https://github.com/stefpeerlings/rackforge.git rackforge-src \
+  &amp;&amp; cd rackforge-src &amp;&amp; bash install.sh</pre>
+
+    <p>That's it &mdash; clone and full restore in one line.</p>
+
+    <div class="docs-note">
+      Clone into a directory name other than <code>rackforge</code> (e.g. <code>rackforge-src</code>
+      as above). <code>API_DIR</code> defaults to <code>~/rackforge</code> (see
+      <code>rackforge-api.user.service</code>), so a checkout in that exact directory collides
+      with the restore step.
+    </div>
+
+    <h2>What the script does</h2>
+    <ol>
+      <li>Installs Caddy via its official apt repo, if not already present (set <code>INSTALL_CADDY=0</code> to skip and manage it yourself)</li>
+      <li>Copies the static site to <code>/var/www/html</code> (if writable)</li>
+      <li>Places the API files in <code>~/rackforge</code></li>
+      <li>Creates config templates in <code>~/.config/rackforge/</code></li>
+      <li>Starts the <code>rackforge-api</code> user service</li>
+      <li>Copies a ready-to-use <code>Caddyfile.new</code> into your home directory</li>
+    </ol>
+    <p>
+      Caddy is installed but not auto-configured &mdash; copy <code>Caddyfile.new</code> into
+      <code>/etc/caddy/Caddyfile</code> (fill in your own domain/IP) and reload it once you've
+      filled that in.
+    </p>
+
+    <h2>Configuration</h2>
+    <p>Copy the <code>.example</code> files and fill in secrets:</p>
+    <table>
+      <tr><th>File</th><th>Purpose</th></tr>
+      <tr><td><code>~/.config/rackforge/admin.env</code></td><td>Admin password (<code>RACKFORGE_ADMIN_PASSWORD</code>)</td></tr>
+      <tr><td><code>~/.config/rackforge/smtp.env</code></td><td>Email (password reset, verification)</td></tr>
+      <tr><td><code>~/.config/rackforge/google.env</code></td><td>Google OAuth (optional)</td></tr>
+    </table>
+    <p>Templates live in <code>api/*.env.example</code>.</p>
+    <p>
+      Bootstrap admin: username <strong>admin</strong> with the password from <code>admin.env</code>
+      (Owner role) &mdash; this logs into <code>/admin</code>, the operator panel, which is
+      separate from regular planner accounts. Visit <code>/main</code> and sign up normally to
+      start planning racks.
+    </p>
+
+    <h2>Database</h2>
+    <p>The SQLite database (<code>plans.db</code>) is not in git. To migrate, copy it manually:</p>
+    <pre>scp user@old-server:~/rackforge/plans.db ~/rackforge/plans.db
+systemctl --user restart rackforge-api</pre>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>Ubuntu server (Caddy is installed automatically by <code>install.sh</code> if missing)</li>
+      <li>Python 3</li>
+      <li>systemd (user service for the API)</li>
+    </ul>
+
+    <div class="docs-pager">
+      <a href="docker.html"><span class="dir">&larr; Previous</span>Docker</a>
+      <a href="deploying.html" class="next"><span class="dir">Next &rarr;</span>Deploying to your infra</a>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="brand">Rack<span style="color: var(--amber);">Forge</span></div>
+    <nav>
+      <a href="../features.html">Features</a>
+      <a href="../tiers.html">Tiers</a>
+      <a href="../get-started.html">Get started</a>
+      <a href="index.html">Docs</a>
+      <a href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <span class="muted">© 2026 RackForge</span>
+  </div>
+</footer>
+
+</body>
+</html>

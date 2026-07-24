@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Docs — RackForge</title>
-<meta name="description" content="Documentation, source code, and issue tracker for RackForge.">
-<link rel="icon" href="icons/rackforge-avatar.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<title>Project structure — RackForge Docs</title>
+<meta name="description" content="How the RackForge repository is laid out.">
+<link rel="icon" href="../icons/rackforge-avatar.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
 </head>
 <body>
 
 <header class="site">
   <div class="wrap">
-    <a class="logo" href="index.html">
+    <a class="logo" href="../index.html">
       <span class="logo__mark" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
           <defs>
@@ -46,52 +46,70 @@
       <span>Rack<span class="logo__forge">Forge</span></span>
     </a>
     <nav class="links">
-      <a href="features.html">Features</a>
-      <a href="tiers.html">Tiers</a>
-      <a href="get-started.html">Get started</a>
-      <a href="docs.html" class="active">Docs</a>
+      <a href="../features.html">Features</a>
+      <a href="../tiers.html">Tiers</a>
+      <a href="../get-started.html">Get started</a>
+      <a href="index.html" class="active">Docs</a>
     </nav>
     <a class="btn btn--ghost" href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
 </header>
 
-<div class="page-header">
+<div class="docs-header">
   <div class="wrap">
-    <h1>Documentation</h1>
-    <p class="subtitle">Full setup, configuration, and deployment docs live in the repo.</p>
+    <h1>Project structure</h1>
+    <p>How the repository is laid out.</p>
   </div>
 </div>
 
-<section>
-  <div class="wrap">
-    <div class="grid">
-      <div class="card">
-        <h3>README</h3>
-        <p>Installation (Docker &amp; bare-metal), configuration, tiers, and project structure.</p>
-        <a class="card-link" href="https://github.com/stefpeerlings/rackforge#readme" target="_blank" rel="noopener">Read the README &#8599;</a>
-      </div>
-      <div class="card">
-        <h3>Source code</h3>
-        <p>Zero-dependency Python API, vanilla JS frontend &mdash; browse the full source on GitHub.</p>
-        <a class="card-link" href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">View repository &#8599;</a>
-      </div>
-      <div class="card">
-        <h3>Issues &amp; questions</h3>
-        <p>Found a bug or have a feature request? Open an issue on GitHub.</p>
-        <a class="card-link" href="https://github.com/stefpeerlings/rackforge/issues" target="_blank" rel="noopener">Open an issue &#8599;</a>
-      </div>
+<div class="docs-body">
+  <nav class="docs-sidebar">
+    <a href="index.html" >Welcome</a>
+    <div class="group-label">Installation</div>
+    <a href="docker.html" class="sub">Docker</a>
+    <a href="bare-metal.html" class="sub">Bare-metal (Ubuntu)</a>
+    <a href="deploying.html" >Deploying to your infra</a>
+    <a href="project-structure.html" class="active">Project structure</a>
+  </nav>
+  <main class="docs-content">
+    <p>How the repository is laid out:</p>
+    <pre>├── api/                  <span class="muted"># Python API + admin panel</span>
+│   ├── server.py
+│   ├── admin_panel.py
+│   ├── license.py        <span class="muted"># Tier/license verification</span>
+│   └── *.env.example
+├── css/ js/ icons/       <span class="muted"># Frontend assets</span>
+├── *.html                <span class="muted"># Pages</span>
+├── Caddyfile             <span class="muted"># Reverse proxy (/api, /admin -> :8080), bare-metal</span>
+├── docker/Caddyfile      <span class="muted"># Reverse proxy, Docker</span>
+├── docker-compose.yml    <span class="muted"># Docker deploy</span>
+├── deploy.ps1            <span class="muted"># Windows deploy</span>
+├── rackforge-api.user.service
+├── install.sh            <span class="muted"># Entry point (calls the restore script)</span>
+└── scripts/
+    └── restore-ubuntu.sh <span class="muted"># Restore onto a fresh server</span></pre>
+
+    <h2>Contributing</h2>
+    <p>
+      Issues and pull requests are welcome. Please don't commit <code>.env</code> files,
+      <code>plans.db</code>, avatars, passwords, or <code>deploy.local.sh</code>/<code>deploy.local.ps1</code>
+      &mdash; see <code>.gitignore</code>.
+    </p>
+
+    <div class="docs-pager">
+      <a href="deploying.html"><span class="dir">&larr; Previous</span>Deploying to your infra</a>
     </div>
-  </div>
-</section>
+  </main>
+</div>
 
 <footer>
   <div class="wrap">
     <div class="brand">Rack<span style="color: var(--amber);">Forge</span></div>
     <nav>
-      <a href="features.html">Features</a>
-      <a href="tiers.html">Tiers</a>
-      <a href="get-started.html">Get started</a>
-      <a href="docs.html">Docs</a>
+      <a href="../features.html">Features</a>
+      <a href="../tiers.html">Tiers</a>
+      <a href="../get-started.html">Get started</a>
+      <a href="index.html">Docs</a>
       <a href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub</a>
     </nav>
     <span class="muted">© 2026 RackForge</span>

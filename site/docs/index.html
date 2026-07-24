@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docs — RackForge</title>
+<meta name="description" content="Documentation home for RackForge — installation, configuration, and deployment.">
+<link rel="icon" href="../icons/rackforge-avatar.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <span class="logo__mark" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="logo-forge" x1="7" y1="9" x2="17" y2="12.5" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#fde68a"/>
+              <stop offset="0.45" stop-color="#f59e0b"/>
+              <stop offset="1" stop-color="#ea580c"/>
+            </linearGradient>
+            <radialGradient id="logo-ember" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(13.5 10.5) scale(4)">
+              <stop stop-color="#fbbf24" stop-opacity="0.55"/>
+              <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect x="4" y="2.5" width="16" height="18" rx="1.75" stroke="currentColor" stroke-width="1.25"/>
+          <rect x="5.25" y="4" width="1.25" height="15" rx="0.35" fill="currentColor" opacity="0.18"/>
+          <rect x="17.5" y="4" width="1.25" height="15" rx="0.35" fill="currentColor" opacity="0.18"/>
+          <circle cx="5.9" cy="6" r="0.45" fill="currentColor" opacity="0.35"/>
+          <circle cx="5.9" cy="10" r="0.45" fill="currentColor" opacity="0.35"/>
+          <circle cx="5.9" cy="14" r="0.45" fill="currentColor" opacity="0.35"/>
+          <circle cx="5.9" cy="18" r="0.45" fill="currentColor" opacity="0.35"/>
+          <rect x="7.5" y="4.5" width="9.5" height="3" rx="0.45" fill="currentColor" opacity="0.22"/>
+          <rect x="7.5" y="9" width="9.5" height="3.25" rx="0.45" fill="url(#logo-forge)"/>
+          <ellipse cx="12.25" cy="10.6" rx="3.2" ry="1.6" fill="url(#logo-ember)"/>
+          <rect x="7.5" y="13.75" width="9.5" height="3" rx="0.45" fill="currentColor" opacity="0.28"/>
+          <path d="M16.8 8.1l1.1-1.2M17.1 10.4l1.4-.5" stroke="#fcd34d" stroke-width="0.7" stroke-linecap="round"/>
+          <path d="M8.5 20.2 12 18.6l3.5 1.6" stroke="#f59e0b" stroke-width="0.85" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+          <circle cx="17.2" cy="5.6" r="0.65" fill="#1bdb7a"/>
+          <circle cx="17.2" cy="15.1" r="0.65" fill="#3b9eff"/>
+        </svg>
+      </span>
+      <span>Rack<span class="logo__forge">Forge</span></span>
+    </a>
+    <nav class="links">
+      <a href="../features.html">Features</a>
+      <a href="../tiers.html">Tiers</a>
+      <a href="../get-started.html">Get started</a>
+      <a href="index.html" class="active">Docs</a>
+    </nav>
+    <a class="btn btn--ghost" href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</header>
+
+<div class="docs-header">
+  <div class="wrap">
+    <h1>Welcome to RackForge</h1>
+    <p>Everything you need to install, configure, and run RackForge.</p>
+  </div>
+</div>
+
+<div class="docs-body">
+  <nav class="docs-sidebar">
+    <a href="index.html" class="active">Welcome</a>
+    <div class="group-label">Installation</div>
+    <a href="docker.html" class="sub">Docker</a>
+    <a href="bare-metal.html" class="sub">Bare-metal (Ubuntu)</a>
+    <a href="deploying.html" >Deploying to your infra</a>
+    <a href="project-structure.html" >Project structure</a>
+  </nav>
+  <main class="docs-content">
+    <p>
+      RackForge is a self-hosted rack-planning app: drag equipment into a virtual rack and track
+      U-space and power draw as you go. It's one Python process (standard library only) backed by
+      SQLite, fronted by Caddy &mdash; no database server, no build step, no dependency tree to audit.
+    </p>
+
+    <h2>Two ways to run it</h2>
+    <ul>
+      <li><a href="docker.html">Docker</a> &mdash; the fastest way to get RackForge running on any Linux host or LXC that has Docker installed. Recommended for most people.</li>
+      <li><a href="bare-metal.html">Bare-metal on Ubuntu</a> &mdash; installs directly onto the host as a systemd user service behind a system-installed Caddy.</li>
+    </ul>
+    <p>
+      Both paths end up in the same place: a running API on port 8080, a Caddy reverse proxy
+      handling <code>/api/*</code> and <code>/admin/*</code>, and a bootstrap <code>admin</code>
+      account you log into to configure everything else (license key, SMTP, Google OAuth) from
+      the admin panel &mdash; no config file editing needed after the initial setup.
+    </p>
+
+    <h2>Tiers &amp; licensing</h2>
+    <p>
+      RackForge ships as one codebase with tier-gated limits, unlocked by a signed license key
+      entered under <strong>Admin &rarr; License</strong>, no restart required. See the
+      <a href="../tiers.html">tiers page</a> for the full Community / Pro / Enterprise comparison.
+      Community requires no license key and runs fully self-hosted, free, forever.
+    </p>
+
+    <h2>Source &amp; support</h2>
+    <ul>
+      <li><a href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">Source code on GitHub</a></li>
+      <li><a href="https://github.com/stefpeerlings/rackforge/issues" target="_blank" rel="noopener">Report a bug or request a feature</a></li>
+    </ul>
+
+    <div class="docs-pager">
+      <span></span>
+      <a href="docker.html" class="next"><span class="dir">Next &rarr;</span>Docker</a>
+    </div>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="brand">Rack<span style="color: var(--amber);">Forge</span></div>
+    <nav>
+      <a href="../features.html">Features</a>
+      <a href="../tiers.html">Tiers</a>
+      <a href="../get-started.html">Get started</a>
+      <a href="index.html">Docs</a>
+      <a href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <span class="muted">© 2026 RackForge</span>
+  </div>
+</footer>
+
+</body>
+</html>

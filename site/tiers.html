@@ -49,7 +49,7 @@
       <a href="features.html">Features</a>
       <a href="tiers.html" class="active">Tiers</a>
       <a href="get-started.html">Get started</a>
-      <a href="docs.html">Docs</a>
+      <a href="docs/index.html">Docs</a>
     </nav>
     <a class="btn btn--ghost" href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
@@ -59,29 +59,55 @@
   <div class="wrap">
     <h1>One codebase, three tiers</h1>
     <p class="subtitle">Unlocked by a signed license key entered in the admin panel &mdash; no restart required.</p>
+    <div class="ctas">
+      <a class="btn btn--primary" href="get-started.html">Get started free →</a>
+    </div>
   </div>
 </div>
 
-<section>
-  <div class="wrap">
-    <table class="tiers">
-      <thead>
-        <tr><th></th><th>Community</th><th class="tier-pro">Pro</th><th>Enterprise</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Racks per user</td><td>1</td><td>5</td><td>Unlimited</td></tr>
-        <tr><td>Custom equipment types</td><td>&mdash;</td><td>10</td><td>Unlimited</td></tr>
-        <tr><td>Version history</td><td>3 snapshots</td><td>20 snapshots</td><td>100 snapshots</td></tr>
-        <tr><td>Shared collaborators per rack</td><td>&mdash;</td><td>3</td><td>Unlimited</td></tr>
-        <tr><td>Admin audit log</td><td>&mdash;</td><td>&#10003;</td><td>&#10003;</td></tr>
-      </tbody>
-    </table>
-    <p class="subtitle" style="margin-top: 1.75rem; margin-bottom: 0;">
-      Community requires no license key and runs fully self-hosted, free, forever.
-    </p>
-    <p class="center" style="margin-top: 2.5rem;"><a class="btn btn--primary" href="get-started.html">Get started free &rarr;</a></p>
+<div class="wrap" style="margin-top: -3.5rem; position: relative; z-index: 2; padding-bottom: 3.5rem;">
+  <div class="tier-cards">
+    <div class="tier-card">
+      <h3>Community</h3>
+      <p class="tagline">For homelabs and small setups</p>
+      <div class="price">Free <small>forever, no license key</small></div>
+      <ul>
+        <li><span class="check">&#10003;</span> 1 rack per user</li>
+        <li class="no"><span class="check">&#10005;</span> Custom equipment types</li>
+        <li><span class="check">&#10003;</span> 3 version-history snapshots</li>
+        <li class="no"><span class="check">&#10005;</span> Shared collaborators</li>
+        <li class="no"><span class="check">&#10005;</span> Admin audit log</li>
+      </ul>
+      <a class="btn btn--ghost" href="get-started.html">Get started</a>
+    </div>
+    <div class="tier-card tier-card--highlight">
+      <h3>Pro</h3>
+      <p class="tagline">For small IT teams</p>
+      <div class="price">Self-hosted <small>license key required</small></div>
+      <ul>
+        <li><span class="check">&#10003;</span> 5 racks per user</li>
+        <li><span class="check">&#10003;</span> 10 custom equipment types</li>
+        <li><span class="check">&#10003;</span> 20 version-history snapshots</li>
+        <li><span class="check">&#10003;</span> 3 shared collaborators per rack</li>
+        <li><span class="check">&#10003;</span> Admin audit log</li>
+      </ul>
+      <a class="btn btn--primary" href="get-started.html">Get started</a>
+    </div>
+    <div class="tier-card">
+      <h3>Enterprise</h3>
+      <p class="tagline">For MSPs and multi-client setups</p>
+      <div class="price">Self-hosted <small>license key required</small></div>
+      <ul>
+        <li><span class="check">&#10003;</span> Unlimited racks per user</li>
+        <li><span class="check">&#10003;</span> Unlimited custom equipment types</li>
+        <li><span class="check">&#10003;</span> 100 version-history snapshots</li>
+        <li><span class="check">&#10003;</span> Unlimited shared collaborators</li>
+        <li><span class="check">&#10003;</span> Admin audit log</li>
+      </ul>
+      <a class="btn btn--ghost" href="get-started.html">Get started</a>
+    </div>
   </div>
-</section>
+</div>
 
 <footer>
   <div class="wrap">
@@ -90,7 +116,7 @@
       <a href="features.html">Features</a>
       <a href="tiers.html">Tiers</a>
       <a href="get-started.html">Get started</a>
-      <a href="docs.html">Docs</a>
+      <a href="docs/index.html">Docs</a>
       <a href="https://github.com/stefpeerlings/rackforge" target="_blank" rel="noopener">GitHub</a>
     </nav>
     <span class="muted">© 2026 RackForge</span>
