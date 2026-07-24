@@ -128,15 +128,16 @@ That's it — clone and full restore in one line.
 
 The script:
 
-1. Copies the static site to `/var/www/html` (if writable)
-2. Places the API files in `~/rackforge`
-3. Creates config templates in `~/.config/rackforge/`
-4. Starts the `rackforge-api` user service
+1. Installs Caddy via its official apt repo, if not already present (set `INSTALL_CADDY=0` to
+   skip and manage it yourself)
+2. Copies the static site to `/var/www/html` (if writable)
+3. Places the API files in `~/rackforge`
+4. Creates config templates in `~/.config/rackforge/`
+5. Starts the `rackforge-api` user service
+6. Copies a ready-to-use `Caddyfile.new` into your home directory
 
-Caddy itself isn't installed by this script — install it separately (see the
-[official instructions](https://caddyserver.com/docs/install)), then copy `Caddyfile` into
-`/etc/caddy/Caddyfile` (fill in your own domain/IP, see below) and reload it. `install.sh` also
-copies a ready-to-use `Caddyfile.new` into your home directory as a starting point.
+Caddy is installed but not auto-configured — copy `Caddyfile.new` into `/etc/caddy/Caddyfile`
+(fill in your own domain/IP, see below) and reload it once you've filled that in.
 
 ### Configuration
 
@@ -165,7 +166,7 @@ systemctl --user restart rackforge-api
 
 ### Requirements
 
-- Ubuntu server with Caddy
+- Ubuntu server (Caddy is installed automatically by `install.sh` if missing)
 - Python 3
 - systemd (user service for the API)
 

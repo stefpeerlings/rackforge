@@ -10,12 +10,28 @@ WEB_ROOT="${WEB_ROOT:-/var/www/html}"
 API_DIR="${API_DIR:-$HOME/rackforge}"
 CONFIG_DIR="${CONFIG_DIR:-$HOME/.config/rackforge}"
 USER_NAME="${USER_NAME:-$(whoami)}"
+INSTALL_CADDY="${INSTALL_CADDY:-1}"
 
 echo "=== RackForge restore ==="
 echo "Repo:     $REPO_ROOT"
 echo "Website:  $WEB_ROOT"
 echo "API:      $API_DIR"
 echo ""
+
+echo "-> Caddy"
+if command -v caddy >/dev/null 2>&1; then
+  echo "   Caddy al geïnstalleerd ($(caddy version | head -1))"
+elif [ "$INSTALL_CADDY" = "1" ]; then
+  echo "   Installeren via de officiële Caddy apt-repo (vraagt sudo-wachtwoord)..."
+  sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl gnupg
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+  sudo apt-get update -qq
+  sudo apt-get install -y caddy
+  echo "   Caddy geïnstalleerd ($(caddy version | head -1))"
+else
+  echo "   Overgeslagen (INSTALL_CADDY=0) — installeer zelf: https://caddyserver.com/docs/install"
+fi
 
 mkdir -p "$API_DIR" "$API_DIR/avatars" "$API_DIR/icons" "$CONFIG_DIR"
 
