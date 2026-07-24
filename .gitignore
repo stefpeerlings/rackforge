@@ -47,3 +47,6 @@ _test-cookies.txt
 
 # Generated caches on server
 __pycache__/
+
+# Promo/marketing website — deployed separately, not part of this repo
+site/
